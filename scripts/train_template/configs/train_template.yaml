@@ -1,0 +1,84 @@
+# Template train config file
+experiments:
+  name: "exp_name"
+  start_epoch: 1
+  total_epochs: 200
+  save_root: "rootdir/to/save/experiment"
+  tb_root: "rootdir/to/save/tensorboard"
+  log_fname: "train.log"
+  save_period: 5
+  eval_period: 1  # if 0, remove validate process when training.
+
+train_transform:
+  script_path: "common.transform.transform"
+  name: "TransformFixMatch"
+  param:
+    phase: "train"
+    is_labeled: True
+
+eval_transform:
+  script_path: "common.transform.transform"
+  name: "TransformFixMatch"
+  param:
+    phase: "test"
+
+train_dataset:
+  name: "dataset_name"
+  param:
+    data_root: "root/to/save/data"
+    train: True
+    img_lst_fpath: "train_imgs/list_fpath"
+    map_fpath: "label/ctg/map/path"
+    imb_type: 'exp'
+    imb_factor: 0.01
+    rand_seed: 0
+    download: True
+
+eval_dataset:
+  name: "dataset_name"
+  param:
+    img_lst_fpath: "eval_imgs_list_path"
+    data_root: "" # default: same as train_dataset
+    map_fpath: "" # default: same as train_dataset
+
+trainloader:
+  name: "DistributedDataloader"
+  param:
+    sampler: "DistributedSampler"
+    batch_size: 32
+    num_workers: 4
+
+evalloader:
+  name: "Dataloader"
+  param:
+    batch_size: 32
+    num_workers: 4
+
+network:
+  name: "network_name"
+  param:
+    num_classes: 10
+    use_pretrained: True
+    pretrained_fpath: ""
+    resume_training: False
+    resume_model_path: ""
+
+loss:
+  name: "Crossentropy"
+  param: "none"
+
+optimizer:
+  name: "SGD"
+  param:
+    lr: 0.005
+    weight_decay: 5.0e-5
+    momentum: 1.0e-5
+    use_nesterov: True
+
+lr_scheduler:
+  name: "CyclicLR"
+  param:
+    step_size_up: 3333  # 3 * iterations
+    step_size_down: 2222  # 2 * iterations
+    base_lr: 5.0e-5
+    max_lr: 5.0e-3
