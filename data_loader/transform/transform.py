@@ -2,15 +2,17 @@ import torchvision.transforms as transforms
 from .randaugment import RandAugment
 from .randaugment_fixmatch import RandAugmentMC
 
-mean = [0.485, 0.456, 0.406]
-std = [0.229, 0.224, 0.225]
+MEAN = [0.485, 0.456, 0.406]
+STD = [0.229, 0.224, 0.225]
 
 
-def base_transform(resize=(224, 224), phase='train', **kwargs):
+def base_transform(phase='train', resize=(224, 224),
+                   mean=MEAN, std=STD, **kwargs):
     if phase == 'train':
         # transforms.RandomOrder
-        return transforms.Compose([
-            transforms.Resize(int(resize[0] / 0.875)),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0] / 0.875),
+                                    int(resize[1] / 0.875))),
             transforms.RandomCrop(resize),
             transforms.RandomHorizontalFlip(0.5),
             transforms.RandomRotation(25),
@@ -20,18 +22,22 @@ def base_transform(resize=(224, 224), phase='train', **kwargs):
             transforms.RandomErasing()
         ])
     else:
-        return transforms.Compose([
-            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0]),
+                                    int(resize[1]))),
             # transforms.CenterCrop(resize),
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
+    return ret_transform
 
 
-def flower_transform(resize=(224, 224), phase='train', use_cv2=False, **kwargs):
+def flower_transform(resize=(224, 224), phase='train',
+                     mean=MEAN, std=STD, **kwargs):
     if phase == 'train':
-        return transforms.Compose([
-            transforms.Resize(int(resize[0] / 0.875)),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0] / 0.875),
+                                    int(resize[1] / 0.875))),
             transforms.RandomCrop(resize),
             transforms.RandomHorizontalFlip(0.5),
             transforms.RandomRotation(25),
@@ -41,20 +47,24 @@ def flower_transform(resize=(224, 224), phase='train', use_cv2=False, **kwargs):
             transforms.RandomErasing()
         ])
     else:
-        return transforms.Compose([
-            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0]),
+                                    int(resize[1]))),
             # transforms.CenterCrop(resize),
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
 
+    return ret_transform
 
-def huashu_transform(resize=(224, 224), phase='train', use_cv2=False, **kwargs):
+
+def huashu_transform(phase='train', resize=(224, 224),
+                     mean=MEAN, std=STD, **kwargs):
     if phase == 'train':
         # transforms.RandomOrder
-        return transforms.Compose([
-            transforms.Resize(
-                size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0] / 0.875),
+                                    int(resize[1] / 0.875))),
             transforms.RandomCrop(resize),
             transforms.RandomHorizontalFlip(0.5),
             transforms.RandomRotation(25),
@@ -64,18 +74,23 @@ def huashu_transform(resize=(224, 224), phase='train', use_cv2=False, **kwargs):
             transforms.RandomErasing()
         ])
     else:
-        return transforms.Compose([
-            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0]),
+                                    int(resize[1]))),
             # transforms.CenterCrop(resize),
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
 
+    return ret_transform
 
-def common_transform(resize=(224, 224), phase='train', use_cv2=False, **kwargs):
+
+def common_transform(phase='train', resize=(224, 224),
+                     mean=MEAN, std=STD, **kwargs):
     if phase == 'train':
-        return transforms.Compose([
-            transforms.Resize(int(resize[0] / 0.875)),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0] / 0.875),
+                                    int(resize[1] / 0.875))),
             transforms.RandomCrop(resize),
             transforms.RandomHorizontalFlip(0.5),
             transforms.RandomRotation(25),
@@ -88,31 +103,37 @@ def common_transform(resize=(224, 224), phase='train', use_cv2=False, **kwargs):
             transforms.RandomErasing()
         ])
     else:
-        return transforms.Compose([
-            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0]),
+                                    int(resize[1]))),
             # transforms.CenterCrop(resize),
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
+    return ret_transform
 
 
-def rand_transform(resize=(224, 224), phase='train', **kwargs):
+def rand_transform(phase='train', resize=(224, 224),
+                   mean=MEAN, std=STD, **kwargs):
     if phase == "train":
         n = kwargs.get("rand_n", 2)
         m = kwargs.get("rand_m", 10)
-        transform = transforms.Compose([transforms.Resize(int(resize[0] / 0.875)),
-                                        transforms.RandomCrop(resize),
-                                        RandAugment(n, m),
-                                        transforms.ToTensor(),
-                                        transforms.Normalize(mean, std)
-                                        ])
-    else:
-        transform = transforms.Compose([
-            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0] / 0.875),
+                                    int(resize[1] / 0.875))),
+            transforms.RandomCrop(resize),
+            RandAugment(n, m),
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
-    return transform
+    else:
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0]),
+                                    int(resize[1]))),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ])
+    return ret_transform
 
 
 class TransformFixMatch(object):
@@ -137,6 +158,8 @@ class TransformFixMatch(object):
             transforms.Normalize(mean, std),
         ])
         self.val_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0]),
+                                    int(resize[1]))),
             transforms.Resize(resize),
             transforms.ToTensor(),
             transforms.Normalize(mean, std),

@@ -12,6 +12,8 @@ from data_loader.dataset.builder import Datasets
 @Datasets.register_module("ImbalanceCifar10")
 class IMBALANCECIFAR10(torchvision.datasets.CIFAR10):
     cls_num = 10
+    mean = [0.5, 0.5, 0.5]
+    std = [0.5, 0.5, 0.5]
 
     def __init__(self,
                  data_root,
@@ -102,6 +104,8 @@ class IMBALANCECIFAR100(IMBALANCECIFAR10):
         'md5': '7973b15100ade9c7d40fb424638fde48',
     }
     cls_num = 100
+    mean = [0.5, 0.5, 0.5]
+    std = [0.5, 0.5, 0.5]
 
 
 if __name__ == '__main__':

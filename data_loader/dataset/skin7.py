@@ -2,7 +2,6 @@ import os
 
 import pandas as pd
 import torch
-import torchvision.transforms as transforms
 from PIL import Image
 from data_loader.dataset.builder import Datasets
 
@@ -33,8 +32,11 @@ def make_dataset(fold, data_root):
 class Skin7(torch.utils.data.Dataset):
     ''' 原图大小（3， 450， 600） '''
     cls_num = 7
+    mean = [0.7626, 0.5453, 0.5714]
+    std = [0.1404, 0.1519, 0.1685]
 
-    def __init__(self, data_root, train, fold, **kwargs):
+    def __init__(self, data_root, train, transform=None,
+                 fold=0, **kwargs):
         self.train_data, self.test_data = make_dataset(fold, data_root)
         print('===> Initializing fold.{} {}...\
               '.format(fold, 'train set' if train else 'test set'))
@@ -42,33 +44,12 @@ class Skin7(torch.utils.data.Dataset):
         self.train = train
         if self.train:
             self.labels = [data[1] for data in self.train_data]
-            self.cls_num = [self.labels.count(i) for i in range(self.cls_num)]
+            self.img_num_per_cls = [self.labels.count(i)
+                                    for i in range(self.cls_num)]
         else:
             self.labels = [data[1] for data in self.test_data]
 
-        mean, std = [0.7626, 0.5453, 0.5714], [0.1404, 0.1519, 0.1685]
-        resize_img = 300
-        img_size = 224
-        transform_train = transforms.Compose([
-            transforms.Resize(resize_img),
-            # transforms.RandomHorizontalFlip(),
-            # transforms.RandomVerticalFlip(),
-            # transforms.ColorJitter(0.02, 0.02, 0.02, 0.01),
-            # transforms.RandomRotation([-180, 180]),
-            # transforms.RandomAffine([-180, 180],
-            #                         translate=[0.1, 0.1], scale=[0.7, 1.3]),
-            transforms.RandomCrop(img_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std),
-            # 由于没有mean 和 std文件，这里先去掉normalized
-        ])
-        transform_test = transforms.Compose([
-            transforms.Resize(resize_img),
-            transforms.CenterCrop(img_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std),
-        ])
-        self.transform = transform_train if self.train else transform_test
+        self.transform = transform
 
         raw_train_data = 'ISIC2018_Task3_Training_Input'
         self.data_dir = os.path.join(data_root, raw_train_data)
