@@ -8,6 +8,14 @@ import numpy as np
 import torch.nn.functional as F
 
 
+def count_model_params(net):
+    # Compute the total amount of parameters with gradient.
+    for x in filter(lambda p: p.requires_grad, net.parameters()):
+        total_params += np.prod(x.data.numpy().shape)
+
+    return total_params
+
+
 ##################################
 # Metric
 ##################################
