@@ -14,13 +14,14 @@ train_transform:
   name: "TransformFixMatch"
   param:
     phase: "train"
-    is_labeled: True
+    resize: [224, 224]
 
 eval_transform:
   script_path: "common.transform.transform"
   name: "TransformFixMatch"
   param:
     phase: "test"
+    resize: [224, 224]
 
 train_dataset:
   name: "dataset_name"
@@ -37,9 +38,11 @@ train_dataset:
 eval_dataset:
   name: "dataset_name"
   param:
-    img_lst_fpath: "eval_imgs_list_path"
     data_root: "" # default: same as train_dataset
+    train: False
+    img_lst_fpath: "eval_imgs_list_path"
     map_fpath: "" # default: same as train_dataset
+    download: False
 
 trainloader:
   name: "DistributedDataloader"
@@ -64,7 +67,7 @@ network:
     resume_model_path: ""
 
 loss:
-  name: "Crossentropy"
+  name: "CrossEntropyLoss"
   param: "none"
 
 optimizer:
