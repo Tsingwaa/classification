@@ -2,12 +2,12 @@ import torchvision.transforms as transforms
 from .randaugment import RandAugment
 from .randaugment_fixmatch import RandAugmentMC
 
-MEAN = [0.485, 0.456, 0.406]
-STD = [0.229, 0.224, 0.225]
+IN_MEAN = [0.485, 0.456, 0.406]
+IN_STD = [0.229, 0.224, 0.225]
 
 
 def base_transform(phase='train', resize=(224, 224),
-                   mean=MEAN, std=STD, **kwargs):
+                   mean=None, std=None, **kwargs):
     if phase == 'train':
         # transforms.RandomOrder
         ret_transform = transforms.Compose([
@@ -33,7 +33,7 @@ def base_transform(phase='train', resize=(224, 224),
 
 
 def flower_transform(resize=(224, 224), phase='train',
-                     mean=MEAN, std=STD, **kwargs):
+                     mean=None, std=None, **kwargs):
     if phase == 'train':
         ret_transform = transforms.Compose([
             transforms.Resize(size=(int(resize[0] / 0.875),
@@ -59,7 +59,7 @@ def flower_transform(resize=(224, 224), phase='train',
 
 
 def huashu_transform(phase='train', resize=(224, 224),
-                     mean=MEAN, std=STD, **kwargs):
+                     mean=None, std=None, **kwargs):
     if phase == 'train':
         # transforms.RandomOrder
         ret_transform = transforms.Compose([
@@ -86,7 +86,7 @@ def huashu_transform(phase='train', resize=(224, 224),
 
 
 def common_transform(phase='train', resize=(224, 224),
-                     mean=MEAN, std=STD, **kwargs):
+                     mean=None, std=None, **kwargs):
     if phase == 'train':
         ret_transform = transforms.Compose([
             transforms.Resize(size=(int(resize[0] / 0.875),
@@ -114,7 +114,7 @@ def common_transform(phase='train', resize=(224, 224),
 
 
 def rand_transform(phase='train', resize=(224, 224),
-                   mean=MEAN, std=STD, **kwargs):
+                   mean=None, std=None, **kwargs):
     if phase == "train":
         n = kwargs.get("rand_n", 2)
         m = kwargs.get("rand_m", 10)
@@ -136,8 +136,28 @@ def rand_transform(phase='train', resize=(224, 224),
     return ret_transform
 
 
+def cifar_transform(phase='train', resize=(32, 32), **kwargs):
+    mean = [0.4914, 0.4822, 0.4465]
+    std = [0.2023, 0.1994, 0.2010]
+    if phase == 'train':
+        ret_transform = transforms.Compose([
+            transforms.RandomCrop(resize, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std),
+        ])
+    else:
+        ret_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ])
+    return ret_transform
+
+
 class TransformFixMatch(object):
-    def __init__(self, resize=(224, 224), phase='train', **kwargs):
+    def __init__(self, resize=(224, 224), phase='train',
+                 mean=None, std=None, **kwargs):
+
         self.phase = phase
         n = kwargs.get('rand_n', 2)
         m = kwargs.get('rand_m', 10)
