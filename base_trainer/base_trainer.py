@@ -183,11 +183,18 @@ class BaseTrainer:
         model = build_network(self.network_name, config=self.network_config,
                               **self.network_param)
         use_pretrained = self.network_param['use_pretrained']
+
         if use_pretrained:
             pretrained_fpath = self.network_param['pretrained_fpath']
             state_dict = torch.load(pretrained_fpath, map_location='cpu')
             model.load_state_dict(state_dict)
         self.log_init_param(self.network_name, self.network_param)
+
+        # Count the total amount of parameters with gradient.
+        for x in filter(lambda p: p.requires_grad, model.parameters()):
+            total_params += np.prod(x.data.numpy().shape)
+        logging.info(f"Total parameters requiring gradient: {total_params}")
+        print(f"Total parameters requiring gradient: {total_params}")
         return model
 
     def init_loss(self):
