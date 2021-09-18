@@ -12,13 +12,11 @@ from sklearn import metrics
 from prefetch_generator import BackgroundGenerator
 # Distribute Package
 from apex import amp
-from torch import distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data.distributed import DistributedSampler
 # Custom Package
 from common.trainer.trainer import BaseTrainer
 from utils import AverageMeter
-dist.init_process_group(backend='nccl', init_method='env://')
 
 
 class DataLoaderX(DataLoader):
@@ -39,8 +37,6 @@ class Trainer(BaseTrainer):
 
         if self.trainloader_name == "DistributedDataloader":
             train_sampler = DistributedSampler(trainset)
-        else:
-            raise NotImplementedError("train sampler not implemented for DDP")
 
         print(f'global_rank {self.global_rank}, world_size {self.world_size},\
               local_rank {self.local_rank},  {self.trainloader_name}')
@@ -112,21 +108,20 @@ class Trainer(BaseTrainer):
         # Start Training
         #######################################################################
         if self.local_rank in [-1, 0]:
-            logging.info(
-                '\nStart training: \n\
-                Total epochs: {total_epochs}\n\
-                Trainset size: {trainset_size}\n\
-                Train batch size: {train_batch_size}\n\
-                Evalset size: {evalset_size}\n\
-                Eval batch size: {eval_batch_size}\n\
-                '.format(
-                    total_epochs=self.total_epochs,
-                    trainset_size=len(trainset),
-                    train_batch_size=self.train_batch_size,
-                    evalset_size=len(evalset),
-                    eval_batch_size=self.eval_batch_size
-                )
-            )
+            dataset_log = '\nStart training: \n\
+                    Total epochs: {total_epochs}\n\
+                    Trainset size: {trainset_size}\n\
+                    Train batch size: {train_batch_size}\n\
+                    Evalset size: {evalset_size}\n\
+                    Eval batch size: {eval_batch_size}\n\
+                    '.format(
+                        total_epochs=self.total_epochs,
+                        trainset_size=len(trainset),
+                        train_batch_size=self.train_batch_size,
+                        evalset_size=len(evalset),
+                        eval_batch_size=self.eval_batch_size
+                    )
+            logging.info(dataset_log)
 
         best_acc = 0
         best_mr = 0
@@ -153,20 +148,22 @@ class Trainer(BaseTrainer):
                                         {'train_ap': train_ap,
                                          'eval_ap': eval_ap}, epoch)
                 # Save checkpoint.
-                if self.local_rank in [-1, 0]:
-                    is_best = (best_acc < eval_acc or best_mr < eval_mr)
-                    if best_acc < eval_acc:
-                        best_acc = eval_acc
-                    if best_mr < eval_mr:
-                        best_mr = eval_mr
-                    save_fname = '{}_epoch{}_acc{:.2%}_mr{:.2%}_state_dict\
-                            .pth.tar'.format(self.network_name,
-                                             str(epoch),
-                                             eval_acc,
-                                             eval_mr)
-                    if not (epoch % self.save_period) or is_best:
-                        self.save_checkpoint(epoch, save_fname, is_best,
-                                             eval_acc, eval_mr, eval_ap)
+                is_best = (best_acc < eval_acc or best_mr < eval_mr)
+                if best_acc < eval_acc:
+                    best_acc = eval_acc
+                if best_mr < eval_mr:
+                    best_mr = eval_mr
+                save_fname = '{}_epoch{}_acc{:.2%}_mr{:.2%}_ap{:.2%}\
+                        _state_dict.pth.tar'.format(
+                            self.network_name,
+                            str(epoch),
+                            eval_acc,
+                            eval_mr,
+                            eval_ap
+                        )
+                if not (epoch % self.save_period) or is_best:
+                    self.save_checkpoint(epoch, save_fname, is_best,
+                                         eval_acc, eval_mr, eval_ap)
 
     def train_epoch(self, epoch):
         self.model.train()
