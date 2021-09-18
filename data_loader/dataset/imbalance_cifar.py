@@ -9,7 +9,7 @@ import numpy as np
 from data_loader.dataset.builder import Datasets
 
 
-@Datasets.register_module("ImbalanceCifar10")
+@Datasets.register_module("ImbalanceCIFAR10")
 class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     cls_num = 10
     mean = [0.5, 0.5, 0.5]
@@ -72,7 +72,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         self.targets = new_targets
 
 
-@Datasets.register_module("ImbalanceCifar100")
+@Datasets.register_module("ImbalanceCIFAR100")
 class ImbalanceCIFAR100(ImbalanceCIFAR10):
     """`CIFAR100 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ Dataset.
     This is a subclass of the `CIFAR10` Dataset.
