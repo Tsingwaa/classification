@@ -25,10 +25,11 @@ class BaseTrainer:
         assert torch.cuda.is_available()
         torch.backends.cudnn.benchmark = True
         torch.backends.cudnn.enable = True
-        torch.cuda.set_device(self.local_rank)
 
         self.local_rank = local_rank
         if self.local_rank != -1:
+            dist.init_process_group(backend='nccl', init_method='env://')
+            torch.cuda.set_device(self.local_rank)
             self.global_rank = dist.get_rank()
             self.world_size = dist.get_world_size()
 
@@ -120,6 +121,10 @@ class BaseTrainer:
         transform_name = transform_config['name']
         transform_param = transform_config['param']
         module = import_module(script_path)
+        transform_init_log = f"Initialized {transform_name} from\
+                {script_path} with {transform_param}."
+        logging.info(transform_init_log)
+        print(transform_init_log)
         transform = getattr(module, transform_name)(**transform_param)
         return transform
 
@@ -127,16 +132,16 @@ class BaseTrainer:
         sampler_param = dataloader_config['param']
         sampler_name = sampler_param['sampler']
         sampler_param['dataset'] = dataset
+        self.log_init_param(sampler_name, sampler_param)
         sampler = build_sampler(sampler_name, **sampler_param)
         return sampler
 
     def init_dataset(self, dataset_config=None, transform=None):
         dataset_name = dataset_config['name']
         dataset_param = dataset_config['param']
-        if transform is not None:
-            dataset_param['transform'] = transform
+        dataset_param['transform'] = transform
+        self.log_init_param(dataset_name, dataset_param)
         dataset = build_dataset(dataset_name, **dataset_param)
-        logging.info(f'Initialized {dataset_name}.')
         return dataset
 
     def init_optimizer(self):
@@ -155,7 +160,7 @@ class BaseTrainer:
         try:
             optimizer = getattr(torch.optim, self.optimizer_name)(
                 params, **self.optimizer_param)
-            logging.info(f'Initialized {self.optimizer_name}.')
+            self.log_init_param(self.optimizer_name, self.optimizer_param)
             return optimizer
         except Exception as error:
             logging.info(f"optimizer initialize failed: {error} !")
@@ -167,7 +172,8 @@ class BaseTrainer:
                                    self.lr_scheduler_name)(
                                        self.optimizer,
                                        **self.lr_scheduler_param)
-            logging.info(f'Initialized {self.lr_scheduler_name}.')
+            self.log_init_param(self.lr_scheduler_name,
+                                self.lr_scheduler_param)
             return lr_scheduler
         except Exception as error:
             logging.info(f"LR scheduler initilize failed: {error} !")
@@ -181,12 +187,12 @@ class BaseTrainer:
             pretrained_fpath = self.network_param['pretrained_fpath']
             state_dict = torch.load(pretrained_fpath, map_location='cpu')
             model.load_state_dict(state_dict)
-        logging.info(f'Initialized {self.network_name} with\
-                     pretrained={use_pretrained}.')
+        self.log_init_param(self.network_name, self.network_param)
         return model
 
     def init_loss(self):
         loss = build_loss(self.loss_name, **self.loss_param)
+        self.log_init_param(self.loss_name, self.loss_param)
         return loss
 
     def _reduce_loss(self, tensor):
@@ -194,6 +200,15 @@ class BaseTrainer:
             dist.reduce(tensor, dst=0)
             if self.local_rank == 0:
                 tensor /= self.world_size
+
+    def train(self):
+        pass
+
+    def train_epoch(self, epoch):
+        pass
+
+    def evaluate(self, epoch):
+        pass
 
     def resume_checkpoint(self):
         checkpoint = torch.load(self.resume_fpath, map_location='cpu')
@@ -204,12 +219,11 @@ class BaseTrainer:
         acc = checkpoint['acc']
         mr = checkpoint['mr']
         ap = checkpoint['ap']
-        logging.info(
-            'Resume checkpoint from {}.\n\
-            Resume acc:{:.2%} mr:{:.2%} ap:{:.2%}'.format(
-                self.resume_fpath, acc, mr, ap
-            )
-        )
+        log_str = 'Resume checkpoint from {}.\nResume acc:{:.2%} mr:{:.2%}\
+                ap:{:.2%}'.format(self.resume_fpath, acc, mr, ap)
+        logging.info(log_str)
+        print(log_str)
+
         return model_state_dict, optimizer_state_dict, lr_scheduler_state_dict
 
     def save_checkpoint(self, epoch, save_fname, is_best,
@@ -231,11 +245,7 @@ class BaseTrainer:
                               f'{self.network_name}_best.pth.tar')
             shutil.copyfile(save_fpath, best_fpath)
 
-    def train(self):
-        pass
-
-    def train_epoch(self, epoch):
-        pass
-
-    def evaluate(self, epoch):
-        pass
+    def log_init_param(self, name, param):
+        init_log = f"Initialized {name} with {param}."
+        logging.info(init_log)
+        print(init_log)
