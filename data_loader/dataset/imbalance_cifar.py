@@ -10,7 +10,7 @@ from data_loader.dataset.builder import Datasets
 
 
 @Datasets.register_module("ImbalanceCifar10")
-class IMBALANCECIFAR10(torchvision.datasets.CIFAR10):
+class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     cls_num = 10
     mean = [0.5, 0.5, 0.5]
     std = [0.5, 0.5, 0.5]
@@ -73,7 +73,7 @@ class IMBALANCECIFAR10(torchvision.datasets.CIFAR10):
 
 
 @Datasets.register_module("ImbalanceCifar100")
-class IMBALANCECIFAR100(IMBALANCECIFAR10):
+class ImbalanceCIFAR100(ImbalanceCIFAR10):
     """`CIFAR100 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ Dataset.
     This is a subclass of the `CIFAR10` Dataset.
     """
@@ -103,7 +103,7 @@ if __name__ == '__main__':
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
-    trainset = IMBALANCECIFAR100(data_root='./data',
+    trainset = ImbalanceCIFAR100(data_root='./data',
                                  train=True,
                                  download=True,
                                  transform=transform)
