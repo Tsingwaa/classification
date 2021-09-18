@@ -21,14 +21,15 @@ from common.network.builder import Networks
 from common.network.layers import ArcMarginProduct
 EPSILON = 1e-12
 
+
 def weights_init_kaiming(m):
     classname = m.__class__.__name__
     if classname.find('Linear') != -1:
-        nn.init.kaiming_normal_(m.weight, a=0, model = 'fan_out')
+        nn.init.kaiming_normal_(m.weight, a=0, model='fan_out')
         nn.init.constant_(m.bias, 0.0)
 
     elif classname.find('Conv') != -1:
-        nn.init.kaiming_normal_(m.weight, a=0, model = 'fan_in')
+        nn.init.kaiming_normal_(m.weight, a=0, model='fan_in')
         if m.bias is not None:
             nn.init.constant_(m.bias, 0.0)
     elif classname.find('BatchNorm') != -1:
@@ -36,12 +37,12 @@ def weights_init_kaiming(m):
             nn.init.constant_(m.weight, 1.0)
             nn.init.constant_(m.bias, 0.0)
 
+
 def weights_init_kaiming_embedding(m):
     classname = m.__class__.__name__
     if classname.find('Linear') != -1:
         nn.init.kaiming_normal_(m.weight, a=0)
         nn.init.constant_(m.bias, 0.0)
-
 
 
 def weights_init(m):
@@ -61,14 +62,14 @@ def weights_init(m):
 @Networks.register_module("resnet")
 class RESNET(nn.Module):
     def __init__(self, num_classes=100, pretrained=False, config=None,
-            deploy=False, **kwargs):
+                 deploy=False, **kwargs):
         super(RESNET, self).__init__()
         self.num_classes = num_classes
 
         backbone_config = config['backbone']
         if backbone_config is None:
             raise ValueError("Param can't be None")
-        
+
         backbone_name = backbone_config.get("name", None)
         backbone_param = backbone_config.get("param", None)
         self.features = build_backbone(backbone_name, **backbone_param)
@@ -101,9 +102,12 @@ class RESNET(nn.Module):
         if len(pretrained_dict) == len(state_dict):
             logging.info('%s: All params loaded' % type(self).__name__)
         else:
-            logging.info('%s: Some params were not loaded:' % type(self).__name__)
-            not_loaded_keys = [k for k in state_dict.keys() if k not in pretrained_dict.keys()]
-            logging.info(('%s, ' * (len(not_loaded_keys) - 1) + '%s') % tuple(not_loaded_keys))
+            logging.info('%s: Some params were not loaded:' %
+                         type(self).__name__)
+            not_loaded_keys = [
+                k for k in state_dict.keys() if k not in pretrained_dict.keys()]
+            logging.info(('%s, ' * (len(not_loaded_keys) - 1) + '%s') %
+                         tuple(not_loaded_keys))
 
         model_dict.update(pretrained_dict)
         super(RESNET, self).load_state_dict(model_dict)

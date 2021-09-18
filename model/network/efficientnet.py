@@ -57,7 +57,7 @@ def weights_init(m):
 @Networks.register_module("efficientnet")
 class EFFICIENTNET(nn.Module):
     def __init__(self, num_classes=100, pretrained=False, config=None,
-            deploy=False, **kwargs):
+                 deploy=False, **kwargs):
         super(EFFICIENTNET, self).__init__()
         self.num_classes = num_classes
 
@@ -80,7 +80,7 @@ class EFFICIENTNET(nn.Module):
 
         logging.info(
             'seresnet : using {} as feature extractor, num_classes: {}'.format(
-                    config['backbone']['name'], self.num_classes)
+                config['backbone']['name'], self.num_classes)
         )
 
     def forward(self, x, y=None, get_fea=False):
@@ -101,9 +101,12 @@ class EFFICIENTNET(nn.Module):
         if len(pretrained_dict) == len(state_dict):
             logging.info('%s: All params loaded' % type(self).__name__)
         else:
-            logging.info('%s: Some params were not loaded:' % type(self).__name__)
-            not_loaded_keys = [k for k in state_dict.keys() if k not in pretrained_dict.keys()]
-            logging.info(('%s, ' * (len(not_loaded_keys) - 1) + '%s') % tuple(not_loaded_keys))
+            logging.info('%s: Some params were not loaded:' %
+                         type(self).__name__)
+            not_loaded_keys = [
+                k for k in state_dict.keys() if k not in pretrained_dict.keys()]
+            logging.info(('%s, ' * (len(not_loaded_keys) - 1) + '%s') %
+                         tuple(not_loaded_keys))
 
         model_dict.update(pretrained_dict)
         super(EFFICIENTNET, self).load_state_dict(model_dict)

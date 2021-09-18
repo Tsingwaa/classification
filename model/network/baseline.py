@@ -120,10 +120,7 @@ class BASELINE(nn.Module):
         except Exception as Error:
             print(Error)
 
-        try:
-            pretrained = kwargs['pretrained']
-        except:
-            pretrained = False
+        pretrained = kwargs['pretrained']
 
         backbone_config = config['backbone']
         if backbone_config is None:
@@ -183,7 +180,8 @@ class BASELINE(nn.Module):
                 self.fc.apply(weights_init)
 
         logging.info('Baseline: using {} as feature extractor, \
-                num_classes: {}'.format(config['backbone']['name'], self.num_classes))
+                num_classes: {}'.format(config['backbone']['name'],
+                                        self.num_classes))
 
     def forward(self, x, y=None, get_fea=False):
         # Feature Maps, Attention Maps and Feature Matrix
