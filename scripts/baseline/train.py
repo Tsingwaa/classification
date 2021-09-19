@@ -9,6 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn import metrics
+from pudb import set_trace
 from prefetch_generator import BackgroundGenerator
 # Distribute Package
 from apex import amp
@@ -16,7 +17,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data.distributed import DistributedSampler
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AverageMeter
+from utils import AccAverageMeter
 
 
 class DataLoaderX(DataLoader):
@@ -40,8 +41,11 @@ class Trainer(BaseTrainer):
         else:
             train_sampler = None
 
-        print(f'global_rank {self.global_rank}, world_size {self.world_size},\
-              local_rank {self.local_rank},  {self.trainloader_name}')
+        if self.local_rank != -1:
+            print(f'global_rank {self.global_rank},\
+                  world_size {self.world_size},\
+                  local_rank {self.local_rank},\
+                  {self.trainloader_name}')
 
         self.trainloader = DataLoaderX(
             trainset,
@@ -68,9 +72,9 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Network
         #######################################################################
-        self.model = self.init_network()
+        self.model = self.init_model()
         self.model.cuda()
-        if self.resume_training:
+        if self.resume:
             model_state_dict, optimizer_state_dict, lr_scheduler_state_dict =\
                 self.resume_checkpoint()
             self.model.load_state_dict(model_state_dict)
@@ -84,7 +88,7 @@ class Trainer(BaseTrainer):
         # Initialize Optimizer
         #######################################################################
         self.optimizer = self.init_optimizer()
-        if self.resume_training:
+        if self.resume:
             self.optimizer.load_state_dict(optimizer_state_dict)
 
         #######################################################################
@@ -103,7 +107,7 @@ class Trainer(BaseTrainer):
         # Initialize LR Scheduler
         #######################################################################
         self.lr_scheduler = self.init_lr_scheduler()
-        if self.resume_training:
+        if self.resume:
             self.lr_scheduler.load_state_dict(lr_scheduler_state_dict)
 
         #######################################################################
@@ -136,6 +140,25 @@ class Trainer(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 eval_acc, eval_mr, eval_ap, eval_loss = self.evaluate(epoch)
 
+                logging.info(
+                    "Epoch[{epoch:>3d}/{total_epochs}]\
+                    Train Acc: {train_acc:.2%}, MR={train_mr:.2%},\
+                    AP={train_ap:.2%}, Loss={train_loss:.4f} ||\n\
+                    Eval Acc={eval_acc:.2%}, MR={eval_mr:.2%},\
+                    AP={eval_ap:.2%}, Loss={eval_loss:.4f}".format(
+                        epoch=epoch,
+                        total_epochs=self.total_epochs,
+                        train_acc=train_acc,
+                        train_mr=train_mr,
+                        train_ap=train_ap,
+                        train_loss=train_loss,
+                        eval_acc=eval_acc,
+                        eval_mr=eval_mr,
+                        eval_ap=eval_ap,
+                        eval_loss=eval_loss
+                    )
+                )
+
                 # Save log by tensorboard
                 self.writer.add_scalars('Loss',
                                         {'train_loss': train_loss,
@@ -155,8 +178,7 @@ class Trainer(BaseTrainer):
                     best_acc = eval_acc
                 if best_mr < eval_mr:
                     best_mr = eval_mr
-                save_fname = '{}_epoch{}_acc{:.2%}_mr{:.2%}_ap{:.2%}\
-                        _state_dict.pth.tar'.format(
+                save_fname = '{}_epoch{}_acc{:.2%}_mr{:.2%}_ap{:.2%}_state_dict.pth.tar'.format(
                             self.network_name,
                             str(epoch),
                             eval_acc,
@@ -172,14 +194,13 @@ class Trainer(BaseTrainer):
 
         train_pbar = tqdm(
             total=len(self.trainloader),
-            ncols=10,
-            desc='Train Epoch{:>3d}/{}'.format(epoch, self.total_epochs)
+            desc='Train Epoch[{:>3d}/{}]'.format(epoch, self.total_epochs)
         )
 
         all_labels = []
         all_preds = []
-        acc_meter = AverageMeter()
-        loss_meter = AverageMeter()
+        train_acc_meter = AccAverageMeter()
+        train_loss_meter = AccAverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(self.trainloader):
             batch_imgs, batch_labels = batch_imgs.cuda(), batch_labels.cuda()
             batch_prob = self.model(batch_imgs)
@@ -197,98 +218,76 @@ class Trainer(BaseTrainer):
 
             batch_pred = batch_prob.max(1)[1]
             acc = (batch_pred == batch_labels).float().mean()
-            acc_meter.update(acc, 1)
-            loss_meter.update(avg_loss.item(), 1)
+            train_acc_meter.update(acc, 1)
+            train_loss_meter.update(avg_loss.item(), 1)
 
             all_labels.extend(batch_labels.cpu().numpy().tolist())
             all_preds.extend(batch_pred.cpu().numpy().tolist())
 
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
-                postfix_info = 'lr:{:.2e} train loss:{:.4f} acc:{:.2%}'.format(
-                    self.lr_scheduler.get_last_lr[0],
-                    loss_meter.avg,
-                    acc_meter.avg,
-                )
-                train_pbar.set_postfix_str(postfix_info)
-
-                logging.info(
-                    "Train Epoch[{epoch:>3d}/{total_epochs}] \
-                     Iter[{this_iter}/{total_iters}] LR: {lr:.2e},\
-                     Acc: {acc:.2%}, Loss: {loss:.4f}".format(
-                        epoch=epoch,
-                        total_epochs=self.total_epochs,
-                        this_iter=(i + 1),
-                        total_iters=len(self.trainloader),
-                        lr=self.lr_scheduler.get_last_lr()[0],
-                        acc=acc_meter.avg,
-                        loss=loss_meter.avg
+                train_pbar.set_postfix_str(
+                    'LR:{:.2e} Loss:{:.4f} Acc:{:.2%}'.format(
+                        self.lr_scheduler.get_last_lr()[0],
+                        train_loss_meter.avg,
+                        train_acc_meter.avg,
                     )
                 )
+
             self.lr_scheduler.step()
 
-        train_pbar.close()
+        train_acc = metrics.accuracy_score(all_labels, all_preds)
+        train_mr = metrics.recall_score(all_labels, all_preds,
+                                        average='macro')
+        train_ap = metrics.precision_score(all_labels, all_preds,
+                                           average='macro')
 
-        epoch_acc = metrics.accuracy_score(all_labels, all_preds)
-        epoch_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
-        epoch_ap = metrics.average_precision_score(all_labels, all_preds)
-
-        logging.info(
-            "Train Epoch[{epoch:>3d}/{total_epochs}] Acc: {acc:.2%},\
-            MR: {mr:.2%}, AP: {ap:.2%}, Loss: {loss:.4f}".format(
-                epoch=epoch,
-                total_epochs=self.total_epochs,
-                acc=epoch_acc,
-                mr=epoch_mr,
-                ap=epoch_ap,
-                loss=avg_loss.avg
+        train_pbar.set_postfix_str(
+            'Loss:{:.4f} Acc:{:.2%} MR:{:.2%} AP:{:.2%}'.format(
+                train_loss_meter.avg, train_acc, train_mr, train_ap
             )
         )
-        return epoch_acc, epoch_mr, epoch_ap, loss_meter.avg
+        train_pbar.close()
+
+        return train_acc, train_mr, train_ap, train_loss_meter.avg
 
     def evaluate(self, epoch):
         self.model.eval()
 
         eval_pbar = tqdm(
             total=len(self.evalloader),
-            ncols=10,
-            desc='Eval Epoch {:>3d}/{}'.format(epoch, self.total_epochs)
+            desc='Eval'
         )
 
         all_labels = []
         all_preds = []
-        loss_meter = AverageMeter()
+        eval_loss_meter = AccAverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(self.evalloader):
             batch_imgs, batch_labels = batch_imgs.cuda(), batch_labels.cuda()
             batch_prob = self.model(batch_imgs)
             batch_pred = batch_prob.max(1)[1]
             avg_loss = self.loss(batch_prob, batch_labels)
-            loss_meter.update(avg_loss.item(), 1)
+            eval_loss_meter.update(avg_loss.item(), 1)
 
             all_labels.extend(batch_labels.cpu().numpy().tolist())
             all_preds.extend(batch_pred.cpu().numpy().tolist())
 
             eval_pbar.update()
-            postfix_info = 'Eval loss:{:.4f}'.format(loss_meter.avg)
-            eval_pbar.set_postfix_str(postfix_info)
-        eval_pbar.close()
 
         eval_acc = metrics.accuracy_score(all_labels, all_preds)
-        eval_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
-        eval_ap = metrics.average_precision_score(all_labels, all_preds)
+        eval_mr = metrics.recall_score(all_labels, all_preds,
+                                       average='macro')
+        eval_ap = metrics.precision_score(all_labels, all_preds,
+                                          average='macro')
 
-        logging.info(
-            "Epoch[{epoch:>3d}/{total_epochs}] Acc: {acc:.2%},\
-            MR: {mr:.2%}, AP: {ap:.2%}, Loss: {loss:.4f}".format(
-                epoch=epoch,
-                total_epochs=self.total_epochs,
-                acc=eval_acc,
-                mr=eval_mr,
-                ap=eval_ap,
-                loss=avg_loss.avg
+        eval_pbar.set_postfix_str(
+            'Loss:{:.4f} Acc:{:.2%} MR:{:.2%} AP:{:.2%}'.format(
+                eval_loss_meter.avg, eval_acc, eval_mr, eval_ap
             )
         )
-        return eval_acc, eval_mr, eval_ap, loss_meter.avg
+        eval_pbar.close()
+
+        return eval_acc, eval_mr, eval_ap, eval_loss_meter.avg
 
 
 def parse_args():
@@ -301,15 +300,16 @@ def parse_args():
 
 
 def set_seed(seed=0):
-    random.set_seed(seed)
-    np.random.set_seed(seed)
-    torch.set_seed(seed)
-    torch.cuda.manual_seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
 
 
 def main(args):
     warnings.filterwarnings('ignore')
-    set_seed(0)
+    set_seed()
     with open(args.config_fpath, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     trainer = Trainer(local_rank=args.local_rank, config=config)

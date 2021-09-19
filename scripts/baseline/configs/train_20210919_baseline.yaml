@@ -1,23 +1,25 @@
 # Template train config file
-experiments:
+experiment:
   name: "20210919_baseline"
   start_epoch: 1
   total_epochs: 200
-  save_root: "~/Experiments/"
-  tb_root: "~/Experiments/Tensorboard"
+  save_root: "/home/waa/Experiments/"
+  tb_root: "/home/waa/Experiments/Tensorboard"
   log_fname: "train.log"
+  resume: False
+  resume_fpath: ""
   save_period: 5
   eval_period: 1  # if 0, remove validate process when training.
 
 train_transform:
-  script_path: "common.transform.transform"
+  script_path: "data_loader.transform.transform"
   name: "cifar_transform"
   param:
     phase: "train"
     resize: [32, 32]
 
 eval_transform:
-  script_path: "common.transform.transform"
+  script_path: "data_loader.transform.transform"
   name: "cifar_transform"
   param:
     phase: "test"
@@ -61,14 +63,13 @@ network:
   name: "ResNet32_CIFAR"
   param:
     num_classes: 10
-    use_pretrained: False
+    pretrained: False
     pretrained_fpath: ""
-    resume_training: False
-    resume_model_path: ""
 
 loss:
   name: "CrossEntropyLoss"
-  param: "none"
+  param:
+    a: 0.1
 
 optimizer:
   name: "SGD"
@@ -76,12 +77,12 @@ optimizer:
     lr: 0.01
     weight_decay: 5.0e-5
     momentum: 1.0e-5
-    use_nesterov: True
+    nesterov: True
 
 lr_scheduler:
   name: "CyclicLR"
   param:
-    step_size_up: 3333  # 3 * iterations
-    step_size_down: 2222  # 2 * iterations
+    step_size_up: 3  # 3 * iterations
+    step_size_down: 2  # 2 * iterations
     base_lr: 5.0e-6
     max_lr: 5.0e-3
