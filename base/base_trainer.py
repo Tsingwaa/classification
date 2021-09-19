@@ -3,6 +3,7 @@ import os
 import shutil
 import logging
 import torch
+import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from importlib import import_module
 # Distribute Package
@@ -39,6 +40,8 @@ class BaseTrainer:
         self.exp_name = self.experiment_config['name']
         self.start_epoch = self.experiment_config['start_epoch']
         self.total_epochs = self.experiment_config['total_epochs']
+        self.resume = self.experiment_config['resume']
+        self.resume_fpath = self.experiment_config['resume_fpath']
         if self.local_rank in [-1, 0]:
             self.save_root = self.experiment_config['save_root']
             self.save_dir = os.path.join(self.save_root, self.exp_name)
@@ -56,8 +59,7 @@ class BaseTrainer:
             logging.basicConfig(
                 filename=self.log_fpath,
                 filemode='a+',
-                format='%(asctime)s: %(levelname)s: [%(filename)s:%(lineno)d]:\
-                        %(message)s',
+                format='%(asctime)s: %(levelname)s: [%(filename)s:%(lineno)d]:%(message)s',
                 level=logging.INFO
             )
 
@@ -91,8 +93,6 @@ class BaseTrainer:
         self.network_config = config['network']
         self.network_name = self.network_config['name']
         self.network_param = self.network_config['param']
-        self.resume_training = self.network_param['resume_training']
-        self.resume_fpath = self.network_param['resume_fpath']
 
         ##################################
         # Loss setting
@@ -106,7 +106,8 @@ class BaseTrainer:
         ##################################
         self.optimizer_config = config['optimizer']
         self.optimizer_name = self.optimizer_config['name']
-        self.optimizer_param = self.optimizer_param['param']
+        self.optimizer_param = self.optimizer_config['param']
+        self.weight_decay = self.optimizer_param['weight_decay']
 
         ##################################
         # LR scheduler setting
@@ -120,8 +121,8 @@ class BaseTrainer:
         transform_name = transform_config['name']
         transform_param = transform_config['param']
         module = import_module(script_path)
-        transform_init_log = f"Initialized {transform_name} from\
-                {script_path} with {transform_param}."
+        transform_init_log = \
+            f"Initialized {transform_param['phase']} {transform_name} from {script_path}."
         logging.info(transform_init_log)
         print(transform_init_log)
         transform = getattr(module, transform_name)(**transform_param)
@@ -139,8 +140,14 @@ class BaseTrainer:
         dataset_name = dataset_config['name']
         dataset_param = dataset_config['param']
         dataset_param['transform'] = transform
-        self.log_init_param(dataset_name, dataset_param)
         dataset = build_dataset(dataset_name, **dataset_param)
+        self.train_size = len(dataset)
+
+        phase = 'train' if dataset_param['train'] else 'test'
+        init_log = f'Initialized {phase} {dataset_name}(size:{len(dataset)}).'
+        logging.info(init_log)
+        print(init_log)
+
         return dataset
 
     def init_optimizer(self):
@@ -162,10 +169,16 @@ class BaseTrainer:
             self.log_init_param(self.optimizer_name, self.optimizer_param)
             return optimizer
         except Exception as error:
-            logging.info(f"optimizer initialize failed: {error} !")
-            raise AttributeError(f"optimizer initialize failed: {error} !")
+            logging.info(f"Optimizer initialize failed: {error} !")
+            raise AttributeError(f"Optimizer initialize failed: {error} !")
 
     def init_lr_scheduler(self):
+        if self.lr_scheduler_name == 'CyclicLR':
+            self.iter_num = int(
+                np.ceil(self.train_size / self.train_batch_size)
+            )
+            self.lr_scheduler_param['step_size_up'] *= self.iter_num
+            self.lr_scheduler_param['step_size_down'] *= self.iter_num
         try:
             lr_scheduler = getattr(torch.optim.lr_scheduler,
                                    self.lr_scheduler_name)(
@@ -181,19 +194,23 @@ class BaseTrainer:
     def init_model(self):
         model = build_network(self.network_name, config=self.network_config,
                               **self.network_param)
-        use_pretrained = self.network_param['use_pretrained']
+        pretrained = self.network_param['pretrained']
 
-        if use_pretrained:
+        if pretrained:
             pretrained_fpath = self.network_param['pretrained_fpath']
             state_dict = torch.load(pretrained_fpath, map_location='cpu')
             model.load_state_dict(state_dict)
         self.log_init_param(self.network_name, self.network_param)
 
         # Count the total amount of parameters with gradient.
+        total_params = 0
         for x in filter(lambda p: p.requires_grad, model.parameters()):
             total_params += np.prod(x.data.numpy().shape)
-        logging.info(f"Total parameters requiring gradient: {total_params}")
-        print(f"Total parameters requiring gradient: {total_params}")
+        total_params /= 10 ** 6
+        logging.info("Total parameters requiring gradient: {:.2f}m\
+                     ".format(total_params))
+        print("Total parameters requiring gradient: {:.2f}m\
+              ".format(total_params))
         return model
 
     def init_loss(self):
@@ -235,7 +252,7 @@ class BaseTrainer:
     def save_checkpoint(self, epoch, save_fname, is_best,
                         acc=None, mr=None, ap=None):
         checkpoint = {
-            'model': self.model.state_dict() if self.local_rank != -1
+            'model': self.model.state_dict() if self.local_rank == -1
             else self.model.module.state_dict(),
             'optimizer': self.optimizer.state_dict(),
             'lr_scheduler': self.lr_scheduler.state_dict(),
@@ -252,6 +269,6 @@ class BaseTrainer:
             shutil.copyfile(save_fpath, best_fpath)
 
     def log_init_param(self, name, param):
-        init_log = f"Initialized {name} with {param}."
+        init_log = f"Initialized {name}."
         logging.info(init_log)
         print(init_log)
