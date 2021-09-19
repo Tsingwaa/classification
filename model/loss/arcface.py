@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Parameter
-from common.loss.builder import Losses
+from model.loss.builder import Losses
 
 
 @Losses.register_module("ArcCos")

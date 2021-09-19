@@ -1,6 +1,7 @@
-from common.core import Registry
+from utils.core import Registry
 
-Datasets = Registry("datasets")
+Datasets = Registry("dataset")
+
 
 def build_dataset(dataset_name, **kwargs):
     try:

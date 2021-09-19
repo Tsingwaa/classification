@@ -1,6 +1,7 @@
-from common.core import Registry
+from utils.core import Registry
 
 Samplers = Registry("sampler")
+
 
 def build_sampler(sampler_name, **kwargs):
     try:

@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from common.loss.builder import Losses
+from model.loss.builder import Losses
 
 
 def normalize(x, axis=-1):

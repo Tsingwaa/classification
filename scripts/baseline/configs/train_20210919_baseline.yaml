@@ -1,6 +1,6 @@
 # Template train config file
 experiments:
-  name: "20210918_baseline"
+  name: "20210919_baseline"
   start_epoch: 1
   total_epochs: 200
   save_root: "~/Experiments/"
@@ -36,7 +36,7 @@ train_dataset:
     download: True
 
 eval_dataset:
-  name: "ImbalanceCIFAR10"
+  name: "CIFAR10"
   param:
     data_root: "~/Datasets/CIFAR10" # default: same as train_dataset
     train: False
@@ -47,7 +47,7 @@ eval_dataset:
 trainloader:
   name: "Dataloader"
   param:
-    sampler: "None"
+    sampler: None
     batch_size: 64
     num_workers: 8
 

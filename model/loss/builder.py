@@ -1,6 +1,6 @@
-from common.core import Registry
+from utils.core import Registry
 
-Losses = Registry("Losses")
+Losses = Registry("loss")
 
 
 def build_loss(loss_name, **kwargs):

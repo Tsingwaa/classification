@@ -1,6 +1,6 @@
-from common.core import Registry
+from utils.core import Registry
 
-Networks = Registry("networks")
+Networks = Registry("network")
 
 
 def build_network(network_name, **kwargs):

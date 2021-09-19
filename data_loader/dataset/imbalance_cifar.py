@@ -9,6 +9,18 @@ import numpy as np
 from data_loader.dataset.builder import Datasets
 
 
+@Datasets.register_module("CIFAR10")
+class CIFAR10_(torchvision.datasets.CIFAR10):
+    def __init__(self, data_root, train, transform=None, download=True,
+                 **kwargs):
+        super(MyCIFAR10, self).__init__(
+            root=data_root,
+            train=train,
+            transform=transform,
+            download=download
+        )
+
+
 @Datasets.register_module("ImbalanceCIFAR10")
 class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     cls_num = 10
@@ -17,10 +29,12 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
 
     def __init__(self, data_root, train, transform=None, download=True,
                  imb_type='exp', imb_factor=0.01, rand_seed=0, **kwargs):
-        super(IMBALANCECIFAR10, self).__init__(data_root,
-                                               train,
-                                               transform,
-                                               download)
+        super(IMBALANCECIFAR10, self).__init__(
+            root=data_root,
+            train=train,
+            transform=transform,
+            download=download
+        )
         self.img_num_per_cls = self.get_img_num_per_cls()
         self.gen_imbalanced_data()
 

@@ -15,7 +15,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data.distributed import DistributedSampler
 # Custom Package
-from common.trainer.trainer import BaseTrainer
+from base.base_trainer import BaseTrainer
 from utils import AverageMeter
 
 
@@ -37,6 +37,8 @@ class Trainer(BaseTrainer):
 
         if self.trainloader_name == "DistributedDataloader":
             train_sampler = DistributedSampler(trainset)
+        else:
+            train_sampler = None
 
         print(f'global_rank {self.global_rank}, world_size {self.world_size},\
               local_rank {self.local_rank},  {self.trainloader_name}')
@@ -291,8 +293,9 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank", type=int)
-    parser.add_argument("--config_file", type=str)
+    parser.add_argument("--local_rank", type=int, help='Local Rank for\
+                        distributed training. if single-GPU, default: -1')
+    parser.add_argument("--config_fpath", type=str, help='path of config file')
     args = parser.parse_args()
     return args
 
@@ -307,7 +310,7 @@ def set_seed(seed=0):
 def main(args):
     warnings.filterwarnings('ignore')
     set_seed(0)
-    with open(args.config_file, "r") as f:
+    with open(args.config_fpath, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     trainer = Trainer(local_rank=args.local_rank, config=config)
     trainer.train()

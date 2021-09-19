@@ -1,6 +1,6 @@
-from common.core import Registry
+from utils.core import Registry
 
-Backbones = Registry("backbones")
+Backbones = Registry("backbone")
 
 
 def build_backbone(backbone_name, **kwargs):

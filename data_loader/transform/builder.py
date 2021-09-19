@@ -1,6 +1,6 @@
-from common.core import Registry
+from utils.core import Registry
 
-Transforms = Registry("Transform")
+Transforms = Registry("transform")
 
 
 def build_transform(transform_type, **kwargs):
