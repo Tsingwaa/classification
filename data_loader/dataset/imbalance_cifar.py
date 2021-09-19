@@ -13,7 +13,7 @@ from data_loader.dataset.builder import Datasets
 class CIFAR10_(torchvision.datasets.CIFAR10):
     def __init__(self, data_root, train, transform=None, download=True,
                  **kwargs):
-        super(MyCIFAR10, self).__init__(
+        super(CIFAR10_, self).__init__(
             root=data_root,
             train=train,
             transform=transform,
@@ -28,22 +28,22 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     std = [0.5, 0.5, 0.5]
 
     def __init__(self, data_root, train, transform=None, download=True,
-                 imb_type='exp', imb_factor=0.01, rand_seed=0, **kwargs):
-        super(IMBALANCECIFAR10, self).__init__(
+                 imb_type='exp', imb_factor=0.01, seed=0, **kwargs):
+        super(ImbalanceCIFAR10, self).__init__(
             root=data_root,
             train=train,
             transform=transform,
             download=download
         )
+        self.imb_type = imb_type
+        self.imb_factor = imb_factor
+        self.seed = seed
+
         self.img_num_per_cls = self.get_img_num_per_cls()
         self.gen_imbalanced_data()
 
-        self.imb_type = imb_type
-        self.imb_factor = imb_factor
-        self.rand_seed = rand_seed
-
     def get_img_num_per_cls(self):
-        np.random.seed(self.rand_seed)
+        np.random.seed(self.seed)
         img_max = len(self.data) / self.cls_num
         img_num_per_cls = []
         if self.imb_type == 'exp':

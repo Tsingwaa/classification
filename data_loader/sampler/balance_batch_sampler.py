@@ -8,9 +8,9 @@ from common.dataset.sampler.builder import Sampler
 @Sampler.register_module("balancedbatchsampler")
 class BalancedBatchSampler(BatchSampler):
     """Balanced batch sampler for imbalance dataset.
-    The probability of sampling data point from different class is equal. 
-    
+    The probability of sampling data point from different class is equal.
     """
+
     def __init__(self, labels, batch_size, random_seed=42):
         self.labels = np.array(labels)
         self.batch_size = batch_size
@@ -37,8 +37,9 @@ class BalancedBatchSampler(BatchSampler):
 
 @Sampler.register_module("balancedbatchsampler2")
 class BalancedBatchSampler2(BatchSampler):
-    """
-    BatchSampler - from a MNIST-like dataset, samples n_classes and within these classes samples n_samples.
+    """BatchSampler - from a MNIST-like dataset, samples n_classes and within
+    these classes samples n_samples.
+
     Returns batches of size n_classes * n_samples
     """
 
@@ -47,8 +48,8 @@ class BalancedBatchSampler2(BatchSampler):
         self.labels_set = list(set(self.labels.numpy()))
         self.label_to_indices = {label: np.where(self.labels.numpy() == label)[
             0] for label in self.labels_set}
-        for l in self.labels_set:
-            np.random.shuffle(self.label_to_indices[l])
+        for label in self.labels_set:
+            np.random.shuffle(self.label_to_indices[label])
         self.used_label_indices_count = {label: 0 for label in self.labels_set}
         self.count = 0
         self.n_classes = n_classes
