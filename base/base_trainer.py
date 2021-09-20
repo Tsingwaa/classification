@@ -59,9 +59,19 @@ class BaseTrainer:
             logging.basicConfig(
                 filename=self.log_fpath,
                 filemode='a+',
-                format='%(asctime)s: %(levelname)s: [%(filename)s:%(lineno)d]:%(message)s',
+                format='%(asctime)s: %(levelname)s: [%(filename)s:%(lineno)d]:'
+                ' %(message)s',
                 level=logging.INFO
             )
+            exp_init_log = f"Experiment: {self.exp_name}\n"\
+                f"Total_epochs: {self.total_epochs}\n"\
+                f"Save dir: {self.save_dir}\n"\
+                f"Tensorboard dir: {self.tb_dir}\n"\
+                f"Save peroid: {self.save_period}\n"\
+                f"Resume Training: {self.resume}\n"\
+                f"Distributed Training:"\
+                f" {True if self.local_rank != -1 else False}"
+            self.logging_print(exp_init_log)
 
         ##################################
         # Dataset setting
@@ -123,18 +133,18 @@ class BaseTrainer:
         module = import_module(script_path)
         transform = getattr(module, transform_name)(**transform_param)
 
-        transform_init_log = f"===> Initialized {transform_param['phase']}'\
-                ' {transform_name} from {script_path}"
-        self.log_init_param(transform_init_log)
+        transform_init_log = f"===> Initialized {transform_param['phase']}"\
+            f" {transform_name} from {script_path}"
+        self.logging_print(transform_init_log)
         return transform
 
     def init_sampler(self, dataloader_config=None, dataset=None):
         sampler_param = dataloader_config['param']
         sampler_name = sampler_param['sampler']
         sampler_param['dataset'] = dataset
-        sampler_init_log = f"===> Initialized {sample_name} "
-        self.log_init_param(sampler_name, sampler_param)
         sampler = build_sampler(sampler_name, **sampler_param)
+        sampler_init_log = f"===> Initialized {sample_name} "
+        self.logging_print(sampler_init_log)
         return sampler
 
     def init_dataset(self, dataset_config=None, transform=None):
@@ -142,12 +152,15 @@ class BaseTrainer:
         dataset_param = dataset_config['param']
         dataset_param['transform'] = transform
         dataset = build_dataset(dataset_name, **dataset_param)
-        self.train_size = len(dataset)
+        if dataset_param['train']:
+            self.train_size = len(dataset)
+            phase = 'train'
+        else:
+            phase = 'test'
 
-        phase = 'train' if dataset_param['train'] else 'test'
-        dataset_init_log = f'Initialized {phase} {dataset_name}'\
-            '(size: {len(dataset)}, classes: {dataset.cls_num}).'
-        self.log_init_param(dataset_name, dataset_init_log)
+        dataset_init_log = f'===> Initialized {phase} {dataset_name}'\
+            f'(size={len(dataset)}, classes={dataset.cls_num}).'
+        self.logging_print(dataset_init_log)
 
         return dataset
 
@@ -167,7 +180,10 @@ class BaseTrainer:
         try:
             optimizer = getattr(torch.optim, self.optimizer_name)(
                 self.model.parameters(), **self.optimizer_param)
-            self.log_init_param(self.optimizer_name, self.optimizer_param)
+            optimizer_init_log = f"===> Initialized {self.optimizer_name}"\
+                f" with momentum={self.optimizer_param['momentum']}"\
+                f" nesterov={self.optimizer_param['nesterov']}"
+            self.logging_print(optimizer_init_log)
             return optimizer
         except Exception as error:
             logging.info(f"Optimizer initialize failed: {error} !")
@@ -185,8 +201,15 @@ class BaseTrainer:
                                    self.lr_scheduler_name)(
                                        self.optimizer,
                                        **self.lr_scheduler_param)
-            self.log_init_param(self.lr_scheduler_name,
-                                self.lr_scheduler_param)
+            lr_schduler_init_log = "===> Initialized {} with step_size_up={}"\
+                " step_size_down={} base_lr={:.0e} max_lr={:.0e}".format(
+                    self.lr_scheduler_name,
+                    self.lr_scheduler_param['step_size_up'],
+                    self.lr_scheduler_param['step_size_down'],
+                    self.lr_scheduler_param['base_lr'],
+                    self.lr_scheduler_param['max_lr'],
+                )
+            self.logging_print(lr_schduler_init_log)
             return lr_scheduler
         except Exception as error:
             logging.info(f"LR scheduler initilize failed: {error} !")
@@ -201,22 +224,21 @@ class BaseTrainer:
             pretrained_fpath = self.network_param['pretrained_fpath']
             state_dict = torch.load(pretrained_fpath, map_location='cpu')
             model.load_state_dict(state_dict)
-        self.log_init_param(self.network_name, self.network_param)
 
         # Count the total amount of parameters with gradient.
         total_params = 0
         for x in filter(lambda p: p.requires_grad, model.parameters()):
             total_params += np.prod(x.data.numpy().shape)
         total_params /= 10 ** 6
-        logging.info("Total parameters requiring gradient: {:.2f}m\
-                     ".format(total_params))
-        print("Total parameters requiring gradient: {:.2f}m\
-              ".format(total_params))
+        model_init_log = "===> Initialized {}. Total training parameters:"\
+            " {:.2f}m".format(self.network_name, total_params)
+        self.logging_print(model_init_log)
         return model
 
     def init_loss(self):
         loss = build_loss(self.loss_name, **self.loss_param)
-        self.log_init_param(self.loss_name, self.loss_param)
+        loss_init_log = f"===> Initialized {self.loss_name}"
+        self.logging_print(loss_init_log)
         return loss
 
     def _reduce_loss(self, tensor):
@@ -243,10 +265,9 @@ class BaseTrainer:
         acc = checkpoint['acc']
         mr = checkpoint['mr']
         ap = checkpoint['ap']
-        log_str = 'Resume checkpoint from {}.\nResume acc:{:.2%} mr:{:.2%}\
-                ap:{:.2%}'.format(self.resume_fpath, acc, mr, ap)
-        logging.info(log_str)
-        print(log_str)
+        resume_log = '===> Resume checkpoint from {}.\nResume acc:{:.2%}"\
+                " mr:{:.2%} ap:{:.2%}'.format(self.resume_fpath, acc, mr, ap)
+        self.logging_print(resume_log)
 
         return model_state_dict, optimizer_state_dict, lr_scheduler_state_dict
 
@@ -269,6 +290,6 @@ class BaseTrainer:
                                       f'{self.network_name}_best.pth.tar')
             shutil.copyfile(save_fpath, best_fpath)
 
-    def log_init_param(self, name, log=None):
+    def logging_print(self, log):
         logging.info(log)
         print(log)
