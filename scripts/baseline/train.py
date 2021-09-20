@@ -113,22 +113,6 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Start Training
         #######################################################################
-        if self.local_rank in [-1, 0]:
-            dataset_log = '\nStart training: \n'\
-                    'Total epochs: {total_epochs}\n'\
-                    'Trainset size: {trainset_size}\n'\
-                    'Train batch size: {train_batch_size}\n'\
-                    'Evalset size: {evalset_size}\n'\
-                    'Eval batch size: {eval_batch_size}\n'\
-                    ''.format(
-                        total_epochs=self.total_epochs,
-                        trainset_size=len(trainset),
-                        train_batch_size=self.train_batch_size,
-                        evalset_size=len(evalset),
-                        eval_batch_size=self.eval_batch_size
-                    )
-            logging.info(dataset_log)
-
         best_acc = 0
         best_mr = 0
         for epoch in range(self.start_epoch, self.total_epochs + 1):
