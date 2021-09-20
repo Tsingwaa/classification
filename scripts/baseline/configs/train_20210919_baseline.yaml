@@ -1,6 +1,6 @@
 # Template train config file
 experiment:
-  name: "20210919_baseline_1"
+  name: "20210919_baseline"
   start_epoch: 1
   total_epochs: 200
   save_root: "/home/waa/Experiments/"
