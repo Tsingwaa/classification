@@ -143,7 +143,7 @@ class ResNet_CIFAR(nn.Module):
 class ResNet20_CIFAR(ResNet_CIFAR):
     def __init__(self, num_classes, num_blocks=[3, 3, 3],
                  use_norm=False, **kwargs):
-        super(ResNet32_CIFAR, self).__init__(
+        super(ResNet20_CIFAR, self).__init__(
             block=BasicBlock,
             num_classes=num_classes,
             num_blocks=num_blocks
