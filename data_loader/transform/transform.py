@@ -148,6 +148,7 @@ def cifar_transform(phase='train', resize=(32, 32), **kwargs):
         ])
     else:
         ret_transform = transforms.Compose([
+            transforms.Resize(resize),
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])

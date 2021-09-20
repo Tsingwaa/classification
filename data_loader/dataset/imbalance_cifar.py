@@ -11,6 +11,7 @@ from data_loader.dataset.builder import Datasets
 
 @Datasets.register_module("CIFAR10")
 class CIFAR10_(torchvision.datasets.CIFAR10):
+    cls_num = 10
     def __init__(self, data_root, train, transform=None, download=True,
                  **kwargs):
         super(CIFAR10_, self).__init__(
