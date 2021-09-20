@@ -114,13 +114,13 @@ class Trainer(BaseTrainer):
         # Start Training
         #######################################################################
         if self.local_rank in [-1, 0]:
-            dataset_log = '\nStart training: \n\
-                    Total epochs: {total_epochs}\n\
-                    Trainset size: {trainset_size}\n\
-                    Train batch size: {train_batch_size}\n\
-                    Evalset size: {evalset_size}\n\
-                    Eval batch size: {eval_batch_size}\n\
-                    '.format(
+            dataset_log = '\nStart training: \n'\
+                    'Total epochs: {total_epochs}\n'\
+                    'Trainset size: {trainset_size}\n'\
+                    'Train batch size: {train_batch_size}\n'\
+                    'Evalset size: {evalset_size}\n'\
+                    'Eval batch size: {eval_batch_size}\n'\
+                    ''.format(
                         total_epochs=self.total_epochs,
                         trainset_size=len(trainset),
                         train_batch_size=self.train_batch_size,
@@ -141,11 +141,11 @@ class Trainer(BaseTrainer):
                 eval_acc, eval_mr, eval_ap, eval_loss = self.evaluate(epoch)
 
                 logging.info(
-                    "Epoch[{epoch:>3d}/{total_epochs}]\
-                    Train Acc: {train_acc:.2%}, MR={train_mr:.2%},\
-                    AP={train_ap:.2%}, Loss={train_loss:.4f} ||\n\
-                    Eval Acc={eval_acc:.2%}, MR={eval_mr:.2%},\
-                    AP={eval_ap:.2%}, Loss={eval_loss:.4f}".format(
+                    "Epoch[{epoch:>3d}/{total_epochs}]'\
+                    'Train Acc={train_acc:.2%}, MR={train_mr:.2%}, '\
+                    'AP={train_ap:.2%}, Loss={train_loss:.4f} || '\
+                    'Eval Acc={eval_acc:.2%}, MR={eval_mr:.2%}, '\
+                    'AP={eval_ap:.2%}, Loss={eval_loss:.4f}".format(
                         epoch=epoch,
                         total_epochs=self.total_epochs,
                         train_acc=train_acc,
@@ -160,16 +160,16 @@ class Trainer(BaseTrainer):
                 )
 
                 # Save log by tensorboard
-                self.writer.add_scalars('Loss',
+                self.writer.add_scalars(f'{self.exp_name}/Loss',
                                         {'train_loss': train_loss,
                                          'eval_loss': eval_loss}, epoch)
-                self.writer.add_scalars('Accuracy',
+                self.writer.add_scalars(f'{self.exp_name}/Accuracy',
                                         {'train_acc': train_acc,
                                          'eval_acc': eval_acc}, epoch)
-                self.writer.add_scalars('Recall',
+                self.writer.add_scalars(f'{self.exp_name}/Recall',
                                         {'train_mr': train_mr,
                                          'eval_mr': eval_mr}, epoch)
-                self.writer.add_scalars('Precision',
+                self.writer.add_scalars(f'{self.exp_name}/Precision',
                                         {'train_ap': train_ap,
                                          'eval_ap': eval_ap}, epoch)
                 # Save checkpoint.
@@ -178,13 +178,14 @@ class Trainer(BaseTrainer):
                     best_acc = eval_acc
                 if best_mr < eval_mr:
                     best_mr = eval_mr
-                save_fname = '{}_epoch{}_acc{:.2%}_mr{:.2%}_ap{:.2%}_state_dict.pth.tar'.format(
-                            self.network_name,
-                            str(epoch),
-                            eval_acc,
-                            eval_mr,
-                            eval_ap
-                        )
+                save_fname = '{}_epoch{}_acc{:.2%}_mr{:.2%}_ap{:.2%}_'\
+                    'state_dict.pth.tar'.format(
+                        self.network_name,
+                        str(epoch),
+                        eval_acc,
+                        eval_mr,
+                        eval_ap
+                    )
                 if not (epoch % self.save_period) or is_best:
                     self.save_checkpoint(epoch, save_fname, is_best,
                                          eval_acc, eval_mr, eval_ap)

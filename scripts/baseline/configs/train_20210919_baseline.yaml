@@ -1,6 +1,6 @@
 # Template train config file
 experiment:
-  name: "20210919_baseline"
+  name: "20210919_baseline_1"
   start_epoch: 1
   total_epochs: 200
   save_root: "/home/waa/Experiments/"
@@ -84,5 +84,5 @@ lr_scheduler:
   param:
     step_size_up: 3  # 3 * iterations
     step_size_down: 2  # 2 * iterations
-    base_lr: 5.0e-6
+    base_lr: 5.0e-7
     max_lr: 5.0e-3
