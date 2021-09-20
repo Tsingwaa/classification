@@ -121,17 +121,18 @@ class BaseTrainer:
         transform_name = transform_config['name']
         transform_param = transform_config['param']
         module = import_module(script_path)
-        transform_init_log = \
-            f"Initialized {transform_param['phase']} {transform_name} from {script_path}."
-        logging.info(transform_init_log)
-        print(transform_init_log)
         transform = getattr(module, transform_name)(**transform_param)
+
+        transform_init_log = f"===> Initialized {transform_param['phase']}'\
+                ' {transform_name} from {script_path}"
+        self.log_init_param(transform_init_log)
         return transform
 
     def init_sampler(self, dataloader_config=None, dataset=None):
         sampler_param = dataloader_config['param']
         sampler_name = sampler_param['sampler']
         sampler_param['dataset'] = dataset
+        sampler_init_log = f"===> Initialized {sample_name} "
         self.log_init_param(sampler_name, sampler_param)
         sampler = build_sampler(sampler_name, **sampler_param)
         return sampler
@@ -144,9 +145,9 @@ class BaseTrainer:
         self.train_size = len(dataset)
 
         phase = 'train' if dataset_param['train'] else 'test'
-        init_log = f'Initialized {phase} {dataset_name}(size:{len(dataset)}).'
-        logging.info(init_log)
-        print(init_log)
+        dataset_init_log = f'Initialized {phase} {dataset_name}'\
+            '(size: {len(dataset)}, classes: {dataset.cls_num}).'
+        self.log_init_param(dataset_name, dataset_init_log)
 
         return dataset
 
@@ -165,7 +166,7 @@ class BaseTrainer:
         ]
         try:
             optimizer = getattr(torch.optim, self.optimizer_name)(
-                params, **self.optimizer_param)
+                self.model.parameters(), **self.optimizer_param)
             self.log_init_param(self.optimizer_name, self.optimizer_param)
             return optimizer
         except Exception as error:
@@ -268,7 +269,6 @@ class BaseTrainer:
                                       f'{self.network_name}_best.pth.tar')
             shutil.copyfile(save_fpath, best_fpath)
 
-    def log_init_param(self, name, param):
-        init_log = f"Initialized {name}."
-        logging.info(init_log)
-        print(init_log)
+    def log_init_param(self, name, log=None):
+        logging.info(log)
+        print(log)
