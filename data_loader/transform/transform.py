@@ -141,14 +141,13 @@ def cifar_transform(phase='train', resize=(32, 32), **kwargs):
     std = [0.2023, 0.1994, 0.2010]
     if phase == 'train':
         ret_transform = transforms.Compose([
-            transforms.RandomCrop(resize, padding=4),
+            transforms.RandomCrop(resize[1], padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean, std),
         ])
     else:
         ret_transform = transforms.Compose([
-            transforms.Resize(resize),
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])

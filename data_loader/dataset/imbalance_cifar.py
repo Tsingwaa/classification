@@ -25,8 +25,6 @@ class CIFAR10_(torchvision.datasets.CIFAR10):
 @Datasets.register_module("ImbalanceCIFAR10")
 class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     cls_num = 10
-    mean = [0.5, 0.5, 0.5]
-    std = [0.5, 0.5, 0.5]
 
     def __init__(self, data_root, train, transform=None, download=True,
                  imb_type='exp', imb_factor=0.01, seed=0, **kwargs):
@@ -74,17 +72,21 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         # np.unique default output by increasing order. i.e. {class 0}: MAX.
         # np.random.shuffle(classes)
         self.num_per_cls_dict = dict()
-        for cls, num in zip(classes, self.img_num_per_cls):
-            self.num_per_cls_dict[cls] = num
-            indexes = np.where(targets_np == cls)[0]  # get index
+        for cls_idx, num in zip(classes, self.img_num_per_cls):
+            self.num_per_cls_dict[cls_idx] = num
+            indexes = np.where(targets_np == cls_idx)[0]  # get index
             # Shuffle indexes for each class.
             np.random.shuffle(indexes)
             select_indexes = indexes[:num]
             new_data.append(self.data[select_indexes])
-            new_targets.extend([cls, ] * num)
+            new_targets.extend([cls_idx, ] * num)
         new_data = np.vstack(new_data)
         self.data = new_data
         self.targets = new_targets
+
+    @property
+    def imgs_per_cls(self):
+        return self.img_num_per_cls
 
 
 @Datasets.register_module("ImbalanceCIFAR100")
@@ -109,8 +111,6 @@ class ImbalanceCIFAR100(ImbalanceCIFAR10):
         'md5': '7973b15100ade9c7d40fb424638fde48',
     }
     cls_num = 100
-    mean = [0.5, 0.5, 0.5]
-    std = [0.5, 0.5, 0.5]
 
 
 if __name__ == '__main__':
@@ -122,7 +122,7 @@ if __name__ == '__main__':
                                  train=True,
                                  download=True,
                                  transform=transform)
-    trainloader = iter(trainset)
-    data, label = next(trainloader)
-    import pdb
-    pdb.set_trace()
+    # trainloader = iter(trainset)
+    # data, label = next(trainloader)
+    # import pdb
+    # pdb.set_trace()

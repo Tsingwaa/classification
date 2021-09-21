@@ -6,4 +6,4 @@ export PYTHONPATH=$PYTHONPATH:/home/waa/Projects/classification
 #     train.py --config_file "configs/train_v1.0_20210827.yaml"
 
 # Single-GPU Training
-python3 train.py --local_rank -1 --config_fpath 'configs/train_20210920_baseline.yaml'
+python3 train.py --local_rank -1 --config_fpath 'configs/train_20210921_debug.yaml'

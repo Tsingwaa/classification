@@ -180,10 +180,15 @@ class BaseTrainer:
         try:
             optimizer = getattr(torch.optim, self.optimizer_name)(
                 self.model.parameters(), **self.optimizer_param)
-            optimizer_init_log = f"===> Initialized {self.optimizer_name}"\
-                f" with momentum={self.optimizer_param['momentum']}"\
-                f" nesterov={self.optimizer_param['nesterov']}"
-            self.logging_print(optimizer_init_log)
+            if self.optimizer_name == 'SGD':
+                optimizer_init_log = f"===> Initialized {self.optimizer_name}"\
+                    f" with momentum={self.optimizer_param['momentum']}"\
+                    f" nesterov={self.optimizer_param['nesterov']}"
+                self.logging_print(optimizer_init_log)
+            elif self.optimizer_name == 'Adam':
+                optimizer_init_log = f"===> Initialized {self.optimizer_name}"\
+                    f" with lr={self.optimizer_param['lr']}"
+                self.logging_print(optimizer_init_log)
             return optimizer
         except Exception as error:
             logging.info(f"Optimizer initialize failed: {error} !")
@@ -196,12 +201,7 @@ class BaseTrainer:
             )
             self.lr_scheduler_param['step_size_up'] *= self.iter_num
             self.lr_scheduler_param['step_size_down'] *= self.iter_num
-        try:
-            lr_scheduler = getattr(torch.optim.lr_scheduler,
-                                   self.lr_scheduler_name)(
-                                       self.optimizer,
-                                       **self.lr_scheduler_param)
-            lr_schduler_init_log = "===> Initialized {} with step_size_up={}"\
+            lr_scheduler_init_log = "===> Initialized {} with step_size_up={}"\
                 " step_size_down={} base_lr={:.0e} max_lr={:.0e}".format(
                     self.lr_scheduler_name,
                     self.lr_scheduler_param['step_size_up'],
@@ -209,7 +209,21 @@ class BaseTrainer:
                     self.lr_scheduler_param['base_lr'],
                     self.lr_scheduler_param['max_lr'],
                 )
-            self.logging_print(lr_schduler_init_log)
+            self.logging_print(lr_scheduler_init_log)
+        elif self.lr_scheduler_name == 'StepLR':
+            lr_scheduler_init_log = "===> Initialized {} with step_size={}"\
+                    " gamma={}".format(
+                        self.lr_scheduler_name,
+                        self.lr_scheduler_param['step_size'],
+                        self.lr_scheduler_param['gamma']
+                    )
+            self.logging_print(lr_scheduler_init_log)
+
+        try:
+            lr_scheduler = getattr(torch.optim.lr_scheduler,
+                                   self.lr_scheduler_name)(
+                                       self.optimizer,
+                                       **self.lr_scheduler_param)
             return lr_scheduler
         except Exception as error:
             logging.info(f"LR scheduler initilize failed: {error} !")

@@ -3,6 +3,7 @@ import random
 import logging
 import warnings
 import argparse
+import pudb
 import yaml
 import numpy as np
 import torch
@@ -42,10 +43,10 @@ class Trainer(BaseTrainer):
             train_sampler = None
 
         if self.local_rank != -1:
-            print(f'global_rank {self.global_rank},\
-                  world_size {self.world_size},\
-                  local_rank {self.local_rank},\
-                  {self.trainloader_name}')
+            print(f'global_rank {self.global_rank},'
+                  f'world_size {self.world_size},'
+                  f'local_rank {self.local_rank},'
+                  f'{self.trainloader_name}')
 
         self.trainloader = DataLoaderX(
             trainset,
@@ -95,9 +96,9 @@ class Trainer(BaseTrainer):
         # Initialize DistributedDataParallel
         #######################################################################
         if self.local_rank != -1:
-            self.model, self.optimizer = amp.initialize(self.model,
-                                                        self.optimizer,
-                                                        opt_level='O1')
+            self.model, self.optimizer = amp.initialize(
+                self.model, self.optimizer, opt_level='O1')
+
             self.model = DDP(self.model,
                              device_ids=[self.local_rank],
                              output_device=self.local_rank,
@@ -144,6 +145,9 @@ class Trainer(BaseTrainer):
                 )
 
                 # Save log by tensorboard
+                self.writer.add_scalar(f'{self.exp_name}/LearningRate',
+                                       self.optimizer.param_groups[0]['lr'],
+                                       epoch)
                 self.writer.add_scalars(f'{self.exp_name}/Loss',
                                         {'train_loss': train_loss,
                                          'eval_loss': eval_loss}, epoch)
@@ -173,6 +177,9 @@ class Trainer(BaseTrainer):
                 if not (epoch % self.save_period) or is_best:
                     self.save_checkpoint(epoch, save_fname, is_best,
                                          eval_acc, eval_mr, eval_ap)
+            # learning rate decay by epoch
+            if self.lr_scheduler_name != 'CyclicLR':
+                self.lr_scheduler.step()
 
     def train_epoch(self, epoch):
         self.model.train()
@@ -187,10 +194,10 @@ class Trainer(BaseTrainer):
         train_acc_meter = AccAverageMeter()
         train_loss_meter = AccAverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(self.trainloader):
+            self.optimizer.zero_grad()
             batch_imgs, batch_labels = batch_imgs.cuda(), batch_labels.cuda()
             batch_prob = self.model(batch_imgs)
 
-            self.optimizer.zero_grad()
             avg_loss = self.loss(batch_prob, batch_labels)
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.optimizer) as scaled_loss:
@@ -212,14 +219,15 @@ class Trainer(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str(
-                    'LR:{:.2e} Loss:{:.4f} Acc:{:.2%}'.format(
+                    'LR:{:.1e} Loss:{:.4f} Acc:{:.2%}'.format(
                         self.lr_scheduler.get_last_lr()[0],
                         train_loss_meter.avg,
                         train_acc_meter.avg,
                     )
                 )
 
-            self.lr_scheduler.step()
+            if self.lr_scheduler_name == 'CyclicLR':
+                self.lr_scheduler.step()
 
         train_acc = metrics.accuracy_score(all_labels, all_preds)
         train_mr = metrics.recall_score(all_labels, all_preds,
@@ -241,7 +249,7 @@ class Trainer(BaseTrainer):
 
         eval_pbar = tqdm(
             total=len(self.evalloader),
-            desc='Eval'
+            desc='\t\t\tEval'
         )
 
         all_labels = []
@@ -295,6 +303,7 @@ def set_seed(seed=0):
 def main(args):
     warnings.filterwarnings('ignore')
     set_seed()
+    pudb.set_trace()
     with open(args.config_fpath, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     trainer = Trainer(local_rank=args.local_rank, config=config)
