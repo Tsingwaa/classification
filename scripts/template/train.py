@@ -35,7 +35,7 @@ class Trainer(BaseTrainer):
         train_transform = self.init_transform(self.train_transform_config)
         trainset = self.init_dataset(self.trainset_config, train_transform)
 
-        if self.trainloader_name == "DistributedDataloader":
+        if self.trainloader_name == 'DistributedDataloader':
             train_sampler = DistributedSampler(trainset)
 
         print(f'global_rank {self.global_rank}, world_size {self.world_size},\
@@ -108,19 +108,19 @@ class Trainer(BaseTrainer):
         # Start Training
         #######################################################################
         if self.local_rank in [-1, 0]:
-            dataset_log = '\nStart training: \n\
-                    Total epochs: {total_epochs}\n\
-                    Trainset size: {trainset_size}\n\
-                    Train batch size: {train_batch_size}\n\
-                    Evalset size: {evalset_size}\n\
-                    Eval batch size: {eval_batch_size}\n\
-                    '.format(
-                        total_epochs=self.total_epochs,
-                        trainset_size=len(trainset),
-                        train_batch_size=self.train_batch_size,
-                        evalset_size=len(evalset),
-                        eval_batch_size=self.eval_batch_size
-                    )
+            dataset_log = '\nStart training: \n'
+            'Total epochs: {total_epochs}\n'
+            'Trainset size: {trainset_size}\n'
+            'Train batch size: {train_batch_size}\n'
+            'Evalset size: {evalset_size}\n'
+            'Eval batch size: {eval_batch_size}\n'
+            ''.format(
+                total_epochs=self.total_epochs,
+                trainset_size=len(trainset),
+                train_batch_size=self.train_batch_size,
+                evalset_size=len(evalset),
+                eval_batch_size=self.eval_batch_size
+            )
             logging.info(dataset_log)
 
         best_acc = 0
@@ -153,14 +153,14 @@ class Trainer(BaseTrainer):
                     best_acc = eval_acc
                 if best_mr < eval_mr:
                     best_mr = eval_mr
-                save_fname = '{}_epoch{}_acc{:.2%}_mr{:.2%}_ap{:.2%}\
-                        _state_dict.pth.tar'.format(
+                    save_fname = '{}_epoch{}_acc{:.2%}_mr{:.2%}_ap{:.2%}'
+                    '_state_dict.pth.tar'.format(
                             self.network_name,
                             str(epoch),
                             eval_acc,
                             eval_mr,
                             eval_ap
-                        )
+                    )
                 if not (epoch % self.save_period) or is_best:
                     self.save_checkpoint(epoch, save_fname, is_best,
                                          eval_acc, eval_mr, eval_ap)
@@ -211,9 +211,9 @@ class Trainer(BaseTrainer):
                 train_pbar.set_postfix_str(postfix_info)
 
                 logging.info(
-                    "Train Epoch[{epoch:>3d}/{total_epochs}] \
-                     Iter[{this_iter}/{total_iters}] LR: {lr:.2e},\
-                     Acc: {acc:.2%}, Loss: {loss:.4f}".format(
+                    'Train Epoch[{epoch:>3d}/{total_epochs}] '
+                    'Iter[{this_iter}/{total_iters}] LR: {lr:.2e},'
+                    'Acc: {acc:.2%}, Loss: {loss:.4f}'.format(
                         epoch=epoch,
                         total_epochs=self.total_epochs,
                         this_iter=(i + 1),
@@ -232,8 +232,8 @@ class Trainer(BaseTrainer):
         epoch_ap = metrics.average_precision_score(all_labels, all_preds)
 
         logging.info(
-            "Train Epoch[{epoch:>3d}/{total_epochs}] Acc: {acc:.2%},\
-            MR: {mr:.2%}, AP: {ap:.2%}, Loss: {loss:.4f}".format(
+            'Train Epoch[{epoch:>3d}/{total_epochs}] Acc: {acc:.2%},'
+            'MR: {mr:.2%}, AP: {ap:.2%}, Loss: {loss:.4f}'.format(
                 epoch=epoch,
                 total_epochs=self.total_epochs,
                 acc=epoch_acc,
@@ -276,8 +276,8 @@ class Trainer(BaseTrainer):
         eval_ap = metrics.average_precision_score(all_labels, all_preds)
 
         logging.info(
-            "Epoch[{epoch:>3d}/{total_epochs}] Acc: {acc:.2%},\
-            MR: {mr:.2%}, AP: {ap:.2%}, Loss: {loss:.4f}".format(
+            'Epoch[{epoch:>3d}/{total_epochs}] Acc: {acc:.2%},'
+            'MR: {mr:.2%}, AP: {ap:.2%}, Loss: {loss:.4f}'.format(
                 epoch=epoch,
                 total_epochs=self.total_epochs,
                 acc=eval_acc,
@@ -291,8 +291,8 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank", type=int)
-    parser.add_argument("--config_file", type=str)
+    parser.add_argument('--local_rank', type=int)
+    parser.add_argument('--config_file', type=str)
     args = parser.parse_args()
     return args
 
@@ -307,7 +307,7 @@ def set_seed(seed=0):
 def main(args):
     warnings.filterwarnings('ignore')
     set_seed(0)
-    with open(args.config_file, "r") as f:
+    with open(args.config_file, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     trainer = Trainer(local_rank=args.local_rank, config=config)
     trainer.train()

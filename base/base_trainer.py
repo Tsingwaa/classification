@@ -63,14 +63,14 @@ class BaseTrainer:
                 ' %(message)s',
                 level=logging.INFO
             )
-            exp_init_log = f"Experiment: {self.exp_name}\n"\
-                f"Total_epochs: {self.total_epochs}\n"\
-                f"Save dir: {self.save_dir}\n"\
-                f"Tensorboard dir: {self.tb_dir}\n"\
-                f"Save peroid: {self.save_period}\n"\
-                f"Resume Training: {self.resume}\n"\
-                f"Distributed Training:"\
-                f" {True if self.local_rank != -1 else False}"
+            exp_init_log = f'Experiment: {self.exp_name}\n'\
+                f'Total_epochs: {self.total_epochs}\n'\
+                f'Save dir: {self.save_dir}\n'\
+                f'Tensorboard dir: {self.tb_dir}\n'\
+                f'Save peroid: {self.save_period}\n'\
+                f'Resume Training: {self.resume}\n'\
+                f'Distributed Training:'\
+                f' {True if self.local_rank != -1 else False}'
             self.logging_print(exp_init_log)
 
         ##################################
@@ -85,11 +85,11 @@ class BaseTrainer:
         # Dataloader setting
         ##################################
         self.trainloader_config = config['trainloader']
-        self.trainloader_name = self.trainloader_config["name"]
+        self.trainloader_name = self.trainloader_config['name']
         self.trainloader_param = self.trainloader_config['param']
         self.train_sampler_name = self.trainloader_param['sampler']
-        self.train_batch_size = self.trainloader_param["batch_size"]
-        self.train_num_workers = self.trainloader_param["num_workers"]
+        self.train_batch_size = self.trainloader_param['batch_size']
+        self.train_num_workers = self.trainloader_param['num_workers']
 
         self.evalloader_config = config['evalloader']
         self.evalloader_name = self.evalloader_config['name']
@@ -133,8 +133,8 @@ class BaseTrainer:
         module = import_module(script_path)
         transform = getattr(module, transform_name)(**transform_param)
 
-        transform_init_log = f"===> Initialized {transform_param['phase']}"\
-            f" {transform_name} from {script_path}"
+        transform_init_log = f'===> Initialized {transform_param['phase']}'\
+            f' {transform_name} from {script_path}'
         self.logging_print(transform_init_log)
         return transform
 
@@ -143,7 +143,7 @@ class BaseTrainer:
         sampler_name = sampler_param['sampler']
         sampler_param['dataset'] = dataset
         sampler = build_sampler(sampler_name, **sampler_param)
-        sampler_init_log = f"===> Initialized {sample_name} "
+        sampler_init_log = f'===> Initialized {sample_name} '
         self.logging_print(sampler_init_log)
         return sampler
 
@@ -181,18 +181,18 @@ class BaseTrainer:
             optimizer = getattr(torch.optim, self.optimizer_name)(
                 self.model.parameters(), **self.optimizer_param)
             if self.optimizer_name == 'SGD':
-                optimizer_init_log = f"===> Initialized {self.optimizer_name}"\
-                    f" with momentum={self.optimizer_param['momentum']}"\
-                    f" nesterov={self.optimizer_param['nesterov']}"
+                optimizer_init_log = f'===> Initialized {self.optimizer_name}'\
+                    f' with momentum={self.optimizer_param['momentum']}'\
+                    f' nesterov={self.optimizer_param['nesterov']}'
                 self.logging_print(optimizer_init_log)
             elif self.optimizer_name == 'Adam':
-                optimizer_init_log = f"===> Initialized {self.optimizer_name}"\
-                    f" with lr={self.optimizer_param['lr']}"
+                optimizer_init_log = f'===> Initialized {self.optimizer_name}'\
+                    f' with lr={self.optimizer_param['lr']}'
                 self.logging_print(optimizer_init_log)
             return optimizer
         except Exception as error:
-            logging.info(f"Optimizer initialize failed: {error} !")
-            raise AttributeError(f"Optimizer initialize failed: {error} !")
+            logging.info(f'Optimizer initialize failed: {error} !')
+            raise AttributeError(f'Optimizer initialize failed: {error} !')
 
     def init_lr_scheduler(self):
         if self.lr_scheduler_name == 'CyclicLR':
@@ -201,8 +201,8 @@ class BaseTrainer:
             )
             self.lr_scheduler_param['step_size_up'] *= self.iter_num
             self.lr_scheduler_param['step_size_down'] *= self.iter_num
-            lr_scheduler_init_log = "===> Initialized {} with step_size_up={}"\
-                " step_size_down={} base_lr={:.0e} max_lr={:.0e}".format(
+            lr_scheduler_init_log = '===> Initialized {} with step_size_up={}'\
+                ' step_size_down={} base_lr={:.0e} max_lr={:.0e}'.format(
                     self.lr_scheduler_name,
                     self.lr_scheduler_param['step_size_up'],
                     self.lr_scheduler_param['step_size_down'],
@@ -211,8 +211,8 @@ class BaseTrainer:
                 )
             self.logging_print(lr_scheduler_init_log)
         elif self.lr_scheduler_name == 'StepLR':
-            lr_scheduler_init_log = "===> Initialized {} with step_size={}"\
-                    " gamma={}".format(
+            lr_scheduler_init_log = '===> Initialized {} with step_size={}'\
+                    ' gamma={}'.format(
                         self.lr_scheduler_name,
                         self.lr_scheduler_param['step_size'],
                         self.lr_scheduler_param['gamma']
@@ -226,8 +226,8 @@ class BaseTrainer:
                                        **self.lr_scheduler_param)
             return lr_scheduler
         except Exception as error:
-            logging.info(f"LR scheduler initilize failed: {error} !")
-            raise AttributeError(f"LR scheduler initial failed: {error} !")
+            logging.info(f'LR scheduler initilize failed: {error} !')
+            raise AttributeError(f'LR scheduler initial failed: {error} !')
 
     def init_model(self):
         model = build_network(self.network_name, config=self.network_config,
@@ -244,14 +244,14 @@ class BaseTrainer:
         for x in filter(lambda p: p.requires_grad, model.parameters()):
             total_params += np.prod(x.data.numpy().shape)
         total_params /= 10 ** 6
-        model_init_log = "===> Initialized {}. Total training parameters:"\
-            " {:.2f}m".format(self.network_name, total_params)
+        model_init_log = '===> Initialized {}. Total training parameters:'\
+            ' {:.2f}m'.format(self.network_name, total_params)
         self.logging_print(model_init_log)
         return model
 
     def init_loss(self):
         loss = build_loss(self.loss_name, **self.loss_param)
-        loss_init_log = f"===> Initialized {self.loss_name}"
+        loss_init_log = f'===> Initialized {self.loss_name}'
         self.logging_print(loss_init_log)
         return loss
 
@@ -279,8 +279,8 @@ class BaseTrainer:
         acc = checkpoint['acc']
         mr = checkpoint['mr']
         ap = checkpoint['ap']
-        resume_log = '===> Resume checkpoint from {}.\nResume acc:{:.2%}"\
-                " mr:{:.2%} ap:{:.2%}'.format(self.resume_fpath, acc, mr, ap)
+        resume_log = '===> Resume checkpoint from {}.\nResume acc:{:.2%}'\
+            ' mr:{:.2%} ap:{:.2%}'.format(self.resume_fpath, acc, mr, ap)
         self.logging_print(resume_log)
 
         return model_state_dict, optimizer_state_dict, lr_scheduler_state_dict

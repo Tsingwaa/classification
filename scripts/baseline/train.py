@@ -37,7 +37,7 @@ class Trainer(BaseTrainer):
         train_transform = self.init_transform(self.train_transform_config)
         trainset = self.init_dataset(self.trainset_config, train_transform)
 
-        if self.trainloader_name == "DistributedDataloader":
+        if self.trainloader_name == 'DistributedDataloader':
             train_sampler = DistributedSampler(trainset)
         else:
             train_sampler = None
@@ -126,11 +126,11 @@ class Trainer(BaseTrainer):
                 eval_acc, eval_mr, eval_ap, eval_loss = self.evaluate(epoch)
 
                 logging.info(
-                    "Epoch[{epoch:>3d}/{total_epochs}]'\
-                    'Train Acc={train_acc:.2%}, MR={train_mr:.2%}, '\
-                    'AP={train_ap:.2%}, Loss={train_loss:.4f} || '\
-                    'Eval Acc={eval_acc:.2%}, MR={eval_mr:.2%}, '\
-                    'AP={eval_ap:.2%}, Loss={eval_loss:.4f}".format(
+                    'Epoch[{epoch:>3d}/{total_epochs}]'
+                    'Train Acc={train_acc:.2%}, MR={train_mr:.2%}, '
+                    'AP={train_ap:.2%}, Loss={train_loss:.4f} || '
+                    'Eval Acc={eval_acc:.2%}, MR={eval_mr:.2%}, '
+                    'AP={eval_ap:.2%}, Loss={eval_loss:.4f}'.format(
                         epoch=epoch,
                         total_epochs=self.total_epochs,
                         train_acc=train_acc,
@@ -285,9 +285,9 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank", type=int, help='Local Rank for\
+    parser.add_argument('--local_rank', type=int, help='Local Rank for\
                         distributed training. if single-GPU, default: -1')
-    parser.add_argument("--config_fpath", type=str, help='path of config file')
+    parser.add_argument('--config_fpath', type=str, help='path of config file')
     args = parser.parse_args()
     return args
 
@@ -304,7 +304,7 @@ def main(args):
     warnings.filterwarnings('ignore')
     set_seed()
     pudb.set_trace()
-    with open(args.config_fpath, "r") as f:
+    with open(args.config_fpath, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     trainer = Trainer(local_rank=args.local_rank, config=config)
     trainer.train()
