@@ -133,7 +133,7 @@ class BaseTrainer:
         module = import_module(script_path)
         transform = getattr(module, transform_name)(**transform_param)
 
-        transform_init_log = f'===> Initialized {transform_param['phase']}'\
+        transform_init_log = f'===> Initialized {transform_param["phase"]}'\
             f' {transform_name} from {script_path}'
         self.logging_print(transform_init_log)
         return transform
@@ -182,12 +182,12 @@ class BaseTrainer:
                 self.model.parameters(), **self.optimizer_param)
             if self.optimizer_name == 'SGD':
                 optimizer_init_log = f'===> Initialized {self.optimizer_name}'\
-                    f' with momentum={self.optimizer_param['momentum']}'\
-                    f' nesterov={self.optimizer_param['nesterov']}'
+                    f' with momentum={self.optimizer_param["momentum"]}'\
+                    f' nesterov={self.optimizer_param["nesterov"]}'
                 self.logging_print(optimizer_init_log)
             elif self.optimizer_name == 'Adam':
                 optimizer_init_log = f'===> Initialized {self.optimizer_name}'\
-                    f' with lr={self.optimizer_param['lr']}'
+                    f' with lr={self.optimizer_param["lr"]}'
                 self.logging_print(optimizer_init_log)
             return optimizer
         except Exception as error:
