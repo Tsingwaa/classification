@@ -35,7 +35,7 @@ train_dataset:
     imb_type: 'exp'
     imb_factor: 0.01
     rand_seed: 0
-    download: True
+    download: False
 
 eval_dataset:
   name: "CIFAR10"
