@@ -18,7 +18,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data.distributed import DistributedSampler
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AccAverageMeter
+from utils import AccAverageMeter, GradualWarmupScheduler
 
 
 class DataLoaderX(DataLoader):
@@ -110,6 +110,13 @@ class Trainer(BaseTrainer):
         self.lr_scheduler = self.init_lr_scheduler()
         if self.resume:
             self.lr_scheduler.load_state_dict(lr_scheduler_state_dict)
+        # Warp with GradualWarmupScheduler
+        self.lr_scheduler_with_warmup = GradualWarmupScheduler(
+            self.optimizer,
+            multiplier=self.warmup_lr_scheduler_param['multiplier'],
+            warmup_epochs=self.warmup_lr_scheduler_param['warmup_epochs'],
+            after_scheduler=self.lr_scheduler
+        )
 
         #######################################################################
         # Start Training
@@ -117,6 +124,10 @@ class Trainer(BaseTrainer):
         best_acc = 0
         best_mr = 0
         for epoch in range(self.start_epoch, self.total_epochs + 1):
+            # learning rate decay by epoch
+            if self.lr_scheduler_mode == 'epoch':
+                self.lr_scheduler_with_warmup.step()
+
             if self.local_rank != -1:
                 train_sampler.set_epoch(epoch)
 
@@ -177,9 +188,6 @@ class Trainer(BaseTrainer):
                 if not (epoch % self.save_period) or is_best:
                     self.save_checkpoint(epoch, save_fname, is_best,
                                          eval_acc, eval_mr, eval_ap)
-            # learning rate decay by epoch
-            if self.lr_scheduler_name != 'CyclicLR':
-                self.lr_scheduler.step()
 
     def train_epoch(self, epoch):
         self.model.train()
@@ -194,6 +202,9 @@ class Trainer(BaseTrainer):
         train_acc_meter = AccAverageMeter()
         train_loss_meter = AccAverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(self.trainloader):
+            if self.lr_scheduler_mode == 'iteration':
+                self.lr_scheduler_with_warmup.step()
+
             self.optimizer.zero_grad()
             batch_imgs, batch_labels = batch_imgs.cuda(), batch_labels.cuda()
             batch_prob = self.model(batch_imgs)
@@ -220,14 +231,11 @@ class Trainer(BaseTrainer):
                 train_pbar.update()
                 train_pbar.set_postfix_str(
                     'LR:{:.1e} Loss:{:.4f} Acc:{:.2%}'.format(
-                        self.lr_scheduler.get_last_lr()[0],
+                        self.optimizer.param_groups[0]['lr'],
                         train_loss_meter.avg,
                         train_acc_meter.avg,
                     )
                 )
-
-            if self.lr_scheduler_name == 'CyclicLR':
-                self.lr_scheduler.step()
 
         train_acc = metrics.accuracy_score(all_labels, all_preds)
         train_mr = metrics.recall_score(all_labels, all_preds,
@@ -237,7 +245,7 @@ class Trainer(BaseTrainer):
 
         train_pbar.set_postfix_str(
             'LR:{:.1e} Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%}'.format(
-                self.lr_scheduler.get_last_lr()[0],
+                self.optimizer.param_groups[0]['lr'],
                 train_loss_meter.avg, train_acc, train_mr, train_ap
             )
         )
