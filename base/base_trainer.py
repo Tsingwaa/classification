@@ -63,14 +63,15 @@ class BaseTrainer:
                 ' %(message)s',
                 level=logging.INFO
             )
-            exp_init_log = f'Experiment: {self.exp_name}\n'\
+            exp_init_log = f'\nExperiment: {self.exp_name}\n'\
+                f'Start_epoch: {self.start_epoch}\n'\
                 f'Total_epochs: {self.total_epochs}\n'\
                 f'Save dir: {self.save_dir}\n'\
                 f'Tensorboard dir: {self.tb_dir}\n'\
                 f'Save peroid: {self.save_period}\n'\
                 f'Resume Training: {self.resume}\n'\
                 f'Distributed Training:'\
-                f' {True if self.local_rank != -1 else False}'
+                f' {True if self.local_rank != -1 else False}\n'
             self.logging_print(exp_init_log)
 
         ##################################
