@@ -123,9 +123,12 @@ class BaseTrainer:
         ##################################
         # LR scheduler setting
         ##################################
+        self.warmup_lr_scheduler_param = config['warmup_lr_scheduler']
         self.lr_scheduler_config = config['lr_scheduler']
         self.lr_scheduler_name = self.lr_scheduler_config['name']
         self.lr_scheduler_param = self.lr_scheduler_config['param']
+        self.lr_scheduler_mode = 'epoch' \
+            if self.lr_scheduler_name != "CyclicLR" else 'iterations'
 
     def init_transform(self, transform_config=None):
         script_path = transform_config['script_path']
@@ -216,6 +219,14 @@ class BaseTrainer:
                     ' gamma={}'.format(
                         self.lr_scheduler_name,
                         self.lr_scheduler_param['step_size'],
+                        self.lr_scheduler_param['gamma']
+                    )
+            self.logging_print(lr_scheduler_init_log)
+        elif self.lr_scheduler_name == 'MultiStepLR':
+            lr_scheduler_init_log = '===> Initialized {} with milestones={}'\
+                    ' gamma={}'.format(
+                        self.lr_scheduler_name,
+                        self.lr_scheduler_param['milestones'],
                         self.lr_scheduler_param['gamma']
                     )
             self.logging_print(lr_scheduler_init_log)
