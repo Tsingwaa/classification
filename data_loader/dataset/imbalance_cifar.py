@@ -37,12 +37,12 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         self.imb_type = imb_type
         self.imb_factor = imb_factor
         self.seed = seed
+        np.random.seed(self.seed)
 
         self.img_num_per_cls = self.get_img_num_per_cls()
         self.gen_imbalanced_data()
 
     def get_img_num_per_cls(self):
-        np.random.seed(self.seed)
         img_max = len(self.data) / self.cls_num
         img_num_per_cls = []
         if self.imb_type == 'exp':
@@ -78,7 +78,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
             # Shuffle indexes for each class.
             np.random.shuffle(indexes)
             select_indexes = indexes[:num]
-            new_data.append(self.data[select_indexes])
+            new_data.append(self.data[select_indexes, ...])
             new_targets.extend([cls_idx, ] * num)
         new_data = np.vstack(new_data)
         self.data = new_data
