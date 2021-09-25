@@ -1,6 +1,6 @@
 # Template train config/home/w/home/w/home/w/home/w/home/waaaaaafile
 experiment:
-  name: "20210921_debug"
+  name: "20210925_CIFAR10"
   start_epoch: 1
   total_epochs: 200
   save_root: "/home/waa/Experiments/"
@@ -26,7 +26,7 @@ eval_transform:
     resize: [32, 32]
 
 train_dataset:
-  name: "ImbalanceCIFAR10"
+  name: "CIFAR10"
   param:
     data_root: "/home/waa/Datasets/CIFAR10"
     train: True
@@ -89,5 +89,5 @@ lr_scheduler:
     # CyclicLR
     step_size_up: 3  # 3 * iterations
     step_size_down: 2  # 2 * iterations
-    base_lr: 5.0e-7
+    base_lr: 1.0e-7
     max_lr: 5.0e-2

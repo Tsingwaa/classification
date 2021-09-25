@@ -3,10 +3,10 @@ import random
 import logging
 import warnings
 import argparse
-import pudb
 import yaml
 import numpy as np
 import torch
+from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn import metrics
@@ -236,7 +236,8 @@ class Trainer(BaseTrainer):
                                            average='macro')
 
         train_pbar.set_postfix_str(
-            'Loss:{:.4f} Acc:{:.2%} MR:{:.2%} AP:{:.2%}'.format(
+            'LR:{:.1e} Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%}'.format(
+                self.lr_scheduler.get_last_lr()[0],
                 train_loss_meter.avg, train_acc, train_mr, train_ap
             )
         )
@@ -249,7 +250,8 @@ class Trainer(BaseTrainer):
 
         eval_pbar = tqdm(
             total=len(self.evalloader),
-            desc='\t\t\tEval'
+            ncols=0,
+            desc='                Eval'
         )
 
         all_labels = []
@@ -274,7 +276,7 @@ class Trainer(BaseTrainer):
                                           average='macro')
 
         eval_pbar.set_postfix_str(
-            'Loss:{:.4f} Acc:{:.2%} MR:{:.2%} AP:{:.2%}'.format(
+            'Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%}'.format(
                 eval_loss_meter.avg, eval_acc, eval_mr, eval_ap
             )
         )
@@ -303,7 +305,7 @@ def set_seed(seed=0):
 def main(args):
     warnings.filterwarnings('ignore')
     set_seed()
-    pudb.set_trace()
+    # set_trace()
     with open(args.config_fpath, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     trainer = Trainer(local_rank=args.local_rank, config=config)
