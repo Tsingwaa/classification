@@ -78,8 +78,10 @@ optimizer:
     nesterov: True
 
 warmup_lr_scheduler:
-  warmup_epochs: 5
-  multiplier: 1
+  warmup: True
+  param:
+    warmup_epochs: 5
+    multiplier: 1
 
 lr_scheduler:
   # name: "CyclicLR"
@@ -92,10 +94,6 @@ lr_scheduler:
     # step_size_down: 2  # 2 * iterations
     # max_lr: 5.0e-2
     # base_lr: 5.0e-7
-    
-    # StepLR
-    # step_size: 30
-    # gamma: 0.1
     
     # MultiStepLR
     milestones: [120, 160]
