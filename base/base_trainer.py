@@ -13,6 +13,7 @@ from model.loss.builder import build_loss
 from model.network.builder import build_network
 from data_loader.dataset.builder import build_dataset
 from data_loader.sampler.builder import build_sampler
+from utils import GradualWarmupScheduler
 
 
 class BaseTrainer:
@@ -52,6 +53,9 @@ class BaseTrainer:
             self.user_root, 'Experiment',
             self.experiment_config['resume_fpath']
         )
+        if self.resume:
+            self.checkpoint = self.resume_checkpoint()
+
         if self.local_rank in [-1, 0]:
             self.save_dir = os.path.join(
                 self.user_root, 'Experiment', self.exp_name
@@ -135,7 +139,9 @@ class BaseTrainer:
         ##################################
         # LR scheduler setting
         ##################################
-        self.warmup_lr_scheduler_param = config['warmup_lr_scheduler']
+        self.warmup_lr_scheduler_config = config['warmup_lr_scheduler']
+        self.warmup = self.warmup_lr_scheduler_config['warmup']
+        self.warmup_param = self.warmup_lr_scheduler_config['param']
         self.lr_scheduler_config = config['lr_scheduler']
         self.lr_scheduler_name = self.lr_scheduler_config['name']
         self.lr_scheduler_param = self.lr_scheduler_config['param']
@@ -198,10 +204,15 @@ class BaseTrainer:
         ]
         try:
             optimizer = getattr(torch.optim, self.optimizer_name)(
-                self.model.parameters(), **self.optimizer_param)
+                self.model.parameters(),
+                **self.optimizer_param
+            )
+            if self.resume:
+                optimizer.load_state_dict(self.checkpoint['optimizer'])
             if self.optimizer_name == 'SGD':
                 optimizer_init_log = f'===> Initialized {self.optimizer_name}'\
-                    f' with momentum={self.optimizer_param["momentum"]}'\
+                    f' with init_lr={self.optimizer_param["lr"]}'\
+                    f' momentum={self.optimizer_param["momentum"]}'\
                     f' nesterov={self.optimizer_param["nesterov"]}'
                 self.logging_print(optimizer_init_log)
             elif self.optimizer_name == 'Adam':
@@ -229,14 +240,6 @@ class BaseTrainer:
                     self.lr_scheduler_param['max_lr'],
                 )
             self.logging_print(lr_scheduler_init_log)
-        elif self.lr_scheduler_name == 'StepLR':
-            lr_scheduler_init_log = '===> Initialized {} with step_size={}'\
-                    ' gamma={}'.format(
-                        self.lr_scheduler_name,
-                        self.lr_scheduler_param['step_size'],
-                        self.lr_scheduler_param['gamma']
-                    )
-            self.logging_print(lr_scheduler_init_log)
         elif self.lr_scheduler_name == 'MultiStepLR':
             lr_scheduler_init_log = '===> Initialized {} with milestones={}'\
                     ' gamma={}'.format(
@@ -250,18 +253,42 @@ class BaseTrainer:
             lr_scheduler = getattr(torch.optim.lr_scheduler,
                                    self.lr_scheduler_name)(
                                        self.optimizer,
-                                       **self.lr_scheduler_param)
-            return lr_scheduler
+                                       **self.lr_scheduler_param
+                                   )
+            if self.resume:
+                lr_scheduler.load_state_dict(self.checkpoint['lr_scheduler'])
+
+            if self.warmup:
+                ret_lr_scheduler = GradualWarmupScheduler(
+                    self.optimizer,
+                    multiplier=self.warmup_param['multiplier'],
+                    warmup_epochs=self.warmup_param['warmup_epochs'],
+                    after_scheduler=lr_scheduler,
+                )
+                warmup_log = '===> Warmup for {} epochs with multiplier={}\n'\
+                    ''.format(
+                        self.warmup_param["warmup_epochs"],
+                        self.warmup_param['multiplier'],
+                    )
+                self.logging_print(warmup_log)
+            else:
+                ret_lr_scheduler = lr_scheduler
+                self.logging_print('\n')
+            return ret_lr_scheduler
         except Exception as error:
             logging.info(f'LR scheduler initilize failed: {error} !')
             raise AttributeError(f'LR scheduler initial failed: {error} !')
 
     def init_model(self):
-        model = build_network(self.network_name, config=self.network_config,
-                              **self.network_param)
+        model = build_network(
+            self.network_name,
+            config=self.network_config,
+            **self.network_param
+        )
         pretrained = self.network_param['pretrained']
-
-        if pretrained:
+        if self.resume:
+            model.load_state_dict(self.checkpoint['model'])
+        elif pretrained:
             pretrained_fpath = self.network_param['pretrained_fpath']
             state_dict = torch.load(pretrained_fpath, map_location='cpu')
             model.load_state_dict(state_dict)
@@ -299,18 +326,15 @@ class BaseTrainer:
 
     def resume_checkpoint(self):
         checkpoint = torch.load(self.resume_fpath, map_location='cpu')
-        model_state_dict = checkpoint['model']
-        optimizer_state_dict = checkpoint['optimizer']
-        lr_scheduler_state_dict = checkpoint['lr_scheduler']
         self.start_epoch = checkpoint['epoch']
         acc = checkpoint['acc']
         mr = checkpoint['mr']
         ap = checkpoint['ap']
-        resume_log = '===> Resume checkpoint from {}.\nResume acc:{:.2%}'\
+        resume_log = '===> Resume checkpoint from "{}".\nResume acc:{:.2%}'\
             ' mr:{:.2%} ap:{:.2%}'.format(self.resume_fpath, acc, mr, ap)
         self.logging_print(resume_log)
 
-        return model_state_dict, optimizer_state_dict, lr_scheduler_state_dict
+        return checkpoint
 
     def save_checkpoint(self, epoch, save_fname, is_best,
                         acc=None, mr=None, ap=None):
