@@ -18,8 +18,8 @@ from data_loader.sampler.builder import build_sampler
 class BaseTrainer:
     user_roots = {
         "LAB_MJR": "/home/waa/",
-        "SERVER15": "/home/20/chenghua/",
-        "SERVER31": "/home/user/chenghua/",
+        15: "/home/20/chenghua/",
+        31: "/data31/chenghua/",
     }
 
     def __init__(self, local_rank=-1, config=None):
