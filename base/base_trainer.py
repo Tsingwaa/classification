@@ -314,24 +314,25 @@ class BaseTrainer:
 
     def save_checkpoint(self, epoch, save_fname, is_best,
                         acc=None, mr=None, ap=None):
-        checkpoint = {
-            'model': self.model.state_dict() if self.local_rank == -1
-            else self.model.module.state_dict(),
-            'optimizer': self.optimizer.state_dict(),
-            'lr_scheduler': self.lr_scheduler.state_dict(),
-            'epoch': epoch,
-            'acc': acc,
-            'mr': mr,
-            'ap': ap,
-        }
-        if not (epoch % self.save_period):
-            save_fpath = os.path.join(self.save_dir, save_fname)
-            torch.save(checkpoint, save_fpath)
-        if is_best:
-            best_fpath = os.path.join(
-                self.save_dir, f'{self.network_name}_best.pth.tar'
-            )
-            torch.save(checkpoint, best_fpath)
+        if epoch > 100:  # start saving checkpoint from 100-th epoch
+            checkpoint = {
+                'model': self.model.state_dict() if self.local_rank == -1
+                else self.model.module.state_dict(),
+                'optimizer': self.optimizer.state_dict(),
+                'lr_scheduler': self.lr_scheduler.state_dict(),
+                'epoch': epoch,
+                'acc': acc,
+                'mr': mr,
+                'ap': ap,
+            }
+            if not (epoch % self.save_period):
+                save_fpath = os.path.join(self.save_dir, save_fname)
+                torch.save(checkpoint, save_fpath)
+            if is_best:
+                best_fpath = os.path.join(
+                    self.save_dir, f'{self.network_name}_best.pth.tar'
+                )
+                torch.save(checkpoint, best_fpath)
 
     def logging_print(self, log):
         logging.info(log)
