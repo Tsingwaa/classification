@@ -1,11 +1,11 @@
 # Template train config/home/w/home/w/home/w/home/w/home/waaaaaafile
 experiment:
-  name: "20210926_baseline"
+  name: "20210926_debug2"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: False
-  resume_fpath: ""
+  resume: True
+  resume_fpath: "20210926_debug2/ResNet32_CIFAR_epoch20_acc47.31%_mr47.31%_ap69.70%_state_dict.pth.tar"
   save_period: 5
   eval_period: 1  # if 0, remove validate process when training.
 

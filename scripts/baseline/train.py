@@ -121,6 +121,10 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Start Training
         #######################################################################
+        last_accs = []
+        last_mrs = []
+        last_aps = []
+        last_losses = []
         best_acc = 0
         best_mr = 0
         for epoch in range(self.start_epoch, self.total_epochs + 1):
@@ -135,6 +139,16 @@ class Trainer(BaseTrainer):
 
             if self.local_rank in [-1, 0]:
                 eval_acc, eval_mr, eval_ap, eval_loss = self.evaluate(epoch)
+                if len(last_accs) < 20:
+                    last_accs.append(eval_acc)
+                    last_mrs.append(eval_mr)
+                    last_aps.append(eval_ap)
+                    last_losses.append(eval_loss)
+                else:
+                    last_accs[epoch % 20] = eval_acc
+                    last_mrs[epoch % 20] = eval_mr
+                    last_aps[epoch % 20] = eval_ap
+                    last_losses[epoch % 20] = eval_loss
 
                 logging.info(
                     'Epoch[{epoch:>3d}/{total_epochs}]'
@@ -185,9 +199,22 @@ class Trainer(BaseTrainer):
                         eval_mr,
                         eval_ap
                     )
-                if not (epoch % self.save_period) or is_best:
-                    self.save_checkpoint(epoch, save_fname, is_best,
-                                         eval_acc, eval_mr, eval_ap)
+                self.save_checkpoint(epoch, save_fname, is_best,
+                                     eval_acc, eval_mr, eval_ap)
+
+        end_log = "\nEnd Training for {}, results is saved at {}\n"\
+            " Average accuracy of The last 20 epochs: {:.2%}\n"\
+            " Average recall of The last 20 epochs: {:.2%}\n"\
+            " Average precision of The last 20 epochs: {:.2%}\n"\
+            "*********************************************************".format(
+                self.exp_name,
+                self.save_dir,
+                np.mean(last_accs),
+                np.mean(last_mrs),
+                np.mean(last_aps),
+                np.mean(last_losses),
+            )
+        self.logging_print(end_log)
 
     def train_epoch(self, epoch):
         self.model.train()

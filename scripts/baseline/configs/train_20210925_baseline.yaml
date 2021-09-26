@@ -3,8 +3,6 @@ experiment:
   name: "20210925_baseline"
   start_epoch: 1
   total_epochs: 200
-  save_root: "/home/waa/Experiments/"
-  tb_root: "/home/waa/Experiments/Tensorboard"
   log_fname: "train.log"
   resume: False
   resume_fpath: ""
@@ -28,7 +26,7 @@ eval_transform:
 train_dataset:
   name: "ImbalanceCIFAR10"
   param:
-    data_root: "/home/waa/Datasets/CIFAR10"
+    data_root: "CIFAR10"
     train: True
     img_lst_fpath: "None"
     map_fpath: "None"
@@ -40,7 +38,7 @@ train_dataset:
 eval_dataset:
   name: "CIFAR10"
   param:
-    data_root: "/home/waa/Datasets/CIFAR10" # default: same as train_dataset
+    data_root: "CIFAR10" # default: same as train_dataset
     train: False
     img_lst_fpath: "None"
     map_fpath: "None" # default: same as train_dataset
