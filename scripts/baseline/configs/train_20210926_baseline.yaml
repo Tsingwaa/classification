@@ -6,7 +6,7 @@ experiment:
   log_fname: "train.log"
   resume: False
   resume_fpath: ""
-  save_period: 5
+  save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 train_transform:
