@@ -14,7 +14,7 @@ from pudb import set_trace
 from prefetch_generator import BackgroundGenerator
 # Distribute Package
 from apex import amp
-from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 # Custom Package
 from base.base_trainer import BaseTrainer
@@ -75,10 +75,6 @@ class Trainer(BaseTrainer):
         #######################################################################
         self.model = self.init_model()
         self.model.cuda()
-        if self.resume:
-            model_state_dict, optimizer_state_dict, lr_scheduler_state_dict =\
-                self.resume_checkpoint()
-            self.model.load_state_dict(model_state_dict)
 
         #######################################################################
         # Initialize Loss
@@ -89,34 +85,26 @@ class Trainer(BaseTrainer):
         # Initialize Optimizer
         #######################################################################
         self.optimizer = self.init_optimizer()
-        if self.resume:
-            self.optimizer.load_state_dict(optimizer_state_dict)
 
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
         if self.local_rank != -1:
             self.model, self.optimizer = amp.initialize(
-                self.model, self.optimizer, opt_level='O1')
-
-            self.model = DDP(self.model,
-                             device_ids=[self.local_rank],
-                             output_device=self.local_rank,
-                             find_unused_parameters=True)
-
+                self.model,
+                self.optimizer,
+                opt_level='O1'
+            )
+            self.model = DistributedDataParallel(
+                self.model,
+                device_ids=[self.local_rank],
+                output_device=self.local_rank,
+                find_unused_parameters=True
+            )
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
         self.lr_scheduler = self.init_lr_scheduler()
-        if self.resume:
-            self.lr_scheduler.load_state_dict(lr_scheduler_state_dict)
-        # Warp with GradualWarmupScheduler
-        self.lr_scheduler_with_warmup = GradualWarmupScheduler(
-            self.optimizer,
-            multiplier=self.warmup_lr_scheduler_param['multiplier'],
-            warmup_epochs=self.warmup_lr_scheduler_param['warmup_epochs'],
-            after_scheduler=self.lr_scheduler
-        )
 
         #######################################################################
         # Start Training
@@ -130,7 +118,7 @@ class Trainer(BaseTrainer):
         for epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == 'epoch':
-                self.lr_scheduler_with_warmup.step()
+                self.lr_scheduler.step()
 
             if self.local_rank != -1:
                 train_sampler.set_epoch(epoch)
@@ -151,7 +139,7 @@ class Trainer(BaseTrainer):
                     last_losses[epoch % 20] = eval_loss
 
                 logging.info(
-                    'Epoch[{epoch:>3d}/{total_epochs}]'
+                    'Epoch[{epoch:>3d}/{total_epochs}] '
                     'Train Acc={train_acc:.2%}, MR={train_mr:.2%}, '
                     'AP={train_ap:.2%}, Loss={train_loss:.4f} || '
                     'Eval Acc={eval_acc:.2%}, MR={eval_mr:.2%}, '
@@ -202,10 +190,12 @@ class Trainer(BaseTrainer):
                 self.save_checkpoint(epoch, save_fname, is_best,
                                      eval_acc, eval_mr, eval_ap)
 
-        end_log = "\nEnd Training for {}, results is saved at {}\n"\
-            " Average accuracy of The last 20 epochs: {:.2%}\n"\
-            " Average recall of The last 20 epochs: {:.2%}\n"\
-            " Average precision of The last 20 epochs: {:.2%}\n"\
+        end_log = "\nEnd experiment {}, results are saved at '{}'\n"\
+            " Average accuracy of the last 20 epochs: {:.2%}\n"\
+            " Average recall of the last 20 epochs: {:.2%}\n"\
+            " Average precision of the last 20 epochs: {:.2%}\n"\
+            " Average losses of the last 20 epochs: {:.4f}\n"\
+            "*********************************************************"\
             "*********************************************************".format(
                 self.exp_name,
                 self.save_dir,
@@ -230,7 +220,7 @@ class Trainer(BaseTrainer):
         train_loss_meter = AccAverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(self.trainloader):
             if self.lr_scheduler_mode == 'iteration':
-                self.lr_scheduler_with_warmup.step()
+                self.lr_scheduler.step()
 
             self.optimizer.zero_grad()
             batch_imgs, batch_labels = batch_imgs.cuda(), batch_labels.cuda()
