@@ -16,6 +16,12 @@ from data_loader.sampler.builder import build_sampler
 
 
 class BaseTrainer:
+    user_roots = {
+        "LAB_MJR": "/home/waa/",
+        "SERVER15": "/home/20/chenghua/",
+        "SERVER31": "/home/user/chenghua/",
+    }
+
     def __init__(self, local_rank=-1, config=None):
         """ Base trainer for all experiments.  """
 
@@ -38,15 +44,21 @@ class BaseTrainer:
         ##################################
         self.experiment_config = config['experiment']
         self.exp_name = self.experiment_config['name']
+        self.user_root = self.user_roots[os.environ['DEVICE']]
         self.start_epoch = self.experiment_config['start_epoch']
         self.total_epochs = self.experiment_config['total_epochs']
         self.resume = self.experiment_config['resume']
-        self.resume_fpath = self.experiment_config['resume_fpath']
+        self.resume_fpath = os.path.join(
+            self.user_root, 'Experiment',
+            self.experiment_config['resume_fpath']
+        )
         if self.local_rank in [-1, 0]:
-            self.save_root = self.experiment_config['save_root']
-            self.save_dir = os.path.join(self.save_root, self.exp_name)
-            self.tb_root = self.experiment_config['tb_root']
-            self.tb_dir = os.path.join(self.tb_root, self.exp_name)
+            self.save_dir = os.path.join(
+                self.user_root, 'Experiment', self.exp_name
+            )
+            self.tb_dir = os.path.join(
+                self.user_root, 'Experiment/Tensorboard', self.exp_name
+            )
             self.log_fname = self.experiment_config['log_fname']
             self.log_fpath = os.path.join(self.save_dir, self.log_fname)
             self.save_period = self.experiment_config['save_period']
@@ -154,6 +166,9 @@ class BaseTrainer:
     def init_dataset(self, dataset_config=None, transform=None):
         dataset_name = dataset_config['name']
         dataset_param = dataset_config['param']
+        dataset_param['data_root'] = os.path.join(
+            self.user_root, 'Data', dataset_param['data_root']
+        )
         dataset_param['transform'] = transform
         dataset = build_dataset(dataset_name, **dataset_param)
         if dataset_param['train']:
@@ -287,7 +302,7 @@ class BaseTrainer:
         model_state_dict = checkpoint['model']
         optimizer_state_dict = checkpoint['optimizer']
         lr_scheduler_state_dict = checkpoint['lr_scheduler']
-        self.start_epoch = checkpoint['start_epoch']
+        self.start_epoch = checkpoint['epoch']
         acc = checkpoint['acc']
         mr = checkpoint['mr']
         ap = checkpoint['ap']
@@ -309,12 +324,14 @@ class BaseTrainer:
             'mr': mr,
             'ap': ap,
         }
-        save_fpath = os.path.join(self.save_dir, save_fname)
-        torch.save(checkpoint, save_fpath)
+        if not (epoch % self.save_period):
+            save_fpath = os.path.join(self.save_dir, save_fname)
+            torch.save(checkpoint, save_fpath)
         if is_best:
-            best_fpath = os.path.join(self.save_dir,
-                                      f'{self.network_name}_best.pth.tar')
-            shutil.copyfile(save_fpath, best_fpath)
+            best_fpath = os.path.join(
+                self.save_dir, f'{self.network_name}_best.pth.tar'
+            )
+            torch.save(checkpoint, best_fpath)
 
     def logging_print(self, log):
         logging.info(log)
