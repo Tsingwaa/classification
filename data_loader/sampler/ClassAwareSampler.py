@@ -44,18 +44,21 @@ class RandomCycleIter:
         return self.data_list[self.i]
 
 
-def class_aware_sample_generator(cls_iter, data_iter_list, n, num_samples_cls=1):
+def class_aware_sample_generator(cls_iter, data_iter_list,
+                                 n, num_samples_cls=1):
     i = 0
     j = 0
     while i < n:
 
-        #         yield next(data_iter_list[next(cls_iter)])
+        # yield next(data_iter_list[next(cls_iter)])
 
         if j >= num_samples_cls:
             j = 0
 
         if j == 0:
-            temp_tuple = next(zip(*[data_iter_list[next(cls_iter)]] * num_samples_cls))
+            temp_tuple = next(
+                zip(*[data_iter_list[next(cls_iter)]] * num_samples_cls)
+            )
             yield temp_tuple[j]
         else:
             yield temp_tuple[j]
@@ -66,7 +69,7 @@ def class_aware_sample_generator(cls_iter, data_iter_list, n, num_samples_cls=1)
 
 class ClassAwareSampler(Sampler):
 
-    def __init__(self, data_source, num_samples_cls=1, ):
+    def __init__(self, data_source, num_samples_cls=1,):
         super(ClassAwareSampler, self).__init__(data_source)
         num_classes = len(np.unique(data_source.labels))
         self.class_iter = RandomCycleIter(range(num_classes))
@@ -74,12 +77,18 @@ class ClassAwareSampler(Sampler):
         for i, label in enumerate(data_source.labels):
             cls_data_list[label].append(i)
         self.data_iter_list = [RandomCycleIter(x) for x in cls_data_list]
-        self.num_samples = max([len(x) for x in cls_data_list]) * len(cls_data_list)  # 最大采样数 * 类数， 其实就是以最大类为标准采样
+        self.num_samples = max([len(x) for x in cls_data_list])\
+            * len(cls_data_list)
+        # 最大采样数 * 类数， 其实就是以最大类为标准采样
         self.num_samples_cls = num_samples_cls
 
     def __iter__(self):
-        return class_aware_sample_generator(self.class_iter, self.data_iter_list,
-                                            self.num_samples, self.num_samples_cls)
+        return class_aware_sample_generator(
+            self.class_iter,
+            self.data_iter_list,
+            self.num_samples,
+            self.num_samples_cls
+            )
 
     def __len__(self):
         return self.num_samples
