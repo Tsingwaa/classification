@@ -4,6 +4,7 @@ import shutil
 import logging
 import torch
 import numpy as np
+from os.path import join
 from torch.utils.tensorboard import SummaryWriter
 from importlib import import_module
 # Distribute Package
@@ -49,22 +50,20 @@ class BaseTrainer:
         self.start_epoch = self.experiment_config['start_epoch']
         self.total_epochs = self.experiment_config['total_epochs']
         self.resume = self.experiment_config['resume']
-        self.resume_fpath = os.path.join(
+        self.resume_fpath = join(
             self.user_root, 'Experiments',
             self.experiment_config['resume_fpath']
         )
-        if self.resume:
-            self.checkpoint = self.resume_checkpoint()
 
         if self.local_rank in [-1, 0]:
-            self.save_dir = os.path.join(
+            self.save_dir = join(
                 self.user_root, 'Experiments', self.exp_name
             )
-            self.tb_dir = os.path.join(
+            self.tb_dir = join(
                 self.user_root, 'Experiments/Tensorboard', self.exp_name
             )
             self.log_fname = self.experiment_config['log_fname']
-            self.log_fpath = os.path.join(self.save_dir, self.log_fname)
+            self.log_fpath = join(self.save_dir, self.log_fname)
             self.save_period = self.experiment_config['save_period']
             self.eval_period = self.experiment_config['eval_period']
 
@@ -72,14 +71,13 @@ class BaseTrainer:
             os.makedirs(self.tb_dir, exist_ok=True)
 
             self.writer = SummaryWriter(self.tb_dir)
-            logging.basicConfig(
-                filename=self.log_fpath,
-                filemode='a+',
-                format='%(asctime)s: %(levelname)s: [%(filename)s:%(lineno)d]:'
-                ' %(message)s',
-                level=logging.INFO
-            )
-            exp_init_log = f'\nExperiment: {self.exp_name}\n'\
+
+            # Set logger to save .log file and output to screen.
+            self.logger = self.init_logger(self.log_fpath)
+
+            exp_init_log = f'\n**********************************************'\
+                f'**********************************************'\
+                f'\nExperiment: {self.exp_name}\n'\
                 f'Start_epoch: {self.start_epoch}\n'\
                 f'Total_epochs: {self.total_epochs}\n'\
                 f'Save dir: {self.save_dir}\n'\
@@ -87,8 +85,13 @@ class BaseTrainer:
                 f'Save peroid: {self.save_period}\n'\
                 f'Resume Training: {self.resume}\n'\
                 f'Distributed Training:'\
-                f' {True if self.local_rank != -1 else False}\n'
-            self.logging_print(exp_init_log)
+                f' {True if self.local_rank != -1 else False}\n'\
+                f'**********************************************'\
+                f'**********************************************\n'
+            self.logger.info(exp_init_log)
+
+        if self.resume:
+            self.checkpoint = self.resume_checkpoint()
 
         ##################################
         # Dataset setting
@@ -157,7 +160,7 @@ class BaseTrainer:
 
         transform_init_log = f'===> Initialized {transform_param["phase"]}'\
             f' {transform_name} from {script_path}'
-        self.logging_print(transform_init_log)
+        self.logger.info(transform_init_log)
         return transform
 
     def init_sampler(self, dataloader_config=None, dataset=None):
@@ -166,13 +169,13 @@ class BaseTrainer:
         sampler_param['dataset'] = dataset
         sampler = build_sampler(sampler_name, **sampler_param)
         sampler_init_log = f'===> Initialized {sample_name} '
-        self.logging_print(sampler_init_log)
+        self.logger.info(sampler_init_log)
         return sampler
 
     def init_dataset(self, dataset_config=None, transform=None):
         dataset_name = dataset_config['name']
         dataset_param = dataset_config['param']
-        dataset_param['data_root'] = os.path.join(
+        dataset_param['data_root'] = join(
             self.user_root, 'Data', dataset_param['data_root']
         )
         dataset_param['transform'] = transform
@@ -185,7 +188,7 @@ class BaseTrainer:
 
         dataset_init_log = f'===> Initialized {phase} {dataset_name}'\
             f'(size={len(dataset)}, classes={dataset.cls_num}).'
-        self.logging_print(dataset_init_log)
+        self.logger.info(dataset_init_log)
 
         return dataset
 
@@ -214,11 +217,13 @@ class BaseTrainer:
                     f' with init_lr={self.optimizer_param["lr"]}'\
                     f' momentum={self.optimizer_param["momentum"]}'\
                     f' nesterov={self.optimizer_param["nesterov"]}'
-                self.logging_print(optimizer_init_log)
             elif self.optimizer_name == 'Adam':
                 optimizer_init_log = f'===> Initialized {self.optimizer_name}'\
                     f' with lr={self.optimizer_param["lr"]}'
-                self.logging_print(optimizer_init_log)
+            else:
+                optimizer_init_log = f'===> Initialized {self.optimizer_name}'
+            self.logger.info(optimizer_init_log)
+
             return optimizer
         except Exception as error:
             logging.info(f'Optimizer initialize failed: {error} !')
@@ -239,7 +244,6 @@ class BaseTrainer:
                     self.lr_scheduler_param['base_lr'],
                     self.lr_scheduler_param['max_lr'],
                 )
-            self.logging_print(lr_scheduler_init_log)
         elif self.lr_scheduler_name == 'MultiStepLR':
             lr_scheduler_init_log = '===> Initialized {} with milestones={}'\
                     ' gamma={}'.format(
@@ -247,8 +251,12 @@ class BaseTrainer:
                         self.lr_scheduler_param['milestones'],
                         self.lr_scheduler_param['gamma']
                     )
-            self.logging_print(lr_scheduler_init_log)
-
+        else:
+            lr_scheduler_init_log = '===> Initialized {} with {}'.format(
+                self.lr_scheduler_name,
+                self.lr_scheduler_param
+            )
+        self.logger.info(lr_scheduler_init_log)
         try:
             lr_scheduler = getattr(torch.optim.lr_scheduler,
                                    self.lr_scheduler_name)(
@@ -270,10 +278,10 @@ class BaseTrainer:
                         self.warmup_param["warmup_epochs"],
                         self.warmup_param['multiplier'],
                     )
-                self.logging_print(warmup_log)
+                self.logger.info(warmup_log)
             else:
                 ret_lr_scheduler = lr_scheduler
-                self.logging_print('\n')
+                self.logger.info('\n')
             return ret_lr_scheduler
         except Exception as error:
             logging.info(f'LR scheduler initilize failed: {error} !')
@@ -315,7 +323,7 @@ class BaseTrainer:
             model_init_log = '===> Initialized {}. Total training parameters:'\
                     ' {:.2f}m'.format(self.network_name, total_params)
 
-        self.logging_print(model_init_log)
+        self.logger.info(model_init_log)
 
         model.cuda()
 
@@ -324,7 +332,7 @@ class BaseTrainer:
     def init_loss(self):
         loss = build_loss(self.loss_name, **self.loss_param)
         loss_init_log = f'===> Initialized {self.loss_name}'
-        self.logging_print(loss_init_log)
+        self.logger.info(loss_init_log)
         return loss
 
     def _reduce_loss(self, tensor):
@@ -332,15 +340,6 @@ class BaseTrainer:
             dist.reduce(tensor, dst=0)
             if self.local_rank == 0:
                 tensor /= self.world_size
-
-    def train(self):
-        pass
-
-    def train_epoch(self, epoch):
-        pass
-
-    def evaluate(self, epoch):
-        pass
 
     def resume_checkpoint(self):
         checkpoint = torch.load(self.resume_fpath, map_location='cpu')
@@ -350,7 +349,7 @@ class BaseTrainer:
         ap = checkpoint['ap']
         resume_log = '===> Resume checkpoint from "{}".\nResume acc:{:.2%}'\
             ' mr:{:.2%} ap:{:.2%}'.format(self.resume_fpath, acc, mr, ap)
-        self.logging_print(resume_log)
+        self.logger.info(resume_log)
 
         return checkpoint
 
@@ -368,14 +367,44 @@ class BaseTrainer:
                 'ap': ap,
             }
             if not (epoch % self.save_period):
-                save_fpath = os.path.join(self.save_dir, save_fname)
+                save_fpath = join(self.save_dir, save_fname)
                 torch.save(checkpoint, save_fpath)
             if is_best:
-                best_fpath = os.path.join(
+                best_fpath = join(
                     self.save_dir, f'{self.network_name}_best.pth.tar'
                 )
                 torch.save(checkpoint, best_fpath)
 
-    def logging_print(self, log):
-        logging.info(log)
-        print(log)
+    def init_logger(self, log_fpath):
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+
+        # Save log to file
+        file_handler = logging.FileHandler(log_fpath)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler_formatter = logging.Formatter(
+            '%(asctime)s: %(levelname)s:'
+            ' [%(filename)s:%(lineno)d]: %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+        )
+        file_handler.setFormatter(file_handler_formatter)
+
+        # print to the screen
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(logging.INFO)
+        # stream_handler.setFormatter(formatter)
+
+        # add two handler to the logger
+        logger.addHandler(file_handler)
+        logger.addHandler(stream_handler)
+
+        return logger
+
+    def train(self):
+        pass
+
+    def train_epoch(self, epoch):
+        pass
+
+    def evaluate(self, epoch):
+        pass
