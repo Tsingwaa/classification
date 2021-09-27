@@ -137,7 +137,8 @@ class Trainer(BaseTrainer):
                     last_aps[epoch % 20] = eval_ap
                     last_losses[epoch % 20] = eval_loss
 
-                logging.info(
+                # set_trace()
+                self.logger.debug(
                     'Epoch[{epoch:>3d}/{total_epochs}] '
                     'Train Acc={train_acc:.2%}, MR={train_mr:.2%}, '
                     'AP={train_ap:.2%}, Loss={train_loss:.4f} || '
@@ -189,12 +190,13 @@ class Trainer(BaseTrainer):
                 self.save_checkpoint(epoch, save_fname, is_best,
                                      eval_acc, eval_mr, eval_ap)
 
-        end_log = "\nEnd experiment {}, results are saved at '{}'\n"\
-            " Average accuracy of the last 20 epochs: {:.2%}\n"\
-            " Average recall of the last 20 epochs: {:.2%}\n"\
-            " Average precision of the last 20 epochs: {:.2%}\n"\
-            " Average losses of the last 20 epochs: {:.4f}\n"\
-            "*********************************************************"\
+        self.logger.info(
+            "\nEnd experiment {}, results are saved at '{}'\n"
+            " Average accuracy of the last 20 epochs: {:.2%}\n"
+            " Average recall of the last 20 epochs: {:.2%}\n"
+            " Average precision of the last 20 epochs: {:.2%}\n"
+            " Average losses of the last 20 epochs: {:.4f}\n"
+            "*********************************************************"
             "*********************************************************".format(
                 self.exp_name,
                 self.save_dir,
@@ -203,7 +205,7 @@ class Trainer(BaseTrainer):
                 np.mean(last_aps),
                 np.mean(last_losses),
             )
-        self.logging_print(end_log)
+        )
 
     def train_epoch(self, epoch):
         self.model.train()
@@ -320,7 +322,7 @@ def parse_args():
     return args
 
 
-def set_seed(seed=0):
+def _set_seed(seed=0):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -330,7 +332,7 @@ def set_seed(seed=0):
 
 def main(args):
     warnings.filterwarnings('ignore')
-    set_seed()
+    _set_seed()
     # set_trace()
     with open(args.config_fpath, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
