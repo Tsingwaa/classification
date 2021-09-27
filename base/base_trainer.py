@@ -50,7 +50,7 @@ class BaseTrainer:
         self.total_epochs = self.experiment_config['total_epochs']
         self.resume = self.experiment_config['resume']
         self.resume_fpath = os.path.join(
-            self.user_root, 'Experiment',
+            self.user_root, 'Experiments',
             self.experiment_config['resume_fpath']
         )
         if self.resume:
@@ -58,10 +58,10 @@ class BaseTrainer:
 
         if self.local_rank in [-1, 0]:
             self.save_dir = os.path.join(
-                self.user_root, 'Experiment', self.exp_name
+                self.user_root, 'Experiments', self.exp_name
             )
             self.tb_dir = os.path.join(
-                self.user_root, 'Experiment/Tensorboard', self.exp_name
+                self.user_root, 'Experiments/Tensorboard', self.exp_name
             )
             self.log_fname = self.experiment_config['log_fname']
             self.log_fpath = os.path.join(self.save_dir, self.log_fname)
@@ -285,22 +285,40 @@ class BaseTrainer:
             config=self.network_config,
             **self.network_param
         )
-        pretrained = self.network_param['pretrained']
-        if self.resume:
-            model.load_state_dict(self.checkpoint['model'])
-        elif pretrained:
-            pretrained_fpath = self.network_param['pretrained_fpath']
-            state_dict = torch.load(pretrained_fpath, map_location='cpu')
-            model.load_state_dict(state_dict)
 
         # Count the total amount of parameters with gradient.
         total_params = 0
         for x in filter(lambda p: p.requires_grad, model.parameters()):
             total_params += np.prod(x.data.numpy().shape)
         total_params /= 10 ** 6
-        model_init_log = '===> Initialized {}. Total training parameters:'\
-            ' {:.2f}m'.format(self.network_name, total_params)
+
+        pretrained = self.network_param['pretrained']
+        if self.resume:
+            model.load_state_dict(self.checkpoint['model'])
+            model_init_log = '===> Initialized resumed {} from "{}". Total'\
+                'training parameters: {:.2f}m'.format(
+                    self.network_name,
+                    self.resume_fpath,
+                    total_params
+                )
+        elif pretrained:
+            pretrained_fpath = self.network_param['pretrained_fpath']
+            state_dict = torch.load(pretrained_fpath, map_location='cpu')
+            model.load_state_dict(state_dict)
+            model_init_log = '===> Initialized pretrained {} from "{}". Total'\
+                'training parameters: {:.2f}m'.format(
+                    self.network_name,
+                    pretrained_fpath,
+                    total_params
+                )
+        else:
+            model_init_log = '===> Initialized {}. Total training parameters:'\
+                    ' {:.2f}m'.format(self.network_name, total_params)
+
         self.logging_print(model_init_log)
+
+        model.cuda()
+
         return model
 
     def init_loss(self):
