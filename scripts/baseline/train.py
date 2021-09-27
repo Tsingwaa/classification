@@ -74,7 +74,6 @@ class Trainer(BaseTrainer):
         # Initialize Network
         #######################################################################
         self.model = self.init_model()
-        self.model.cuda()
 
         #######################################################################
         # Initialize Loss
@@ -282,17 +281,19 @@ class Trainer(BaseTrainer):
         all_labels = []
         all_preds = []
         eval_loss_meter = AccAverageMeter()
-        for i, (batch_imgs, batch_labels) in enumerate(self.evalloader):
-            batch_imgs, batch_labels = batch_imgs.cuda(), batch_labels.cuda()
-            batch_prob = self.model(batch_imgs)
-            batch_pred = batch_prob.max(1)[1]
-            avg_loss = self.loss(batch_prob, batch_labels)
-            eval_loss_meter.update(avg_loss.item(), 1)
+        with torch.no_grad():
+            for i, (batch_imgs, batch_labels) in enumerate(self.evalloader):
+                batch_imgs = batch_imgs.cuda()
+                batch_labels = batch_labels.cuda()
+                batch_probs = self.model(batch_imgs)
+                batch_preds = batch_probs.max(1)[1]
+                avg_loss = self.loss(batch_probs, batch_labels)
+                eval_loss_meter.update(avg_loss.item(), 1)
 
-            all_labels.extend(batch_labels.cpu().numpy().tolist())
-            all_preds.extend(batch_pred.cpu().numpy().tolist())
+                all_labels.extend(batch_labels.cpu().numpy().tolist())
+                all_preds.extend(batch_preds.cpu().numpy().tolist())
 
-            eval_pbar.update()
+                eval_pbar.update()
 
         eval_acc = metrics.accuracy_score(all_labels, all_preds)
         eval_mr = metrics.recall_score(all_labels, all_preds,
