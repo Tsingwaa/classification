@@ -19,7 +19,7 @@ from utils import GradualWarmupScheduler
 
 class BaseTrainer:
     user_roots = {
-        "LAB_MJR": "/home/waa/",
+        93: "/home/waa/",
         15: "/home/20/chenghua/",
         31: "/data31/chenghua/",
     }
