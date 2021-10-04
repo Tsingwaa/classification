@@ -5,11 +5,10 @@ import argparse
 import yaml
 import numpy as np
 import torch
-from pudb import set_trace
+# from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn import metrics
-from pudb import set_trace
 from prefetch_generator import BackgroundGenerator
 # Distribute Package
 from apex import amp
@@ -17,7 +16,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data.distributed import DistributedSampler
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AccAverageMeter, GradualWarmupScheduler
+from utils import AccAverageMeter
 
 
 class DataLoaderX(DataLoader):

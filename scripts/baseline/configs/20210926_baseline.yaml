@@ -1,4 +1,4 @@
-# Template train config/home/w/home/w/home/w/home/w/home/waaaaaafile
+# Template train config
 experiment:
   name: "20210926_baseline"
   start_epoch: 1
