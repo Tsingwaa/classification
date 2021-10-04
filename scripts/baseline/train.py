@@ -1,6 +1,5 @@
 """trainer script """
 import random
-import logging
 import warnings
 import argparse
 import yaml
