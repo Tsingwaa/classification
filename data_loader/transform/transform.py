@@ -193,3 +193,24 @@ class TransformFixMatch(object):
                 return self.weakaug(x), self.strongaug(x)
         else:
             return self.val_transform(x)
+
+
+def cifar_adaptive_transform(phase='train', resize=(32, 32), cls=0, **kwargs):
+    mean = [0.4914, 0.4822, 0.4465]
+    std = [0.2023, 0.1994, 0.2010]
+
+    if phase == 'train':
+        ret_transform = transforms.Compose([
+            transforms.RandomCrop(resize[1], padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std),
+        ])
+    else:
+        ret_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
+        ])
+    return ret_transform
+
+

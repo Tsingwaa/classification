@@ -228,6 +228,7 @@ class CutoutDefault(object):
     """
     Reference : https://github.com/quark0/darts/blob/master/cnn/utils.py
     """
+
     def __init__(self, length):
         self.length = length
 
@@ -263,8 +264,10 @@ class RandAugment:
 
         return img
 
+
 def main():
     augmenter = RandAugment(2, 10)
+
 
 if __name__ == "__main__":
     main()
