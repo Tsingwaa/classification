@@ -6,6 +6,7 @@
 import torchvision
 import torchvision.transforms as transforms
 import numpy as np
+import PIL
 from data_loader.dataset.builder import Datasets
 
 
@@ -25,6 +26,8 @@ class CIFAR10_(torchvision.datasets.CIFAR10):
 @Datasets.register_module("ImbalanceCIFAR10")
 class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     cls_num = 10
+    mean = [0.4914, 0.4822, 0.4465]
+    std = [0.2023, 0.1994, 0.2010]
 
     def __init__(self, data_root, train, transform=None, download=True,
                  imb_type='exp', imb_factor=0.01, seed=0, **kwargs):
@@ -34,8 +37,10 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
             transform=transform,
             download=download
         )
+
         self.imb_type = imb_type
         self.imb_factor = imb_factor
+        self.adapt_transform = kwargs['adapt_transform']
         self.seed = seed
         np.random.seed(self.seed)
 
@@ -83,6 +88,17 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         new_data = np.vstack(new_data)
         self.data = new_data
         self.targets = new_targets
+
+    def __getitem__(self, index, cls=None):
+        img, target = self.data[index], self.targets[index]
+        img = PIL.Image.fromarray(img)
+
+        if self.transform is not None:
+            percent = target / 9.0 if self.adapt_transform else None
+            img = self.transform(img, percent=percent,
+                                 mean=self.mean, std=self.std)
+
+        return img, target
 
     @property
     def imgs_per_cls(self):
