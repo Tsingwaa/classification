@@ -136,6 +136,36 @@ def rand_transform(phase='train', resize=(224, 224),
     return ret_transform
 
 
+class RandTransform:
+    def __init__(self, phase='train', resize=(224, 224),
+                 **kwargs):
+        self.phase = phase
+        self.resize = resize
+        self.n = kwargs.get('rand_n', 2)
+        self.m = kwargs.get('rand_m', 10)
+
+    def __call__(self, x, percent=0,
+                 mean=IN_MEAN, std=IN_STD):
+        if self.phase == 'train':
+            ret_transform = transforms.Compose([
+                transforms.Resize(size=(int(self.resize[0] / 0.875),
+                                        int(self.resize[1] / 0.8))),
+                transforms.RandomCrop(self.resize),
+                RandAugment(self.n, self.m, percent),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std),
+            ])
+        else:
+            ret_transform = transforms.Compose([
+                transforms.Resize(size=(int(self.resize[0]),
+                                        int(self.resize[1]))),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std)
+            ])
+
+        return ret_transform(x)
+
+
 def cifar_transform(phase='train', resize=(32, 32), **kwargs):
     mean = [0.4914, 0.4822, 0.4465]
     std = [0.2023, 0.1994, 0.2010]
@@ -155,7 +185,7 @@ def cifar_transform(phase='train', resize=(32, 32), **kwargs):
 
 
 class TransformFixMatch(object):
-    def __init__(self, resize=(224, 224), phase='train',
+    def __init__(self, phase='train', resize=(224, 224),
                  mean=None, std=None, **kwargs):
 
         self.phase = phase
@@ -212,5 +242,3 @@ def cifar_adaptive_transform(phase='train', resize=(32, 32), cls=0, **kwargs):
             transforms.Normalize(mean, std)
         ])
     return ret_transform
-
-
