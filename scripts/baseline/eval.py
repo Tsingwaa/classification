@@ -1,26 +1,19 @@
 """TRAINING
 """
 import os
-import pudb
-import logging
 import warnings
 import argparse
 import torch
-import torch.nn.functional as F
+import yaml
+import numpy as np
+import pandas as pd
+# from pudb import set_trace
 from os.path import join
 from torch.utils.data import DataLoader
 from sklearn import metrics
-from collections import defaultdict
 from tqdm import tqdm
-import numpy as np
-import yaml
-import json
 from prefetch_generator import BackgroundGenerator
-from importlib import import_module
-from model.network.builder import build_network
-from data_loader.dataset.builder import build_dataset
 from base.base_trainer import BaseTrainer
-from utils import AccAverageMeter
 
 
 class DataLoaderX(DataLoader):
@@ -51,7 +44,7 @@ class Validater(BaseTrainer):
             self.experiment_config['resume_fpath']
         )
 
-        self.checkpoint = self.resume_checkpoint()
+        self.checkpoint, resume_log = self.resume_checkpoint()
         self.test_epoch = self.checkpoint['epoch']
 
         self.save_dir = join(self.user_root, 'Experiments', self.exp_name)
@@ -59,23 +52,17 @@ class Validater(BaseTrainer):
 
         self.log_fpath = join(self.save_dir,
                               f'eval_epoch{self.test_epoch}.log')
-        print(f'Evaluate log fpath: "{self.log_fpath}"')
-
-        logging.basicConfig(
-                filename=self.log_fpath,
-                filemode='w',
-                format='%(asctime)s: %(levelname)s: [%(filename)s:%(lineno)d]:'
-                ' %(message)s',
-                level=logging.INFO
-        )
+        self.logger = self.init_logger(self.log_fpath)
+        self.logger.info(resume_log)
 
         exp_init_log = '\nEvaluate experiment @epoch{}: {}\nSave dir: "{}"\n'\
-            ''.format(
+            'Log filepath: "{}"\n'.format(
                 self.test_epoch,
                 self.exp_name,
                 self.save_dir,
+                self.log_fpath,
             )
-        self.logging_print(exp_init_log)
+        self.logger.info(exp_init_log)
 
         #######################################################################
         # Dataset setting
@@ -150,19 +137,21 @@ class Validater(BaseTrainer):
                                        average='macro')
         eval_ap = metrics.precision_score(all_labels, all_preds,
                                           average='macro')
-
-        target_names = list(evalset.class_to_idx.keys())  # Specify for CIFAR10
-        labels = list(range(10))
-        classify_report = metrics.classification_report(
-            all_labels, all_preds, labels=labels, target_names=target_names
-        )
-
         eval_pbar.set_postfix_str(
-            'Acc:{:.0%} MR:{:.0%} AP:{:.0%}'.format(eval_acc, eval_mr, eval_ap)
+            'Acc:{:.2%} MR:{:.2%} AP:{:.2%}'.format(eval_acc, eval_mr, eval_ap)
         )
         eval_pbar.close()
 
-        self.logging_print(classify_report)
+        class_names = list(evalset.class_to_idx.keys())  # Specified for CIFAR
+
+        classification_report = metrics.classification_report(
+            all_labels, all_preds, target_names=class_names
+        )
+        self.logger.info("\n" + classification_report + "\n")
+
+        cm = metrics.confusion_matrix(all_labels, all_preds)
+        cm_df = pd.DataFrame(cm, index=class_names, columns=class_names)
+        self.logger.info(cm_df.to_string())
 
         # save true_list and pred_list
         np.save(

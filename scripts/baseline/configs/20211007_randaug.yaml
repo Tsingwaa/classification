@@ -4,8 +4,8 @@ experiment:
   start_epoch: 1
   total_epochs: 400
   log_fname: "train.log"
-  resume: False
-  resume_fpath: "20210926_baseline/ResNet32_CIFAR_best.pth.tar"
+  resume: True
+  resume_fpath: "20211007_randaug/ResNet32_CIFAR_best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -86,7 +86,7 @@ optimizer:
 warmup_lr_scheduler:
   warmup: True
   param:
-    warmup_epochs: 5
+    warmup_epochs: 10
     multiplier: 1
 
 lr_scheduler:
@@ -102,8 +102,8 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [120, 160]
-    gamma: 0.01
+    milestones: [120, 180, 240, 300, 360]
+    gamma: 0.1
 
     # CosineAnnealingWarmRestarts
     # T_0: 5
