@@ -94,10 +94,9 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         img = PIL.Image.fromarray(img)
 
         if self.transform is not None:
-            percent = target / 9.0 if self.adapt_transform else None
+            percent = (target + 1.) / 10. if self.adapt_transform else None
             img = self.transform(img, percent=percent,
                                  mean=self.mean, std=self.std)
-
         return img, target
 
     @property
