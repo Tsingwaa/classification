@@ -1,6 +1,6 @@
 """Base Trainer"""
 import os
-import shutil
+# import shutil
 import logging
 import torch
 import numpy as np
@@ -19,9 +19,9 @@ from utils import GradualWarmupScheduler
 
 class BaseTrainer:
     user_roots = {
-        93: "/home/waa/",
-        15: "/home/20/chenghua/",
-        31: "/data31/chenghua/",
+        '93': "/home/waa/",
+        '15': "/home/20/chenghua/",
+        '31': "/data31/chenghua/",
     }
 
     def __init__(self, local_rank=-1, config=None):
@@ -168,7 +168,7 @@ class BaseTrainer:
         sampler_name = sampler_param['sampler']
         sampler_param['dataset'] = dataset
         sampler = build_sampler(sampler_name, **sampler_param)
-        sampler_init_log = f'===> Initialized {sample_name} '
+        sampler_init_log = f'===> Initialized {sampler_name} '
         self.logger.info(sampler_init_log)
         return sampler
 
@@ -193,18 +193,18 @@ class BaseTrainer:
         return dataset
 
     def init_optimizer(self):
-        params = [
-            {
-                'params': [p for n, p in self.model.named_parameters()
-                           if not any(nd in n for nd in ['bias', 'bn'])],
-                'weight_decay': self.weight_decay
-            },
-            {
-                'params': [p for n, p in self.model.named_parameters()
-                           if any(nd in n for nd in ['bias', 'bn'])],
-                'weight_decay': 0.0
-            }
-        ]
+        # params = [
+        #     {
+        #         'params': [p for n, p in self.model.named_parameters()
+        #                    if not any(nd in n for nd in ['bias', 'bn'])],
+        #         'weight_decay': self.weight_decay
+        #     },
+        #     {
+        #         'params': [p for n, p in self.model.named_parameters()
+        #                    if any(nd in n for nd in ['bias', 'bn'])],
+        #         'weight_decay': 0.0
+        #     }
+        # ]
         try:
             optimizer = getattr(torch.optim, self.optimizer_name)(
                 self.model.parameters(),
