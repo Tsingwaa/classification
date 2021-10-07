@@ -303,8 +303,8 @@ class BaseTrainer:
         pretrained = self.network_param['pretrained']
         if self.resume:
             model.load_state_dict(self.checkpoint['model'])
-            model_init_log = '===> Initialized resumed {} from "{}". Total'\
-                'training parameters: {:.2f}m'.format(
+            model_init_log = '===> Resumed {} from "{}". Total'\
+                'parameters: {:.2f}m'.format(
                     self.network_name,
                     self.resume_fpath,
                     total_params
@@ -314,13 +314,13 @@ class BaseTrainer:
             state_dict = torch.load(pretrained_fpath, map_location='cpu')
             model.load_state_dict(state_dict)
             model_init_log = '===> Initialized pretrained {} from "{}". Total'\
-                'training parameters: {:.2f}m'.format(
+                'parameters: {:.2f}m'.format(
                     self.network_name,
                     pretrained_fpath,
                     total_params
                 )
         else:
-            model_init_log = '===> Initialized {}. Total training parameters:'\
+            model_init_log = '===> Initialized {}. Total parameters:'\
                     ' {:.2f}m'.format(self.network_name, total_params)
 
         self.logger.info(model_init_log)
@@ -349,9 +349,7 @@ class BaseTrainer:
         ap = checkpoint['ap']
         resume_log = '===> Resume checkpoint from "{}".\nResume acc:{:.2%}'\
             ' mr:{:.2%} ap:{:.2%}'.format(self.resume_fpath, acc, mr, ap)
-        self.logger.info(resume_log)
-
-        return checkpoint
+        return checkpoint, resume_log
 
     def save_checkpoint(self, epoch, save_fname, is_best,
                         acc=None, mr=None, ap=None):
