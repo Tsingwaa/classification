@@ -2,7 +2,7 @@
 # https://github.com/rpmcruz/autoaugment/blob/master/transformations.py
 import random
 
-import PIL, PIL.ImageOps, PIL.ImageEnhance, PIL.ImageDraw
+import PIL  # , PIL.ImageOps, PIL.ImageEnhance, PIL.ImageDraw
 import numpy as np
 import torch
 from PIL import Image
@@ -181,7 +181,7 @@ def augment_list():  # 16 oeprations and their ranges
     # ]
 
     # https://github.com/tensorflow/tpu/blob/8462d083dd89489a79e3200bcc8d4063bf362186/models/official/efficientnet/autoaugment.py#L505
-    l = [
+    return [
         (AutoContrast, 0, 1),
         (Equalize, 0, 1),
         (Invert, 0, 1),
@@ -200,7 +200,26 @@ def augment_list():  # 16 oeprations and their ranges
         (TranslateYabs, 0., 100),
     ]
 
-    return l
+
+def adapt_augment_list(percent):
+    return [
+        (AutoContrast, 0, 1. * percent),
+        (Equalize, 0, 1. * percent),
+        (Invert, 0, 1. * percent),
+        (Rotate, 0, 30. * percent),
+        (Posterize, 0, 4. * percent),
+        (Solarize, 0, 256. * percent),
+        (SolarizeAdd, 0, 110. * percent),
+        (Color, 0.1, 1.9 * percent),
+        (Contrast, 0.1, 1.9 * percent),
+        (Brightness, 0.1, 1.9 * percent),
+        (Sharpness, 0.1, 1.9 * percent),
+        (ShearX, 0., 0.3 * percent),
+        (ShearY, 0., 0.3 * percent),
+        (CutoutAbs, 0., 40. * percent),
+        (TranslateXabs, 0., 100. * percent),
+        (TranslateYabs, 0., 100. * percent),
+    ]
 
 
 class Lighting(object):
@@ -251,10 +270,11 @@ class CutoutDefault(object):
 
 
 class RandAugment:
-    def __init__(self, n, m):
+    def __init__(self, n, m, percent=None):
         self.n = n
         self.m = m      # [0, 30]
-        self.augment_list = augment_list()
+        self.augment_list = augment_list() if percent is None\
+            else adapt_augment_list(percent)
 
     def __call__(self, img):
         ops = random.choices(self.augment_list, k=self.n)
@@ -265,9 +285,5 @@ class RandAugment:
         return img
 
 
-def main():
-    augmenter = RandAugment(2, 10)
-
-
 if __name__ == "__main__":
-    main()
+    augmenter = RandAugment(2, 10)
