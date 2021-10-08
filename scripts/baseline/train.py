@@ -189,11 +189,11 @@ class Trainer(BaseTrainer):
                                      eval_acc, eval_mr, eval_ap)
 
         self.logger.info(
-            "\nEnd experiment {}, results are saved at '{}'\n"
-            " Average accuracy of the last 20 epochs: {:.2%}\n"
-            " Average recall of the last 20 epochs: {:.2%}\n"
-            " Average precision of the last 20 epochs: {:.2%}\n"
-            " Average losses of the last 20 epochs: {:.4f}\n"
+            "\n===> End experiment {}, results are saved at '{}'\n"
+            "\tAverage accuracy of the last 20 epochs: {:.2%}\n"
+            "\tAverage recall of the last 20 epochs: {:.2%}\n"
+            "\tAverage precision of the last 20 epochs: {:.2%}\n"
+            "\tAverage losses of the last 20 epochs: {:.4f}\n"
             "*********************************************************"
             "*********************************************************".format(
                 self.exp_name,

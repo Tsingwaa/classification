@@ -169,7 +169,7 @@ class Validater(BaseTrainer):
 
         save_log = f"===> End Evaluation of experiment '{self.exp_name}'"\
             f" @epoch{self.test_epoch}.\n"\
-            f" Label & pred & prob lists are saved @'{self.save_dir}'."
+            f"\tLabel & pred & prob lists are saved @'{self.save_dir}'.\n"
         self.logger.info(save_log)
 
 
