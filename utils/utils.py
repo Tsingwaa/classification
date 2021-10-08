@@ -226,6 +226,6 @@ def get_cm_with_labels(targets, preds, classes):
     import pandas as pd
 
     cm = confusion_matrix(targets, preds)
-    cm_df = pd.DataFrame(cm, index=classes, column=classes)
+    cm_df = pd.DataFrame(cm, index=classes, columns=classes)
 
     return cm_df
