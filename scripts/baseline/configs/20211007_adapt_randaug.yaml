@@ -4,8 +4,8 @@ experiment:
   start_epoch: 1
   total_epochs: 400
   log_fname: "train.log"
-  resume: False
-  resume_fpath: ""
+  resume: True
+  resume_fpath: "20211007_adapt_randaug/ResNet32_CIFAR_best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
