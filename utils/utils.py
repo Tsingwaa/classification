@@ -208,3 +208,24 @@ class AccAverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+
+
+def get_cm_with_labels(targets, preds, classes):
+    """
+    Args:
+        targets: number list, 1 * n
+        preds: number list, 1 * n
+        classes: class name list, 1 * C
+    Return:
+        a DataFram of confusion matrix with labels.
+    Additional:
+        cm_df.to_string() could be save in .log file.
+        cm_df.to_csv() could be saved in .csv file.
+    """
+    from sklearn.metrics import confusion_matrix
+    import pandas as pd
+
+    cm = confusion_matrix(targets, preds)
+    cm_df = pd.DataFrame(cm, index=classes, column=classes)
+
+    return cm_df
