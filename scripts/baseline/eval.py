@@ -14,6 +14,7 @@ from sklearn import metrics
 from tqdm import tqdm
 from prefetch_generator import BackgroundGenerator
 from base.base_trainer import BaseTrainer
+from utils.utils import get_cm_with_labels
 
 
 class DataLoaderX(DataLoader):
@@ -50,16 +51,18 @@ class Validater(BaseTrainer):
         self.save_dir = join(self.user_root, 'Experiments', self.exp_name)
         os.makedirs(self.save_dir, exist_ok=True)
 
-        self.log_fpath = join(self.save_dir,
-                              f'eval_epoch{self.test_epoch}.log')
+        if 'best' in self.resume_fpath:
+            self.log_fname = f'eval_best_epoch{self.test_epoch}.log'
+        else:
+            self.log_fname = f'eval_epoch{self.test_epoch}.log'
+        self.log_fpath = join(self.save_dir, self.log_fname)
         self.logger = self.init_logger(self.log_fpath)
         self.logger.info(resume_log)
 
-        exp_init_log = '\nEvaluate experiment @epoch{}: {}\nSave dir: "{}"\n'\
+        exp_init_log = '===> Evaluate experiment "{}" @epoch{}\n'\
             'Log filepath: "{}"\n'.format(
-                self.test_epoch,
                 self.exp_name,
-                self.save_dir,
+                self.test_epoch,
                 self.log_fpath,
             )
         self.logger.info(exp_init_log)
@@ -142,16 +145,13 @@ class Validater(BaseTrainer):
         )
         eval_pbar.close()
 
-        class_names = list(evalset.class_to_idx.keys())  # Specified for CIFAR
-
         classification_report = metrics.classification_report(
-            all_labels, all_preds, target_names=class_names
+            all_labels, all_preds, target_names=evalset.classes
         )
-        self.logger.info("\n" + classification_report + "\n")
+        self.logger.info("===> Classification Report:\n" + classification_report)
 
-        cm = metrics.confusion_matrix(all_labels, all_preds)
-        cm_df = pd.DataFrame(cm, index=class_names, columns=class_names)
-        self.logger.info(cm_df.to_string())
+        cm_df = get_cm_with_labels(all_labels, all_preds, evalset.classes)
+        self.logger.info('===> Confusion Matrix:\n' + cm_df.to_string() + '\n')
 
         # save true_list and pred_list
         np.save(
@@ -166,6 +166,11 @@ class Validater(BaseTrainer):
             join(self.save_dir, f"eval_epoch{self.test_epoch}_prob_list.npy"),
             np.array(all_probs)
         )
+
+        save_log = f"===> End Evaluation of experiment '{self.exp_name}'"\
+            f" @epoch{self.test_epoch}.\n"\
+            f" Label & pred & prob lists are saved @'{self.save_dir}'."
+        self.logger.info(save_log)
 
 
 def parse_args():
