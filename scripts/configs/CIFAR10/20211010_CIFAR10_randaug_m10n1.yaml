@@ -1,27 +1,31 @@
 # Template train config
 experiment:
-  name: "20211010_CIFAR10_baseline"
+  name: "20211010_CIFAR10_randaug_m10n1"
   start_epoch: 1
   total_epochs: 300
   log_fname: "train.log"
-  resume: True
-  resume_fpath: "20211010_CIFAR10_baseline/ResNet32_CIFAR_best.pth.tar"
+  resume: False
+  resume_fpath: "20211010_CIFAR10_randaug_m10n1/ResNet32_CIFAR_best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 train_transform:
   script_path: "data_loader.transform.transform"
-  name: "cifar_transform"
+  name: "RandTransform"
   param:
     phase: "train"
     resize: [32, 32]
+    rand_n: 2
+    rand_m: 10
 
 eval_transform:
   script_path: "data_loader.transform.transform"
-  name: "cifar_transform"
+  name: "RandTransform"
   param:
     phase: "test"
     resize: [32, 32]
+    rand_n: 2
+    rand_m: 10
 
 train_dataset:
   name: "CIFAR10"
@@ -30,10 +34,11 @@ train_dataset:
     train: True
     img_lst_fpath: "None"
     map_fpath: "None"
-    imb_type: 'exp'
-    imb_factor: 0.01
-    rand_seed: 0
-    download: False
+    # imb_type: 'exp'
+    # imb_factor: 0.01
+    # rand_seed: 0
+    # adapt_transform: False
+    # download: False
 
 eval_dataset:
   name: "CIFAR10"
@@ -42,6 +47,7 @@ eval_dataset:
     train: False
     img_lst_fpath: "None"
     map_fpath: "None" # default: same as train_dataset
+    adapt_transform: False
     download: False
 
 trainloader:
