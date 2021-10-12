@@ -25,7 +25,7 @@ eval_transform:
     phase: "test"
     resize: [32, 32]
     rand_n: 2
-    rand_m: 10
+    rand_m: 2
 
 train_dataset:
   name: "CIFAR10"
