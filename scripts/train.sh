@@ -6,10 +6,10 @@ export PYTHONPATH=$PYTHONPATH:/home/waa/Projects/classification
 #     train.py --config_file "configs/train_v1.0_20210827.yaml"
 
 # Single-GPU Training
-CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m6n2.yaml'
-CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m7n2.yaml'
-CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m8n2.yaml'
-CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m6n2.yaml'
+# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m6n2.yaml'
+# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m7n2.yaml'
+# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m8n2.yaml'
+CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m9n2.yaml'
 CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m12n2.yaml'
 CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m13n2.yaml'
 CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m14n2.yaml'
