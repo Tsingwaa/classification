@@ -1,11 +1,11 @@
 # Template train config
 experiment:
-  name: "20211007_randaug"
+  name: "20211013_CIFAR10_0.01_randaug_m14n2"
   start_epoch: 1
-  total_epochs: 400
+  total_epochs: 200
   log_fname: "train.log"
-  resume: True
-  resume_fpath: "20211007_randaug/ResNet32_CIFAR_best.pth.tar"
+  resume: False
+  resume_fpath: ""
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -16,7 +16,7 @@ train_transform:
     phase: "train"
     resize: [32, 32]
     rand_n: 2
-    rand_m: 10
+    rand_m: 14
 
 eval_transform:
   script_path: "data_loader.transform.transform"
@@ -25,7 +25,7 @@ eval_transform:
     phase: "test"
     resize: [32, 32]
     rand_n: 2
-    rand_m: 10
+    rand_m: 14
 
 train_dataset:
   name: "ImbalanceCIFAR10"
@@ -102,7 +102,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [120, 180, 240, 300, 360]
+    milestones: [80, 120, 160, 180]
     gamma: 0.1
 
     # CosineAnnealingWarmRestarts
