@@ -21,7 +21,7 @@ class BaseTrainer:
     user_roots = {
         '93': "/home/waa/",
         '15': "/home/20/chenghua/",
-        '31': "/data31/chenghua/",
+        '31': "/data1/chenghua/",
     }
 
     def __init__(self, local_rank=-1, config=None):
