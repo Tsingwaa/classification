@@ -7,6 +7,7 @@ import torchvision
 import torchvision.transforms as transforms
 import numpy as np
 import PIL
+from pudb import set_trace
 from data_loader.dataset.builder import Datasets
 
 
@@ -40,7 +41,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
 
         self.imb_type = imb_type
         self.imb_factor = imb_factor
-        self.adapt_transform = kwargs['adapt_transform']
+        self.class_adapt = kwargs['class_adapt']
         self.seed = seed
         np.random.seed(self.seed)
 
@@ -89,12 +90,13 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         self.data = new_data
         self.targets = new_targets
 
-    def __getitem__(self, index, cls=None):
+    def __getitem__(self, index):
         img, target = self.data[index], self.targets[index]
         img = PIL.Image.fromarray(img)
+        # set_trace()
 
         if self.transform is not None:
-            percent = (target + 1.) / 10. if self.adapt_transform else None
+            percent = (1. + target) / 10. if self.class_adapt else None
             img = self.transform(img, percent=percent,
                                  mean=self.mean, std=self.std)
         return img, target

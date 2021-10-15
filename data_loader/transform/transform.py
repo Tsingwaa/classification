@@ -175,14 +175,21 @@ class RandTransform:
         self.n = kwargs.get('rand_n', 2)
         self.m = kwargs.get('rand_m', 10)
 
-    def __call__(self, x, percent=0,
-                 mean=IN_MEAN, std=IN_STD):
+    def __call__(self, x, percent=None, m=None, n=None,
+                 mean=IN_MEAN, std=IN_STD,):
+        if m is None:
+            m = self.m
+        if n is None:
+            n = self.n
+        if percent is not None:
+            m = int(percent * m * 1.0)
+
         if self.phase == 'train':
             ret_transform = transforms.Compose([
-                RandAugment(self.n, self.m),
-                # transforms.Resize(size=(int(self.resize[0] / 0.875),
-                #                         int(self.resize[1] / 0.8))),
                 transforms.RandomCrop(self.resize, padding=4),
+                RandAugment(n, m),
+                # transforms.Resize(size=(int(self.resize[0] / 0.875),
+                #                         int(self.resize[1] / 0.875))),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std),
@@ -257,20 +264,22 @@ class TransformFixMatch(object):
             return self.val_transform(x)
 
 
-def cifar_adaptive_transform(phase='train', resize=(32, 32), cls=0, **kwargs):
-    mean = [0.4914, 0.4822, 0.4465]
-    std = [0.2023, 0.1994, 0.2010]
+# def cifar_adaptive_transform(phase='train',
+#                              resize=(32, 32),
+#                              cls=0, **kwargs):
+#     mean = [0.4914, 0.4822, 0.4465]
+#     std = [0.2023, 0.1994, 0.2010]
 
-    if phase == 'train':
-        ret_transform = transforms.Compose([
-            transforms.RandomCrop(resize[1], padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std),
-        ])
-    else:
-        ret_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std)
-        ])
-    return ret_transform
+#     if phase == 'train':
+#         ret_transform = transforms.Compose([
+#             transforms.RandomCrop(resize[1], padding=4),
+#             transforms.RandomHorizontalFlip(),
+#             transforms.ToTensor(),
+#             transforms.Normalize(mean, std),
+#         ])
+#     else:
+#         ret_transform = transforms.Compose([
+#             transforms.ToTensor(),
+#             transforms.Normalize(mean, std)
+#         ])
+#     return ret_transform
