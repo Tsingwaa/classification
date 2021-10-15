@@ -5,7 +5,7 @@ experiment:
   total_epochs: 400
   log_fname: "train.log"
   resume: True
-  resume_fpath: "20211007_adapt_randaug/ResNet32_CIFAR_best.pth.tar"
+  resume_fpath: "ResNet32_CIFAR_best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -37,7 +37,7 @@ train_dataset:
     imb_type: 'exp'
     imb_factor: 0.01
     rand_seed: 0
-    adapt_transform: True
+    class_adapt: True
     download: False
 
 eval_dataset:
@@ -47,7 +47,7 @@ eval_dataset:
     train: False
     img_lst_fpath: "None"
     map_fpath: "None" # default: same as train_dataset
-    adapt_transform: True
+    class_adapt: True
     download: False
 
 trainloader:

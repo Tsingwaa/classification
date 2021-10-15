@@ -32,6 +32,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
+        # set_trace()
         train_transform = self.init_transform(self.train_transform_config)
         trainset = self.init_dataset(self.trainset_config, train_transform)
 
@@ -147,8 +148,6 @@ class Trainer(BaseTrainer):
                     last_eval_aps[epoch % 20] = eval_ap
                     last_eval_losses[epoch % 20] = eval_loss
 
-
-                # set_trace()
                 self.logger.debug(
                     'Epoch[{epoch:>3d}/{total_epochs}] '
                     'Train Acc={train_acc:.2%}, MR={train_mr:.2%}, '

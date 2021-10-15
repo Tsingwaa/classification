@@ -1,10 +1,10 @@
 # Template train config
 experiment:
-  name: "20211010_CIFAR10_randaug_m6n2"
+  name: "20211014_CIFAR10_0.01_adapt_randaug_m10n2"
   start_epoch: 1
-  total_epochs: 300
+  total_epochs: 200
   log_fname: "train.log"
-  resume: False
+  resume: True
   resume_fpath: "ResNet32_CIFAR_best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
@@ -16,7 +16,7 @@ train_transform:
     phase: "train"
     resize: [32, 32]
     rand_n: 2
-    rand_m: 6
+    rand_m: 15
 
 eval_transform:
   script_path: "data_loader.transform.transform"
@@ -25,20 +25,20 @@ eval_transform:
     phase: "test"
     resize: [32, 32]
     rand_n: 2
-    rand_m: 6
+    rand_m: 15
 
 train_dataset:
-  name: "CIFAR10"
+  name: "ImbalanceCIFAR10"
   param:
     data_root: "CIFAR10"
     train: True
     img_lst_fpath: "None"
     map_fpath: "None"
-    # imb_type: 'exp'
-    # imb_factor: 0.01
-    # rand_seed: 0
-    # adapt_transform: False
-    # download: False
+    imb_type: 'exp'
+    imb_factor: 0.01
+    rand_seed: 0
+    class_adapt: True
+    download: False
 
 eval_dataset:
   name: "CIFAR10"
@@ -47,7 +47,7 @@ eval_dataset:
     train: False
     img_lst_fpath: "None"
     map_fpath: "None" # default: same as train_dataset
-    adapt_transform: False
+    class_adapt: True
     download: False
 
 trainloader:
@@ -102,8 +102,10 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [100, 160, 200, 240, 280]
+    milestones: [80, 120, 160, 180]
     gamma: 0.1
+    # milestones: [120, 160]
+    # gamma: 0.01
 
     # CosineAnnealingWarmRestarts
     # T_0: 5

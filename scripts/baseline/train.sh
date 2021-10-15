@@ -13,7 +13,7 @@ export PYTHONPATH=$PYTHONPATH:/home/waa/Projects/classification
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m12n2.yaml'
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m13n2.yaml'
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m14n2.yaml'
-CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m15n2.yaml'
+# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m15n2.yaml'
 
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m5n2.yaml'
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m6n2.yaml'
@@ -26,3 +26,12 @@ CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m13n2.yaml'
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m14n2.yaml'
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m15n2.yaml'
+
+CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211014_CIFAR10_0.01_adapt_randaug_m5n2.yaml'
+CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211014_CIFAR10_0.01_adapt_randaug_m10n2.yaml'
+CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211014_CIFAR10_0.01_adapt_randaug_m15n2.yaml'
+
+CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211014_CIFAR10_0.01_reverse_adapt_randaug_m5n2.yaml'
+CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211014_CIFAR10_0.01_reverse_adapt_randaug_m10n2.yaml'
+CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211014_CIFAR10_0.01_reverse_adapt_randaug_m15n2.yaml'
+

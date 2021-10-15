@@ -6,7 +6,7 @@ import argparse
 import torch
 import yaml
 import numpy as np
-import pandas as pd
+# import pandas as pd
 # from pudb import set_trace
 from os.path import join
 from torch.utils.data import DataLoader
@@ -40,10 +40,14 @@ class Validater(BaseTrainer):
         self.exp_name = self.experiment_config['name']
         self.user_root = self.user_roots[os.environ['DEVICE']]
         self.resume = self.experiment_config['resume']
-        self.resume_fpath = join(
-            self.user_root, 'Experiments',
-            self.experiment_config['resume_fpath']
-        )
+
+        if '/' in self.experiment_config['resume_fpath']:
+            self.resume_fpath = self.experiment_config['resume_fpath']
+        else:
+            self.resume_fpath = join(
+                self.user_root, 'Experiments', self.exp_name,
+                self.experiment_config['resume_fpath']
+            )
 
         self.checkpoint, resume_log = self.resume_checkpoint()
         self.test_epoch = self.checkpoint['epoch']
@@ -148,10 +152,14 @@ class Validater(BaseTrainer):
         classification_report = metrics.classification_report(
             all_labels, all_preds, target_names=evalset.classes
         )
-        self.logger.info("===> Classification Report:\n" + classification_report)
+        self.logger.info(
+            "===> Classification Report:\n" + classification_report
+        )
 
         cm_df = get_cm_with_labels(all_labels, all_preds, evalset.classes)
-        self.logger.info('===> Confusion Matrix:\n' + cm_df.to_string() + '\n')
+        self.logger.info(
+            '===> Confusion Matrix:\n' + cm_df.to_string() + '\n'
+        )
 
         # save true_list and pred_list
         np.save(
@@ -167,9 +175,11 @@ class Validater(BaseTrainer):
             np.array(all_probs)
         )
 
-        save_log = f"===> End Evaluation of experiment '{self.exp_name}'"\
+        save_log = f"Results are saved at '{self.save_dir}'.\n"\
+            f"===> Ended Evaluation of experiment '{self.exp_name}'"\
             f" @epoch{self.test_epoch}.\n"\
-            f"\tLabel & pred & prob lists are saved @'{self.save_dir}'.\n"
+            f"*********************************************************"\
+            f"*********************************************************\n\n"
         self.logger.info(save_log)
 
 
