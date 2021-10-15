@@ -50,10 +50,13 @@ class BaseTrainer:
         self.start_epoch = self.experiment_config['start_epoch']
         self.total_epochs = self.experiment_config['total_epochs']
         self.resume = self.experiment_config['resume']
-        self.resume_fpath = join(
-            self.user_root, 'Experiments',
-            self.experiment_config['resume_fpath']
-        )
+        if '/' in self.experiment_config['resume_fpath']:
+            self.resume_fpath = self.experiment_config['resume_fpath']
+        else:
+            self.resume_fpath = join(
+                self.user_root, 'Experiments', self.exp_name,
+                self.experiment_config['resume_fpath']
+            )
 
         if self.local_rank in [-1, 0]:
             self.save_dir = join(
@@ -256,13 +259,13 @@ class BaseTrainer:
                 self.lr_scheduler_name,
                 self.lr_scheduler_param
             )
-        self.logger.info(lr_scheduler_init_log)
         try:
             lr_scheduler = getattr(torch.optim.lr_scheduler,
                                    self.lr_scheduler_name)(
                                        self.optimizer,
                                        **self.lr_scheduler_param
                                    )
+            self.logger.info(lr_scheduler_init_log)
             if self.resume:
                 lr_scheduler.load_state_dict(self.checkpoint['lr_scheduler'])
 
@@ -282,6 +285,7 @@ class BaseTrainer:
             else:
                 ret_lr_scheduler = lr_scheduler
                 self.logger.info('\n')
+
             return ret_lr_scheduler
         except Exception as error:
             logging.info(f'LR scheduler initilize failed: {error} !')
