@@ -11,19 +11,13 @@ from importlib import import_module
 from torch import distributed as dist
 # Custom package
 from model.loss.builder import build_loss
-from model.network.builder import build_network
+from model.backbone.builder import build_backbone
 from data_loader.dataset.builder import build_dataset
 from data_loader.sampler.builder import build_sampler
 from utils import GradualWarmupScheduler
 
 
 class BaseTrainer:
-    user_roots = {
-        '93': "/home/waa/",
-        '15': "/home/20/chenghua/",
-        '31': "/data1/chenghua/",
-    }
-
     def __init__(self, local_rank=-1, config=None):
         """ Base trainer for all experiments.  """
 
@@ -46,7 +40,7 @@ class BaseTrainer:
         ##################################
         self.experiment_config = config['experiment']
         self.exp_name = self.experiment_config['name']
-        self.user_root = self.user_roots[os.environ['DEVICE']]
+        self.user_root = os.environ['HOME']
         self.start_epoch = self.experiment_config['start_epoch']
         self.total_epochs = self.experiment_config['total_epochs']
         self.resume = self.experiment_config['resume']
@@ -291,7 +285,7 @@ class BaseTrainer:
             raise AttributeError(f'LR scheduler initial failed: {error} !')
 
     def init_model(self):
-        model = build_network(
+        model = build_backbone(
             self.network_name,
             config=self.network_config,
             **self.network_param
