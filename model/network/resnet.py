@@ -1,24 +1,19 @@
 """
 WS-DAN models
 
-Hu et al.,
-"See Better Before Looking Closer: Weakly Supervised Data Augmentation Network for Fine-Grained Visual Classification",
-arXiv:1901.09891
+Hu et al., arXiv:1901.09891, "See Better Before Looking Closer: Weakly
+Supervised Data Augmentation Network for Fine-Grained Visual Classification"
 
 Created: May 04,2019 - Yuchong Gu
 Revised: Dec 03,2019 - Yuchong Gu
 """
 import logging
-import numpy as np
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
 from torch.nn import init
-
 from common.backbone.builder import build_backbone
 from common.network.builder import Networks
 from common.network.layers import ArcMarginProduct
+
 EPSILON = 1e-12
 
 

@@ -32,7 +32,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 from torch.nn import Parameter
-from model.network.builder import Networks
+from model.backbone.builder import Backbones
 
 __all__ = ['ResNet_CIFAR', 'ResNet20_CIFAR', 'ResNet32_CIFAR',
            'ResNet56_CIFAR', 'ResNet110_CIFAR']
@@ -145,7 +145,7 @@ class ResNet_CIFAR(nn.Module):
         return out
 
 
-@Networks.register_module("ResNet20_CIFAR")
+@Backbones.register_module("ResNet20_CIFAR")
 class ResNet20_CIFAR(ResNet_CIFAR):
     def __init__(self, num_classes, num_blocks=[3, 3, 3],
                  use_norm=False, **kwargs):
@@ -156,7 +156,7 @@ class ResNet20_CIFAR(ResNet_CIFAR):
         )
 
 
-@Networks.register_module("ResNet32_CIFAR")
+@Backbones.register_module("ResNet32_CIFAR")
 class ResNet32_CIFAR(ResNet_CIFAR):
     def __init__(self, num_classes, num_blocks=[5, 5, 5],
                  use_norm=False, **kwargs):
@@ -167,7 +167,7 @@ class ResNet32_CIFAR(ResNet_CIFAR):
         )
 
 
-@Networks.register_module("ResNet44_CIFAR")
+@Backbones.register_module("ResNet44_CIFAR")
 class ResNet44_CIFAR(ResNet_CIFAR):
     def __init__(self, num_classes, num_blocks=[7, 7, 7],
                  use_norm=False, **kwargs):
@@ -178,7 +178,7 @@ class ResNet44_CIFAR(ResNet_CIFAR):
         )
 
 
-@Networks.register_module("ResNet56_CIFAR")
+@Backbones.register_module("ResNet56_CIFAR")
 class ResNet56_CIFAR(ResNet_CIFAR):
     def __init__(self, num_classes, num_blocks=[9, 9, 9],
                  use_norm=False, **kwargs):
@@ -189,7 +189,7 @@ class ResNet56_CIFAR(ResNet_CIFAR):
         )
 
 
-@Networks.register_module("ResNet110_CIFAR")
+@Backbones.register_module("ResNet110_CIFAR")
 class ResNet110_CIFAR(ResNet_CIFAR):
     def __init__(self, num_classes, num_blocks=[18, 18, 18],
                  use_norm=False, **kwargs):
