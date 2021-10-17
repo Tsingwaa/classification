@@ -107,14 +107,14 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Start Training
         #######################################################################
-        last_train_accs = []
-        last_train_mrs = []
-        last_train_aps = []
-        last_train_losses = []
-        last_eval_accs = []
-        last_eval_mrs = []
-        last_eval_aps = []
-        last_eval_losses = []
+        last_train_accs = np.zeros(20)
+        last_train_mrs = np.zeros(20)
+        last_train_aps = np.zeros(20)
+        last_train_losses = np.zeros(20)
+        last_eval_accs = np.zeros(20)
+        last_eval_mrs = np.zeros(20)
+        last_eval_aps = np.zeros(20)
+        last_eval_losses = np.zeros(20)
         best_acc = 0
         best_mr = 0
         for epoch in range(self.start_epoch, self.total_epochs + 1):
@@ -129,24 +129,15 @@ class Trainer(BaseTrainer):
 
             if self.local_rank in [-1, 0]:
                 eval_acc, eval_mr, eval_ap, eval_loss = self.evaluate(epoch)
-                if len(last_eval_accs) < 20:
-                    last_train_accs.append(train_acc)
-                    last_train_mrs.append(train_mr)
-                    last_train_aps.append(train_ap)
-                    last_train_losses.append(train_loss)
-                    last_eval_accs.append(eval_acc)
-                    last_eval_mrs.append(eval_mr)
-                    last_eval_aps.append(eval_ap)
-                    last_eval_losses.append(eval_loss)
-                else:
-                    last_train_accs[epoch % 20] = train_acc
-                    last_train_mrs[epoch % 20] = train_mr
-                    last_train_aps[epoch % 20] = train_ap
-                    last_train_losses[epoch % 20] = train_loss
-                    last_eval_accs[epoch % 20] = eval_acc
-                    last_eval_mrs[epoch % 20] = eval_mr
-                    last_eval_aps[epoch % 20] = eval_ap
-                    last_eval_losses[epoch % 20] = eval_loss
+
+                last_train_accs[epoch % 20] = train_acc
+                last_train_mrs[epoch % 20] = train_mr
+                last_train_aps[epoch % 20] = train_ap
+                last_train_losses[epoch % 20] = train_loss
+                last_eval_accs[epoch % 20] = eval_acc
+                last_eval_mrs[epoch % 20] = eval_mr
+                last_eval_aps[epoch % 20] = eval_ap
+                last_eval_losses[epoch % 20] = eval_loss
 
                 self.logger.debug(
                     'Epoch[{epoch:>3d}/{total_epochs}] '
@@ -184,7 +175,8 @@ class Trainer(BaseTrainer):
                                         {'train_ap': train_ap,
                                          'eval_ap': eval_ap}, epoch)
                 # Save checkpoint.
-                is_best = (best_acc < eval_acc or best_mr < eval_mr)
+                # is_best = (best_acc < eval_acc or best_mr < eval_mr)
+                is_best = best_mr < eval_mr
                 if best_acc < eval_acc:
                     best_acc = eval_acc
                 if best_mr < eval_mr:

@@ -1,44 +1,44 @@
 # Template train config
 experiment:
-  name: "20211010_CIFAR10_baseline"
+  name: "20211017_Caltech256-5_baseline"
   start_epoch: 1
   total_epochs: 300
   log_fname: "train.log"
-  resume: True
-  resume_fpath: "ResNet32_CIFAR_best.pth.tar"
+  resume: False
+  resume_fpath: ""
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 train_transform:
   script_path: "data_loader.transform.transform"
-  name: "cifar_transform"
+  name: "BaseTransform"
   param:
     phase: "train"
-    resize: [32, 32]
+    resize: [224, 224]
 
 val_transform:
   script_path: "data_loader.transform.transform"
-  name: "cifar_transform"
+  name: "BaseTransform"
   param:
     phase: "test"
-    resize: [32, 32]
+    resize: [224, 224]
 
 train_dataset:
-  name: "CIFAR10"
+  name: "Caltech256-5-Trainset"
   param:
-    data_root: "CIFAR10"
+    data_root: "Caltech/Caltech256-5/train"
     train: True
     img_lst_fpath: "None"
     map_fpath: "None"
-    imb_type: 'exp'
-    imb_factor: 0.01
+    imb_type: 'None'
+    imb_factor: 0
     rand_seed: 0
     download: False
 
 val_dataset:
-  name: "CIFAR10"
+  name: "Caltech256-5-Testset"
   param:
-    data_root: "CIFAR10" # default: same as train_dataset
+    data_root: "Caltech/Caltech256-5/test"
     train: False
     img_lst_fpath: "None"
     map_fpath: "None" # default: same as train_dataset
@@ -58,10 +58,10 @@ valloader:
     num_workers: 8
 
 network:
-  name: "ResNet32_CIFAR"
+  name: "resnet34"
   param:
-    num_classes: 10
-    pretrained: False
+    num_classes: 5
+    pretrained: True
     pretrained_fpath: ""
 
 loss:
