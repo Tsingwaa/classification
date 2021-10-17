@@ -101,8 +101,8 @@ class BaseTrainer:
         ##################################
         self.train_transform_config = config['train_transform']
         self.trainset_config = config['train_dataset']
-        self.eval_transform_config = config['eval_transform']
-        self.evalset_config = config['eval_dataset']
+        self.val_transform_config = config['val_transform']
+        self.valset_config = config['val_dataset']
 
         ##################################
         # Dataloader setting
@@ -114,11 +114,11 @@ class BaseTrainer:
         self.train_batch_size = self.trainloader_param['batch_size']
         self.train_num_workers = self.trainloader_param['num_workers']
 
-        self.evalloader_config = config['evalloader']
-        self.evalloader_name = self.evalloader_config['name']
-        self.evalloader_param = self.evalloader_config['param']
-        self.eval_batch_size = self.evalloader_param['batch_size']
-        self.eval_num_workers = self.evalloader_param['num_workers']
+        self.valloader_config = config['valloader']
+        self.valloader_name = self.valloader_config['name']
+        self.valloader_param = self.valloader_config['param']
+        self.val_batch_size = self.valloader_param['batch_size']
+        self.val_num_workers = self.valloader_param['num_workers']
 
         ##################################
         # Network setting
