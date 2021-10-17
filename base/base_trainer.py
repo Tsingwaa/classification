@@ -196,22 +196,21 @@ class BaseTrainer:
         return dataset
 
     def init_optimizer(self):
-        # params = [
-        #     {
-        #         'params': [p for n, p in self.model.named_parameters()
-        #                    if not any(nd in n for nd in ['bias', 'bn'])],
-        #         'weight_decay': self.weight_decay
-        #     },
-        #     {
-        #         'params': [p for n, p in self.model.named_parameters()
-        #                    if any(nd in n for nd in ['bias', 'bn'])],
-        #         'weight_decay': 0.0
-        #     }
-        # ]
+        model_params = [
+            {
+                'params': [p for n, p in self.model.named_parameters()
+                           if not any(nd in n for nd in ['bias', 'bn'])],
+                'weight_decay': self.weight_decay
+            },
+            {
+                'params': [p for n, p in self.model.named_parameters()
+                           if any(nd in n for nd in ['bias', 'bn'])],
+                'weight_decay': 0.0
+            }
+        ]
         try:
             optimizer = getattr(torch.optim, self.optimizer_name)(
-                self.model.parameters(),
-                **self.optimizer_param
+                model_params, **self.optimizer_param
             )
             if self.resume:
                 optimizer.load_state_dict(self.checkpoint['optimizer'])
