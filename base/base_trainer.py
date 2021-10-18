@@ -4,6 +4,7 @@ import os
 import logging
 import torch
 import numpy as np
+# from pudb import set_trace
 from os.path import join
 from torch.utils.tensorboard import SummaryWriter
 from importlib import import_module
@@ -170,6 +171,7 @@ class BaseTrainer:
         return sampler
 
     def init_dataset(self, dataset_config=None, transform=None):
+        # set_trace()
         dataset_name = dataset_config['name']
         dataset_param = dataset_config['param']
         dataset_param['data_root'] = join(
@@ -309,7 +311,12 @@ class BaseTrainer:
         elif pretrained:
             pretrained_fpath = self.network_param['pretrained_fpath']
             state_dict = torch.load(pretrained_fpath, map_location='cpu')
-            model.load_state_dict(state_dict)
+            if any('ResNet18', 'ResNet34', 'ResNet50', 'ResNet101') in\
+               self.network_name:
+                state_dict = {k: v for k, v in state_dict.items() if\
+                              'fc' not in k}
+
+            model.load_state_dict(state_dict, strict=False)
             model_init_log = '===> Initialized pretrained {} from "{}". Total'\
                 'parameters: {:.2f}m'.format(
                     self.network_name,
