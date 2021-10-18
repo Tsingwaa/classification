@@ -1,11 +1,11 @@
 # Template train config
 experiment:
-  name: "20211017_Caltech256-5_baseline"
+  name: "20211018_Caltech256-5-1_resnet18"
   start_epoch: 1
   total_epochs: 300
   log_fname: "train.log"
   resume: False
-  resume_fpath: ""
+  resume_fpath: "ResNet18_best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -26,7 +26,7 @@ val_transform:
 train_dataset:
   name: "Caltech256-5-Trainset"
   param:
-    data_root: "Caltech/Caltech256-5/train"
+    data_root: "Caltech/Caltech256-5-1_split/train"
     train: True
     img_lst_fpath: "None"
     map_fpath: "None"
@@ -38,10 +38,10 @@ train_dataset:
 val_dataset:
   name: "Caltech256-5-Testset"
   param:
-    data_root: "Caltech/Caltech256-5/test"
+    data_root: "Caltech/Caltech256-5-1_split/test"
     train: False
     img_lst_fpath: "None"
-    map_fpath: "None" # default: same as train_dataset
+    map_fpath: "None"
     download: False
 
 trainloader:
@@ -58,11 +58,11 @@ valloader:
     num_workers: 8
 
 network:
-  name: "resnet34"
+  name: "ResNet18"
   param:
     num_classes: 5
-    pretrained: True
-    pretrained_fpath: ""
+    pretrained: False
+    pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
 loss:
   name: "CrossEntropyLoss"
