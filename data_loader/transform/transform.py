@@ -32,7 +32,7 @@ class BaseTransform:
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std)
             ])
-        return ret_transform
+        return ret_transform(x)
 
 
 def flower_transform(resize=(224, 224), phase='train',
