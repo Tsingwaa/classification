@@ -38,7 +38,7 @@ class Validater(BaseTrainer):
         #######################################################################
         self.experiment_config = config['experiment']
         self.exp_name = self.experiment_config['name']
-        self.user_root = self.user_roots[os.environ['DEVICE']]
+        self.user_root = os.environ['HOME']
         self.resume = self.experiment_config['resume']
 
         if '/' in self.experiment_config['resume_fpath']:
@@ -56,9 +56,9 @@ class Validater(BaseTrainer):
         os.makedirs(self.save_dir, exist_ok=True)
 
         if 'best' in self.resume_fpath:
-            self.log_fname = f'eval_best_epoch{self.test_epoch}.log'
+            self.log_fname = f'val_best_epoch{self.test_epoch}.log'
         else:
-            self.log_fname = f'eval_epoch{self.test_epoch}.log'
+            self.log_fname = f'val_epoch{self.test_epoch}.log'
         self.log_fpath = join(self.save_dir, self.log_fname)
         self.logger = self.init_logger(self.log_fpath)
         self.logger.info(resume_log)
@@ -74,17 +74,17 @@ class Validater(BaseTrainer):
         #######################################################################
         # Dataset setting
         #######################################################################
-        self.eval_transform_config = config['eval_transform']
-        self.evalset_config = config['eval_dataset']
+        self.val_transform_config = config['val_transform']
+        self.valset_config = config['val_dataset']
 
         #######################################################################
         # Dataloader setting
         #######################################################################
-        self.evalloader_config = config['evalloader']
-        self.evalloader_name = self.evalloader_config['name']
-        self.evalloader_param = self.evalloader_config['param']
-        self.eval_batch_size = self.evalloader_param['batch_size']
-        self.eval_num_workers = self.evalloader_param['num_workers']
+        self.valloader_config = config['valloader']
+        self.valloader_name = self.valloader_config['name']
+        self.valloader_param = self.valloader_config['param']
+        self.val_batch_size = self.valloader_param['batch_size']
+        self.val_num_workers = self.valloader_param['num_workers']
 
         #######################################################################
         # Network setting
@@ -97,13 +97,13 @@ class Validater(BaseTrainer):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
-        eval_transform = self.init_transform(self.eval_transform_config)
-        evalset = self.init_dataset(self.evalset_config, eval_transform)
-        self.evalloader = DataLoaderX(
-            evalset,
-            batch_size=self.eval_batch_size,
+        val_transform = self.init_transform(self.val_transform_config)
+        valset = self.init_dataset(self.valset_config, val_transform)
+        self.valloader = DataLoaderX(
+            valset,
+            batch_size=self.val_batch_size,
             shuffle=False,
-            num_workers=self.eval_num_workers,
+            num_workers=self.val_num_workers,
             pin_memory=False,
             drop_last=False,
         )
@@ -116,8 +116,8 @@ class Validater(BaseTrainer):
         #######################################################################
         # Start evaluating
         #######################################################################
-        eval_pbar = tqdm(
-            total=len(self.evalloader),
+        val_pbar = tqdm(
+            total=len(self.valloader),
             desc='Evaluate'
         )
 
@@ -127,7 +127,7 @@ class Validater(BaseTrainer):
         all_probs = []
         all_preds = []
         with torch.no_grad():
-            for i, (batch_imgs, batch_labels) in enumerate(self.evalloader):
+            for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
                 batch_imgs = batch_imgs.cuda()
                 batch_labels = batch_labels.cuda()
                 batch_probs = self.model(batch_imgs)
@@ -137,41 +137,41 @@ class Validater(BaseTrainer):
                 all_probs.extend(batch_probs.cpu().numpy().tolist())
                 all_preds.extend(batch_preds.cpu().numpy().tolist())
 
-                eval_pbar.update()
+                val_pbar.update()
 
-        eval_acc = metrics.accuracy_score(all_labels, all_preds)
-        eval_mr = metrics.recall_score(all_labels, all_preds,
-                                       average='macro')
-        eval_ap = metrics.precision_score(all_labels, all_preds,
-                                          average='macro')
-        eval_pbar.set_postfix_str(
-            'Acc:{:.2%} MR:{:.2%} AP:{:.2%}'.format(eval_acc, eval_mr, eval_ap)
+        val_acc = metrics.accuracy_score(all_labels, all_preds)
+        val_mr = metrics.recall_score(all_labels, all_preds,
+                                      average='macro')
+        val_ap = metrics.precision_score(all_labels, all_preds,
+                                         average='macro')
+        val_pbar.set_postfix_str(
+            'Acc:{:.2%} MR:{:.2%} AP:{:.2%}'.format(val_acc, val_mr, val_ap)
         )
-        eval_pbar.close()
+        val_pbar.close()
 
         classification_report = metrics.classification_report(
-            all_labels, all_preds, target_names=evalset.classes
+            all_labels, all_preds, target_names=valset.classes
         )
         self.logger.info(
             "===> Classification Report:\n" + classification_report
         )
 
-        cm_df = get_cm_with_labels(all_labels, all_preds, evalset.classes)
+        cm_df = get_cm_with_labels(all_labels, all_preds, valset.classes)
         self.logger.info(
             '===> Confusion Matrix:\n' + cm_df.to_string() + '\n'
         )
 
         # save true_list and pred_list
         np.save(
-            join(self.save_dir, f"eval_epoch{self.test_epoch}_label_list.npy"),
+            join(self.save_dir, f"val_epoch{self.test_epoch}_label_list.npy"),
             np.array(all_labels)
         )
         np.save(
-            join(self.save_dir, f"eval_epoch{self.test_epoch}_pred_list.npy"),
+            join(self.save_dir, f"val_epoch{self.test_epoch}_pred_list.npy"),
             np.array(all_preds)
         )
         np.save(
-            join(self.save_dir, f"eval_epoch{self.test_epoch}_prob_list.npy"),
+            join(self.save_dir, f"val_epoch{self.test_epoch}_prob_list.npy"),
             np.array(all_probs)
         )
 

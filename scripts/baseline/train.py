@@ -5,7 +5,7 @@ import argparse
 import yaml
 import numpy as np
 import torch
-# from pudb import set_trace
+from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn import metrics
@@ -58,13 +58,13 @@ class Trainer(BaseTrainer):
         )
 
         if self.local_rank in [-1, 0]:
-            eval_transform = self.init_transform(self.eval_transform_config)
-            evalset = self.init_dataset(self.evalset_config, eval_transform)
-            self.evalloader = DataLoaderX(
-                evalset,
-                batch_size=self.eval_batch_size,
+            val_transform = self.init_transform(self.val_transform_config)
+            valset = self.init_dataset(self.valset_config, val_transform)
+            self.valloader = DataLoaderX(
+                valset,
+                batch_size=self.val_batch_size,
                 shuffle=False,
-                num_workers=self.eval_num_workers,
+                num_workers=self.val_num_workers,
                 pin_memory=False,
                 drop_last=False,
             )
@@ -111,10 +111,10 @@ class Trainer(BaseTrainer):
         last_train_mrs = np.zeros(20)
         last_train_aps = np.zeros(20)
         last_train_losses = np.zeros(20)
-        last_eval_accs = np.zeros(20)
-        last_eval_mrs = np.zeros(20)
-        last_eval_aps = np.zeros(20)
-        last_eval_losses = np.zeros(20)
+        last_val_accs = np.zeros(20)
+        last_val_mrs = np.zeros(20)
+        last_val_aps = np.zeros(20)
+        last_val_losses = np.zeros(20)
         best_acc = 0
         best_mr = 0
         for epoch in range(self.start_epoch, self.total_epochs + 1):
@@ -128,33 +128,33 @@ class Trainer(BaseTrainer):
             train_acc, train_mr, train_ap, train_loss = self.train_epoch(epoch)
 
             if self.local_rank in [-1, 0]:
-                eval_acc, eval_mr, eval_ap, eval_loss = self.evaluate(epoch)
+                val_acc, val_mr, val_ap, val_loss = self.evaluate(epoch)
 
                 last_train_accs[epoch % 20] = train_acc
                 last_train_mrs[epoch % 20] = train_mr
                 last_train_aps[epoch % 20] = train_ap
                 last_train_losses[epoch % 20] = train_loss
-                last_eval_accs[epoch % 20] = eval_acc
-                last_eval_mrs[epoch % 20] = eval_mr
-                last_eval_aps[epoch % 20] = eval_ap
-                last_eval_losses[epoch % 20] = eval_loss
+                last_val_accs[epoch % 20] = val_acc
+                last_val_mrs[epoch % 20] = val_mr
+                last_val_aps[epoch % 20] = val_ap
+                last_val_losses[epoch % 20] = val_loss
 
                 self.logger.debug(
                     'Epoch[{epoch:>3d}/{total_epochs}] '
-                    'Train Acc={train_acc:.2%}, MR={train_mr:.2%}, '
+                    'Trainset Acc={train_acc:.2%}, MR={train_mr:.2%}, '
                     'AP={train_ap:.2%}, Loss={train_loss:.4f} || '
-                    'Eval Acc={eval_acc:.2%}, MR={eval_mr:.2%}, '
-                    'AP={eval_ap:.2%}, Loss={eval_loss:.4f}'.format(
+                    'Valset Acc={val_acc:.2%}, MR={val_mr:.2%}, '
+                    'AP={val_ap:.2%}, Loss={val_loss:.4f}'.format(
                         epoch=epoch,
                         total_epochs=self.total_epochs,
                         train_acc=train_acc,
                         train_mr=train_mr,
                         train_ap=train_ap,
                         train_loss=train_loss,
-                        eval_acc=eval_acc,
-                        eval_mr=eval_mr,
-                        eval_ap=eval_ap,
-                        eval_loss=eval_loss
+                        val_acc=val_acc,
+                        val_mr=val_mr,
+                        val_ap=val_ap,
+                        val_loss=val_loss
                     )
                 )
 
@@ -164,33 +164,33 @@ class Trainer(BaseTrainer):
                                        epoch)
                 self.writer.add_scalars(f'{self.exp_name}/Loss',
                                         {'train_loss': train_loss,
-                                         'eval_loss': eval_loss}, epoch)
+                                         'val_loss': val_loss}, epoch)
                 self.writer.add_scalars(f'{self.exp_name}/Accuracy',
                                         {'train_acc': train_acc,
-                                         'eval_acc': eval_acc}, epoch)
+                                         'val_acc': val_acc}, epoch)
                 self.writer.add_scalars(f'{self.exp_name}/Recall',
                                         {'train_mr': train_mr,
-                                         'eval_mr': eval_mr}, epoch)
+                                         'val_mr': val_mr}, epoch)
                 self.writer.add_scalars(f'{self.exp_name}/Precision',
                                         {'train_ap': train_ap,
-                                         'eval_ap': eval_ap}, epoch)
+                                         'val_ap': val_ap}, epoch)
                 # Save checkpoint.
-                # is_best = (best_acc < eval_acc or best_mr < eval_mr)
-                is_best = best_mr < eval_mr
-                if best_acc < eval_acc:
-                    best_acc = eval_acc
-                if best_mr < eval_mr:
-                    best_mr = eval_mr
+                # is_best = (best_acc < val_acc or best_mr < val_mr)
+                is_best = best_mr < val_mr
+                if best_acc < val_acc:
+                    best_acc = val_acc
+                if best_mr < val_mr:
+                    best_mr = val_mr
                 save_fname = '{}_epoch{}_acc{:.2%}_mr{:.2%}_ap{:.2%}_'\
                     'state_dict.pth.tar'.format(
                         self.network_name,
                         str(epoch),
-                        eval_acc,
-                        eval_mr,
-                        eval_ap
+                        val_acc,
+                        val_mr,
+                        val_ap
                     )
                 self.save_checkpoint(epoch, save_fname, is_best,
-                                     eval_acc, eval_mr, eval_ap)
+                                     val_acc, val_mr, val_ap)
 
         self.logger.info(
             "\n===> End experiment {}, results are saved at '{}'\n"
@@ -212,10 +212,10 @@ class Trainer(BaseTrainer):
                 np.mean(last_train_mrs),
                 np.mean(last_train_aps),
                 np.mean(last_train_losses),
-                np.mean(last_eval_accs),
-                np.mean(last_eval_mrs),
-                np.mean(last_eval_aps),
-                np.mean(last_eval_losses),
+                np.mean(last_val_accs),
+                np.mean(last_val_mrs),
+                np.mean(last_val_aps),
+                np.mean(last_val_losses),
             )
         )
 
@@ -286,43 +286,43 @@ class Trainer(BaseTrainer):
     def evaluate(self, epoch):
         self.model.eval()
 
-        eval_pbar = tqdm(
-            total=len(self.evalloader),
+        val_pbar = tqdm(
+            total=len(self.valloader),
             ncols=0,
-            desc='                Eval'
+            desc='                Val'
         )
 
         all_labels = []
         all_preds = []
-        eval_loss_meter = AccAverageMeter()
+        val_loss_meter = AccAverageMeter()
         with torch.no_grad():
-            for i, (batch_imgs, batch_labels) in enumerate(self.evalloader):
+            for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
                 batch_imgs = batch_imgs.cuda()
                 batch_labels = batch_labels.cuda()
                 batch_probs = self.model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]
                 avg_loss = self.loss(batch_probs, batch_labels)
-                eval_loss_meter.update(avg_loss.item(), 1)
+                val_loss_meter.update(avg_loss.item(), 1)
 
                 all_labels.extend(batch_labels.cpu().numpy().tolist())
                 all_preds.extend(batch_preds.cpu().numpy().tolist())
 
-                eval_pbar.update()
+                val_pbar.update()
 
-        eval_acc = metrics.accuracy_score(all_labels, all_preds)
-        eval_mr = metrics.recall_score(all_labels, all_preds,
-                                       average='macro')
-        eval_ap = metrics.precision_score(all_labels, all_preds,
-                                          average='macro')
+        val_acc = metrics.accuracy_score(all_labels, all_preds)
+        val_mr = metrics.recall_score(all_labels, all_preds,
+                                      average='macro')
+        val_ap = metrics.precision_score(all_labels, all_preds,
+                                         average='macro')
 
-        eval_pbar.set_postfix_str(
+        val_pbar.set_postfix_str(
             'Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%}'.format(
-                eval_loss_meter.avg, eval_acc, eval_mr, eval_ap
+                val_loss_meter.avg, val_acc, val_mr, val_ap
             )
         )
-        eval_pbar.close()
+        val_pbar.close()
 
-        return eval_acc, eval_mr, eval_ap, eval_loss_meter.avg
+        return val_acc, val_mr, val_ap, val_loss_meter.avg
 
 
 def parse_args():
