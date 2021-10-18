@@ -312,12 +312,15 @@ class Trainer(BaseTrainer):
         val_acc = metrics.accuracy_score(all_labels, all_preds)
         val_mr = metrics.recall_score(all_labels, all_preds,
                                       average='macro')
+        val_recalls = metrics.recall_score(all_labels, all_preds,
+                                           average=None)
+        val_recalls = np.around(val_recalls, decimals=2).tolist()
         val_ap = metrics.precision_score(all_labels, all_preds,
                                          average='macro')
 
         val_pbar.set_postfix_str(
-            'Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%}'.format(
-                val_loss_meter.avg, val_acc, val_mr, val_ap
+            'Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%} Recalls:{}'.format(
+                val_loss_meter.avg, val_acc, val_mr, val_ap, val_recalls
             )
         )
         val_pbar.close()
