@@ -7,7 +7,6 @@ Created: May 04,2019 - Yuchong Gu
 Revised: Dec 03,2019 - Yuchong Gu
 """
 import logging
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
