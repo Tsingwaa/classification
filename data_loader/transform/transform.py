@@ -8,8 +8,7 @@ IN_STD = [0.229, 0.224, 0.225]
 
 
 class BaseTransform:
-    def __init__(self, phase='train', resize=(224, 224),
-                 **kwargs):
+    def __init__(self, phase='train', resize=(224, 224), **kwargs):
         self.phase = phase
         self.resize = resize
 
@@ -20,15 +19,20 @@ class BaseTransform:
                 transforms.RandomCrop(self.resize),
                 transforms.RandomHorizontalFlip(0.5),
                 # transforms.RandomRotation(25),
-                # transforms.ColorJitter(brightness=0.126, saturation=0.5),
+                transforms.ColorJitter(
+                    brightness=0.4,
+                    saturation=0.4,
+                    contrast=0.4,
+                    hue=0
+                ),
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std),
                 # transforms.RandomErasing()
             ])
         else:
             ret_transform = transforms.Compose([
-                transforms.Resize(self.resize),
-                # transforms.CenterCrop(resize),
+                transforms.Resize(int(self.resize[1] / 0.875)),
+                transforms.CenterCrop(self.resize),
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std)
             ])

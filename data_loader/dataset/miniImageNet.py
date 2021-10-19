@@ -2,38 +2,40 @@
 Customized by Kaihua Tang
 """
 
-# import torchvision
-import torchvision.transforms as transforms
-import numpy as np
-from PIL import Image
-# import random
-import torch
 import os
+import torch
+import numpy as np
+from os.path import join
+from PIL import Image
+from torchvision import transforms
+from torchvision.datasets import ImageFolder
+from data_loader.dataset.builder import Datasets
 
 
-class Imbalance_mini_imagenet(torch.utils.data.Dataset):
+@Datasets.register_module('imb_miniImageNet')
+class ImbalanceMiniImageNet(torch.utils.data.Dataset):
     cls_num = 100
 
-    def __init__(self, root, phase, imbalance_ratio, imb_type='exp'):
-        # train = True if phase == "train" else False
-        # super(IMBALANCECIFAR10, self).__init__(root, train, transform=None,
-        # target_transform=None, download=True)
+    def __init__(self, root, phase, imbalance_ratio, imb_type='exp',
+                 transform=None, **kwargs):
         self.img_path = []
         self.targets = []
-        txt = os.path.join(root, phase+'.txt')
-        with open(txt) as f:
+        img_lst_fpath = os.path.join(root, phase + '.txt')
+        with open(img_lst_fpath) as f:
             for line in f:
                 self.img_path.append(os.path.join(root, line.split()[0][1:]))
                 self.targets.append(int(line.split()[1]))
 
-        # self.train = train
         self.img_path = np.array(self.img_path)
         self.img_num = []
+
         if phase == 'train':
             img_num_list = self.get_img_num_per_cls(
-                self.cls_num, imb_type, imbalance_ratio)
+                self.cls_num, imb_type, imbalance_ratio
+            )
             self.gen_imbalanced_data(img_num_list)
             self.img_num = img_num_list
+
             self.transform = transforms.Compose([
                 transforms.RandomResizedCrop(224),
                 transforms.RandomHorizontalFlip(),
@@ -99,11 +101,8 @@ class Imbalance_mini_imagenet(torch.utils.data.Dataset):
             idx = np.where(targets_np == the_class)[0]
             np.random.shuffle(idx)
             selec_idx = idx[:the_img_num]
-            # print(selec_idx)
             new_img_path.extend(self.img_path[selec_idx].tolist())
             new_targets.extend([the_class, ] * the_img_num)
-        # print(new_img_path)
-        # new_img_path = np.vstack(new_img_path)
         self.img_path = new_img_path
         self.targets = new_targets
 
@@ -114,15 +113,10 @@ class Imbalance_mini_imagenet(torch.utils.data.Dataset):
         with open(path, 'rb') as f:
             sample = Image.open(f).convert('RGB')
 
-        # origin = torch.Tensor(np.array(sample))
-
         if self.transform is not None:
             sample = self.transform(sample)
 
         return sample, label, index  # , origin
-
-    # def get_image(self, index):
-    #     path = self.img_path[index]
 
     def __len__(self):
         return len(self.labels)
@@ -151,3 +145,65 @@ class Imbalance_mini_imagenet(torch.utils.data.Dataset):
                 label_dict[self.labels[i]] = category
 
         return label_dict
+
+
+@Datasets.register_module("miniImageNet")
+class miniImageNet(ImageFolder):
+    # Full miniImageNet
+    mean = [0.4759, 0.4586, 0.4153]
+    std = [0.2847, 0.2785, 0.2955]
+
+    def __init__(self, data_root, phase, transform=None, **kwargs):
+        super(miniImageNet, self).__init__(
+            root=join(data_root, phase),
+            transform=transform,
+        )
+        self.cls_num = len(self.classes)
+
+    def __getitem__(self, index):
+        img_fpath, img_label = self.imgs[index]
+        img = self.loader(img_fpath)
+        img = self._check_channel(img)
+
+        if self.transform is not None:
+            img = self.transform(img, mean=self.mean, std=self.std)
+
+        return img, img_label
+
+    def _check_channel(self, Image_obj):
+        img_arr = np.array(Image_obj)
+        if len(img_arr.shape) < 3:
+            img_arr_expand = np.repeat(img_arr[:, :, np.newaxis], 3, axis=2)
+            Image_obj = Image.fromarray(img_arr_expand)
+        return Image_obj
+
+
+@Datasets.register_module("miniImageNet_eval")
+class miniImageNet_eval(ImageFolder):
+    # Full miniImageNet
+    mean = [0.4759, 0.4586, 0.4153]
+    std = [0.2847, 0.2785, 0.2955]
+
+    def __init__(self, data_root, phase, transform=None, **kwarg):
+        super(miniImageNet_eval, self).__init__(
+            root=join(data_root, phase),
+            transform=transform,
+        )
+        self.cls_num = len(self.classes)
+
+    def __getitem__(self, index):
+        img_fpath, img_label = self.imgs[index]
+        img = self.loader(img_fpath)
+        img = self._check_channel(img)
+
+        if self.transform is not None:
+            img = self.transform(img, mean=self.mean, std=self.std)
+
+        return img, img_label, img_fpath
+
+    def _check_channel(self, Image_obj):
+        img_arr = np.array(Image_obj)
+        if len(img_arr.shape) < 3:
+            img_arr_expand = np.repeat(img_arr[:, :, np.newaxis], 3, axis=2)
+            Image_obj = Image.fromarray(img_arr_expand)
+        return Image_obj

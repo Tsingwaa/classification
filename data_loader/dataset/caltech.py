@@ -4,7 +4,7 @@ from torchvision.datasets import ImageFolder
 from data_loader.dataset.builder import Datasets
 
 
-@Datasets.register_module("Caltech256-5-Trainset")
+@Datasets.register_module("Caltech256-Trainset")
 class Train_ImageFolder(ImageFolder):
     # Caltech256-5
     # mean = [0.4997, 0.5033, 0.4790]
@@ -14,13 +14,12 @@ class Train_ImageFolder(ImageFolder):
     mean = [0.5610, 0.5714, 0.5449]
     std = [0.2936, 0.4941, 0.3195]
 
-    cls_num = 5
-
     def __init__(self, data_root=None, transform=None, **kwargs):
         super(Train_ImageFolder, self).__init__(
             root=data_root,
             transform=transform,
         )
+        self.cls_num = len(self.classes)
 
     def __getitem__(self, index):
         img_fpath, img_label = self.imgs[index]
@@ -40,7 +39,7 @@ class Train_ImageFolder(ImageFolder):
         return Image_obj
 
 
-@Datasets.register_module("Caltech256-5-Valset")
+@Datasets.register_module("Caltech256-Valset")
 class Val_ImageFolder(ImageFolder):
     # Caltech256-5
     # mean = [0.4997, 0.5033, 0.4790]
@@ -50,13 +49,12 @@ class Val_ImageFolder(ImageFolder):
     mean = [0.5610, 0.5714, 0.5449]
     std = [0.2936, 0.4941, 0.3195]
 
-    cls_num = 5
-
     def __init__(self, data_root=None, transform=None, **kwarg):
         super(Val_ImageFolder, self).__init__(
             root=data_root,
             transform=transform,
         )
+        self.cls_num = len(self.classes)
 
     def __getitem__(self, index):
         img_fpath, img_label = self.imgs[index]
@@ -76,7 +74,7 @@ class Val_ImageFolder(ImageFolder):
         return Image_obj
 
 
-@Datasets.register_module("Caltech256-5-Testset")
+@Datasets.register_module("Caltech256-Testset")
 class Test_ImageFolder(ImageFolder):
     # Caltech256-5
     # mean = [0.4997, 0.5033, 0.4790]
@@ -86,13 +84,12 @@ class Test_ImageFolder(ImageFolder):
     mean = [0.5610, 0.5714, 0.5449]
     std = [0.2936, 0.4941, 0.3195]
 
-    cls_num = 5
-
     def __init__(self, data_root=None, transform=None, **kwarg):
         super(Test_ImageFolder, self).__init__(
             root=data_root,
             transform=transform,
         )
+        self.cls_num = len(self.classes)
 
     def __getitem__(self, index):
         img_fpath, img_label = self.imgs[index]
