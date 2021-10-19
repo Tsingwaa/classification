@@ -179,14 +179,11 @@ class BaseTrainer:
         )
         dataset_param['transform'] = transform
         dataset = build_dataset(dataset_name, **dataset_param)
-        if dataset_param['train']:
+        if dataset_param['phase'] == 'train':
             self.train_size = len(dataset)
-            phase = 'train'
-        else:
-            phase = 'test'
 
-        dataset_init_log = f'===> Initialized {phase} {dataset_name}'\
-            f'(size={len(dataset)}, classes={dataset.cls_num}).'
+        dataset_init_log = f'===> Initialized {dataset_param["phase"]}'\
+            f' {dataset_name}(size={len(dataset)}, classes={dataset.cls_num}).'
         self.logger.info(dataset_init_log)
 
         return dataset
@@ -287,11 +284,7 @@ class BaseTrainer:
             raise AttributeError(f'LR scheduler initial failed: {error} !')
 
     def init_model(self):
-        model = build_backbone(
-            self.network_name,
-            config=self.network_config,
-            **self.network_param
-        )
+        model = build_backbone(self.network_name, **self.network_param)
 
         # Count the total amount of parameters with gradient.
         total_params = 0
@@ -304,10 +297,8 @@ class BaseTrainer:
             model.load_state_dict(self.checkpoint['model'])
             model_init_log = '===> Resumed {} from "{}". Total'\
                 'parameters: {:.2f}m'.format(
-                    self.network_name,
-                    self.resume_fpath,
-                    total_params
-                )
+                    self.network_name, self.resume_fpath, total_params)
+
         elif pretrained:
             pretrained_fpath = self.network_param['pretrained_fpath']
             state_dict = torch.load(pretrained_fpath, map_location='cpu')
@@ -319,14 +310,10 @@ class BaseTrainer:
             model.load_state_dict(state_dict, strict=False)
             model_init_log = '===> Initialized pretrained {} from "{}". Total'\
                 'parameters: {:.2f}m'.format(
-                    self.network_name,
-                    pretrained_fpath,
-                    total_params
-                )
+                    self.network_name, pretrained_fpath, total_params)
         else:
             model_init_log = '===> Initialized {}. Total parameters:'\
                     ' {:.2f}m'.format(self.network_name, total_params)
-
         self.logger.info(model_init_log)
 
         model.cuda()
