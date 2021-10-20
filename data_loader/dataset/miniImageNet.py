@@ -7,90 +7,109 @@ import torch
 import numpy as np
 from os.path import join
 from PIL import Image
-from torchvision import transforms
+# from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from data_loader.dataset.builder import Datasets
 
 
 @Datasets.register_module('imb_miniImageNet')
 class ImbalanceMiniImageNet(torch.utils.data.Dataset):
+    """Custom miniImageNet
+    num_classes: 100
+    num_samples_per_cls:
+        - train: 1000
+        - val: 200
+        - test: 100
+    size: larger than 224x224
+    """
+
+    # ImageNet
+    # mean = [0.485, 0.456, 0.406]
+    # std = [0.229, 0.224, 0.225]
+
+    # Full miniImageNet
+    mean = [0.4759, 0.4586, 0.4153]
+    std = [0.2847, 0.2785, 0.2955]
+
     cls_num = 100
 
-    def __init__(self, root, phase, imbalance_ratio, imb_type='exp',
-                 transform=None, **kwargs):
-        self.img_path = []
+    def __init__(self, data_root, phase, transform=None,
+                 imb_type='exp', imb_factor=0.1, seed=0, **kwargs):
+        self.img_paths = []
         self.targets = []
-        img_lst_fpath = os.path.join(root, phase + '.txt')
+        self.transform = transform
+        # build img_path-target pairs
+        img_lst_fpath = os.path.join(data_root, phase + '.txt')
         with open(img_lst_fpath) as f:
             for line in f:
-                self.img_path.append(os.path.join(root, line.split()[0][1:]))
+                img_path = os.path.join(data_root, line.split()[0][1:])
+                # line starts with '/', so index by [1:]
+                self.img_paths.append(img_path)
                 self.targets.append(int(line.split()[1]))
 
-        self.img_path = np.array(self.img_path)
+        self.img_paths = np.array(self.img_paths)
         self.img_num = []
 
         if phase == 'train':
+            np.random.seed(seed)
+            # generate imbalance num_samples list
             img_num_list = self.get_img_num_per_cls(
-                self.cls_num, imb_type, imbalance_ratio
+                self.cls_num, imb_type, imb_factor
             )
+            # according to the generated img_samples,
+            # generate new self.img_paths and self.targets
             self.gen_imbalanced_data(img_num_list)
             self.img_num = img_num_list
 
-            self.transform = transforms.Compose([
-                transforms.RandomResizedCrop(224),
-                transforms.RandomHorizontalFlip(),
-                transforms.ColorJitter(
-                    brightness=0.4,
-                    contrast=0.4,
-                    saturation=0.4,
-                    hue=0
-                ),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-                )
-            ])
-        else:
-            self.transform = transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-                )
-            ])
+            # self.transform = transforms.Compose([
+            #     transforms.RandomResizedCrop(224),
+            #     transforms.RandomHorizontalFlip(),
+            #     transforms.ColorJitter(
+            #         brightness=0.4, contrast=0.4,
+            #         saturation=0.4, hue=0
+            #     ),
+            #     transforms.ToTensor(),
+            #     transforms.Normalize(self.mean, self.std)
+            # ])
+        # else:
+            # self.transform = transforms.Compose([
+            #     transforms.Resize(256),
+            #     transforms.CenterCrop(224),
+            #     transforms.ToTensor(),
+            #     transforms.Normalize(self.mean, self.std)
+            # ])
 
         self.labels = self.targets
 
-        print("{} Mode: Contain {} images".format(phase, len(self.img_path)))
-
-    def _get_class_dict(self):
-        class_dict = dict()
-        for i, anno in enumerate(self.get_annotations()):
-            cat_id = anno["category_id"]
-            if cat_id not in class_dict:
-                class_dict[cat_id] = []
-            class_dict[cat_id].append(i)
-        return class_dict
+        # print("{} Mode: Contain {} images".format(
+        #     phase, len(self.img_paths))
+        # )
 
     def get_img_num_per_cls(self, cls_num, imb_type, imb_factor):
-        img_max = len(self.img_path) / cls_num
+        """Generate imbalanced num samples by 'exp' or 'step'.
+        - imb_type: 'exp' or 'step'
+        - imb_factor: (default: 0.1) the largest / the smallest
+        """
+        img_max = len(self.img_paths) / cls_num
         img_num_per_cls = []
-        if imb_type == 'exp':
+        if imb_type == 'exp':  # exponential moving
             for cls_idx in range(cls_num):
-                num = img_max * (imb_factor**(cls_idx / (cls_num - 1.0)))
+                num = img_max * (
+                    imb_factor ** (cls_idx / (cls_num - 1.0))
+                )
                 img_num_per_cls.append(int(num))
-        elif imb_type == 'step':
+        elif imb_type == 'step':  # two different num_samples
             for cls_idx in range(cls_num // 2):
                 img_num_per_cls.append(int(img_max))
             for cls_idx in range(cls_num // 2):
                 img_num_per_cls.append(int(img_max * imb_factor))
         else:
             img_num_per_cls.extend([int(img_max)] * cls_num)
+
         return img_num_per_cls
 
     def gen_imbalanced_data(self, img_num_per_cls):
-        new_img_path = []
+        new_img_paths = []
         new_targets = []
         targets_np = np.array(self.targets, dtype=np.int64)
         classes = np.unique(targets_np)
@@ -98,25 +117,26 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         self.num_per_cls_dict = dict()
         for the_class, the_img_num in zip(classes, img_num_per_cls):
             self.num_per_cls_dict[the_class] = the_img_num
+            # random shuffle indexs and select num_samples of the class
             idx = np.where(targets_np == the_class)[0]
             np.random.shuffle(idx)
             selec_idx = idx[:the_img_num]
-            new_img_path.extend(self.img_path[selec_idx].tolist())
+            # generate new train pairs
+            new_img_paths.extend(self.img_paths[selec_idx].tolist())
             new_targets.extend([the_class, ] * the_img_num)
-        self.img_path = new_img_path
+
+        self.img_paths = new_img_paths
         self.targets = new_targets
 
     def __getitem__(self, index):
-        path = self.img_path[index]
+        path = self.img_paths[index]
         label = self.labels[index]
-
         with open(path, 'rb') as f:
-            sample = Image.open(f).convert('RGB')
-
+            img = Image.open(f).convert('RGB')
         if self.transform is not None:
-            sample = self.transform(sample)
+            img = self.transform(img)
 
-        return sample, label, index  # , origin
+        return img, label
 
     def __len__(self):
         return len(self.labels)
@@ -124,27 +144,17 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
     def get_num_classes(self):
         return self.cls_num
 
-    def get_annotations(self):
+    def get_img_num_list(self):
+        """list of num_samples"""
+        return self.img_num
 
-        annos = []
-        for label in self.labels:
-            annos.append({'category_id': int(label)})
-        return annos
-
-    def get_cls_num_list(self):
-        cls_num_list = []
-        for i in range(self.cls_num):
-            cls_num_list.append(self.num_per_cls_dict[i])
-        return cls_num_list
-
-    def get_category(self):
-        label_dict = dict()
+    def get_label2ctg(self):
+        label2ctg = dict()
         for i in range(len(self.labels)):
-            if self.labels[i] not in label_dict:
-                category = self.img_path[i].split('/')[-2]
-                label_dict[self.labels[i]] = category
-
-        return label_dict
+            if self.labels[i] not in label2ctg:
+                category = self.img_paths[i].split('/')[-2]
+                label2ctg[self.labels[i]] = category
+        return label2ctg
 
 
 @Datasets.register_module("miniImageNet")
