@@ -18,9 +18,9 @@ import numpy as np
 from torch.utils.data.sampler import Sampler
 
 
-##################################
+##################################################################
 # Class-aware sampling, partly implemented by frombeijingwithlove
-##################################
+##################################################################
 
 class RandomCycleIter:
 
