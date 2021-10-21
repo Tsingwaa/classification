@@ -23,7 +23,6 @@ from torch.utils.data.sampler import Sampler
 ##################################################################
 
 class RandomCycleIter:
-
     def __init__(self, data, test_mode=False):
         self.data_list = list(data)
         self.length = len(self.data_list)
@@ -68,13 +67,12 @@ def class_aware_sample_generator(cls_iter, data_iter_list,
 
 
 class ClassAwareSampler(Sampler):
-
-    def __init__(self, data_source, num_samples_cls=1,):
-        super(ClassAwareSampler, self).__init__(data_source)
-        num_classes = len(np.unique(data_source.labels))
+    def __init__(self, dataset, num_samples_cls=1,):
+        super(ClassAwareSampler, self).__init__(dataset)
+        num_classes = len(np.unique(dataset.labels))
         self.class_iter = RandomCycleIter(range(num_classes))
         cls_data_list = [list() for _ in range(num_classes)]
-        for i, label in enumerate(data_source.labels):
+        for i, label in enumerate(dataset.labels):
             cls_data_list[label].append(i)
         self.data_iter_list = [RandomCycleIter(x) for x in cls_data_list]
         self.num_samples = max([len(x) for x in cls_data_list])\
