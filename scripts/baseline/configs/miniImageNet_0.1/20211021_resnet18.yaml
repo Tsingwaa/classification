@@ -1,6 +1,5 @@
-# Template train config
 experiment:
-  name: "20211020_miniImageNet_0.1_resnet18"
+  name: "20211021_miniImageNet_0.1_resnet18"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -36,7 +35,7 @@ train_dataset:
     # download: False
 
 val_dataset:
-  name: "miniImageNet"
+  name: "imb_miniImageNet"
   param:
     data_root: "miniImageNet"
     phase: "val"
@@ -48,14 +47,14 @@ trainloader:
   name: "Dataloader"
   param:
     sampler: None
-    batch_size: 128
-    num_workers: 8
+    batch_size: 384
+    num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 128
-    num_workers: 16
+    batch_size: 384
+    num_workers: 6
 
 network:
   name: "ResNet18"

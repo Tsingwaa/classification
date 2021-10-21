@@ -21,7 +21,7 @@ from utils import AccAverageMeter
 
 class DataLoaderX(DataLoader):
     def __iter__(self):
-        return BackgroundGenerator(super().__iter__(), max_prefetch=10)
+        return BackgroundGenerator(super().__iter__(), max_prefetch=8)
 
 
 class Trainer(BaseTrainer):
@@ -65,7 +65,7 @@ class Trainer(BaseTrainer):
                 batch_size=self.val_batch_size,
                 shuffle=False,
                 num_workers=self.val_num_workers,
-                pin_memory=False,
+                pin_memory=True,
                 drop_last=False,
             )
 

@@ -1,4 +1,4 @@
-export PYTHONPATH=$PYTHONPATH:/home/waa/Projects/classification
+export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 
 # Distributed Training
 # CUDA_VISIBLE_DEVICES=0,1,2,3 python3 -W ignore -m torch.distributed.launch \
@@ -6,34 +6,5 @@ export PYTHONPATH=$PYTHONPATH:/home/waa/Projects/classification
 #     train.py --config_file "configs/train_v1.0_20210827.yaml"
 
 # Single-GPU Training
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m6n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m7n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m8n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m9n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m12n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m13n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m14n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10/20211010_CIFAR10_randaug_m15n2.yaml'
-
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m5n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m6n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m7n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m8n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m9n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m10n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m11n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m12n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m13n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m14n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211013_CIFAR10_0.01_randaug_m15n2.yaml'
-
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211014_CIFAR10_0.01_adapt_randaug_m5n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211014_CIFAR10_0.01_adapt_randaug_m10n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211014_CIFAR10_0.01_adapt_randaug_m15n2.yaml'
-
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211014_CIFAR10_0.01_reverse_adapt_randaug_m5n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211014_CIFAR10_0.01_reverse_adapt_randaug_m10n2.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath 'configs/CIFAR10_0.01/20211014_CIFAR10_0.01_reverse_adapt_randaug_m15n2.yaml'
-
-CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath \
-        'configs/miniImageNet_0.1/20211020_resnet18.yaml'
+CUDA_VISIBLE_DEVICES=1 python3 train.py --local_rank -1 --config_fpath \
+        'configs/miniImageNet_0.1/20211021_resnet18.yaml'
