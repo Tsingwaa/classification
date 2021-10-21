@@ -23,6 +23,7 @@ from torch.utils.data.sampler import Sampler
 ##################################################################
 
 class RandomCycleIter:
+    """Iterator: generate new list and iterate new batch"""
     def __init__(self, data, test_mode=False):
         self.data_list = list(data)
         self.length = len(self.data_list)
@@ -36,6 +37,7 @@ class RandomCycleIter:
         self.i += 1
 
         if self.i == self.length:
+            # 如果迭代完一轮，则从头来过；
             self.i = 0
             if not self.test_mode:
                 random.shuffle(self.data_list)
@@ -45,10 +47,10 @@ class RandomCycleIter:
 
 def class_aware_sample_generator(cls_iter, data_iter_list,
                                  n, num_samples_cls=1):
+    """Generator: yield a list"""
     i = 0
     j = 0
     while i < n:
-
         # yield next(data_iter_list[next(cls_iter)])
 
         if j >= num_samples_cls:
@@ -59,6 +61,7 @@ def class_aware_sample_generator(cls_iter, data_iter_list,
                 zip(*[data_iter_list[next(cls_iter)]] * num_samples_cls)
             )
             yield temp_tuple[j]
+
         else:
             yield temp_tuple[j]
 
