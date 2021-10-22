@@ -23,9 +23,16 @@ from torch.utils.data.sampler import Sampler
 ##################################################################
 
 class RandomCycleIter:
-    """Iterator: generate new list and iterate new batch"""
-    def __init__(self, data, test_mode=False):
-        self.data_list = list(data)
+    """Accept a data_list and then return a Iterator which cyclely
+    shuffles the data_list if in the test mode.
+
+    Args:
+        data_list: source list
+        test_mode: decide whether to shuffle the list
+    """
+
+    def __init__(self, data_list, test_mode=False):
+        self.data_list = list(data_list)
         self.length = len(self.data_list)
         self.i = self.length - 1
         self.test_mode = test_mode
@@ -35,7 +42,7 @@ class RandomCycleIter:
 
     def __next__(self):
         self.i += 1
-
+        # 第一次next, 默认i=length，则自动变为0
         if self.i == self.length:
             # 如果迭代完一轮，则从头来过；
             self.i = 0
@@ -46,11 +53,17 @@ class RandomCycleIter:
 
 
 def class_aware_sample_generator(cls_iter, data_iter_list,
-                                 n, num_samples_cls=1):
-    """Generator: yield a list"""
+                                 num_samples, num_samples_cls=1):
+    """Generator: yield a list
+    Args:
+        cls_iter: (classes Iterator) Choose which classes to sample
+        data_iter_list: (List of classes data Iterator)
+        num_samples: how many samples in total for single generation.
+        num_samples_cls:
+    """
     i = 0
     j = 0
-    while i < n:
+    while i < num_samples:
         # yield next(data_iter_list[next(cls_iter)])
 
         if j >= num_samples_cls:
@@ -58,7 +71,9 @@ def class_aware_sample_generator(cls_iter, data_iter_list,
 
         if j == 0:
             temp_tuple = next(
-                zip(*[data_iter_list[next(cls_iter)]] * num_samples_cls)
+                zip(*[
+                    data_iter_list[next(cls_iter)]
+                ] * num_samples_cls)
             )
             yield temp_tuple[j]
 
@@ -71,16 +86,32 @@ def class_aware_sample_generator(cls_iter, data_iter_list,
 
 class ClassAwareSampler(Sampler):
     def __init__(self, dataset, num_samples_cls=1,):
+        """根据dataset得到类等价的sampler
+        Args:
+            dataset: 数据集对象，使用其labels对象
+            num_samples_cls:
+        """
         super(ClassAwareSampler, self).__init__(dataset)
         num_classes = len(np.unique(dataset.labels))
+
+        # turn list [0,..., num_classes-1] to RandomCycleIterator
         self.class_iter = RandomCycleIter(range(num_classes))
+
+        # num_classes * []: 二维列表，按类别收集对应索引
         cls_data_list = [list() for _ in range(num_classes)]
         for i, label in enumerate(dataset.labels):
             cls_data_list[label].append(i)
-        self.data_iter_list = [RandomCycleIter(x) for x in cls_data_list]
-        self.num_samples = max([len(x) for x in cls_data_list])\
-            * len(cls_data_list)
-        # 最大采样数 * 类数， 其实就是以最大类为标准采样
+
+        # 对每类的索引列表，生成Iterator
+        self.data_iter_list = [
+            RandomCycleIter(data_this_cls) for data_this_cls in cls_data_list
+        ]
+
+        # 最大采样数 * 类数， 以最大类的数量为标准采样
+        max_num_samples = max([len(x) for x in cls_data_list])
+        self.num_samples = max_num_samples * len(cls_data_list)
+
+        # TODO what does num_samples_cls means???
         self.num_samples_cls = num_samples_cls
 
     def __iter__(self):
