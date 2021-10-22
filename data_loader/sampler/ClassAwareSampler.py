@@ -52,14 +52,18 @@ class RandomCycleIter:
         return self.data_list[self.i]
 
 
-def class_aware_sample_generator(cls_iter, data_iter_list,
-                                 num_samples, num_samples_cls=1):
+def class_aware_sample_generator(cls_iter,
+                                 data_iter_list,
+                                 num_samples,
+                                 num_samples_cls=1,
+                                 epoch=0,):
     """Generator: yield a list
     Args:
         cls_iter: (classes Iterator) Choose which classes to sample
         data_iter_list: (List of classes data Iterator)
         num_samples: how many samples in total for single generation.
         num_samples_cls:
+        epoch:  set different seed
     """
     i = 0
     j = 0
@@ -92,6 +96,8 @@ class ClassAwareSampler(Sampler):
             num_samples_cls:
         """
         super(ClassAwareSampler, self).__init__(dataset)
+        self.epoch = 0
+
         num_classes = len(np.unique(dataset.labels))
 
         # turn list [0,..., num_classes-1] to RandomCycleIterator
@@ -102,7 +108,7 @@ class ClassAwareSampler(Sampler):
         for i, label in enumerate(dataset.labels):
             cls_data_list[label].append(i)
 
-        # 对每类的索引列表，生成Iterator
+        # 对每类样本的索引列表，生成Iterator
         self.data_iter_list = [
             RandomCycleIter(data_this_cls) for data_this_cls in cls_data_list
         ]
@@ -119,8 +125,12 @@ class ClassAwareSampler(Sampler):
             self.class_iter,
             self.data_iter_list,
             self.num_samples,
-            self.num_samples_cls
+            self.num_samples_cls,
+            self.epoch
             )
 
     def __len__(self):
         return self.num_samples
+
+    def set_epoch(self, epoch):
+        self.epoch = epoch
