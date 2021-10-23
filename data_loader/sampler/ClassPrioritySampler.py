@@ -6,7 +6,6 @@ LICENSE file in the root directory of this source tree.
 """
 
 import random
-
 import numpy as np
 from torch.utils.data.sampler import Sampler
 
@@ -34,8 +33,8 @@ class RandomCycleIter:
 
 
 class PriorityTree(object):
-    def __init__(self, capacity, init_weights, fixed_weights=None, fixed_scale=1.0,
-                 alpha=1.0):
+    def __init__(self, capacity, init_weights, fixed_weights=None,
+                 fixed_scale=1.0, alpha=1.0):
         """
         fixed_weights: weights that wont be updated by self.update()
         """
@@ -45,7 +44,7 @@ class PriorityTree(object):
         self._capacity = capacity
         self._tree_size = 2 * capacity - 1
         self.fixed_scale = fixed_scale
-        self.fixed_weights = np.zeros(self._capacity) if fixed_weights is None \
+        self.fixed_weights = np.zeros(self._capacity) if fixed_weights is None\
             else fixed_weights
         self.tree = np.zeros(self._tree_size)
         self._initialized = False
@@ -57,9 +56,10 @@ class PriorityTree(object):
         # Rescale the fixed_weights if it is not zero
         self.fixed_scale_init = self.fixed_scale
         if self.fixed_weights.sum() > 0 and init_weights.sum() > 0:
-            self.fixed_scale_init *= init_weights.sum() / self.fixed_weights.sum()
-            self.fixed_weights *= self.fixed_scale * init_weights.sum() \
-                                  / self.fixed_weights.sum()
+            self.fixed_scale_init *= \
+                init_weights.sum() / self.fixed_weights.sum()
+            self.fixed_weights *= self.fixed_scale *\
+                init_weights.sum() / self.fixed_weights.sum()
         print('FixedWeights: {}'.format(self.fixed_weights.sum()))
 
         self.update_whole(init_weights + self.fixed_weights)
@@ -69,10 +69,10 @@ class PriorityTree(object):
         self.update_whole(self.fixed_weights + adaptive_weights)
 
     def reset_fixed_weights(self, fixed_weights, rescale=False):
-        """ Reset the manually designed weights and 
+        """ Reset the manually designed weights and
             update the whole tree accordingly.
 
-            @rescale: rescale the fixed_weights such that 
+            @rescale: rescale the fixed_weights such that
             fixed_weights.sum() = self.fixed_scale * adaptive_weights.sum()
         """
 
@@ -163,11 +163,12 @@ class PriorityTree(object):
             # Update delta
             if self.tree[tree_idx] < 0 or \
                     np.power(self.tree[tree_idx], 1 / self.alpha) + delta < 0:
-                import pdb;
+                import pdb
                 pdb.set_trace()
-            delta = np.power(np.power(self.tree[tree_idx], 1 / self.alpha) + delta,
-                             self.alpha) \
-                    - self.tree[tree_idx]
+            delta = np.power(
+                np.power(self.tree[tree_idx], 1 / self.alpha) + delta,
+                self.alpha
+            ) - self.tree[tree_idx]
         self.tree[tree_idx] += delta
         while tree_idx != 0:
             tree_idx = (tree_idx - 1) // 2
@@ -217,51 +218,51 @@ class PriorityTree(object):
 
 class ClassPrioritySampler(Sampler):
     """
-    A sampler combining manually designed sampling strategy and prioritized 
+    A sampler combining manually designed sampling strategy and prioritized
     sampling strategy.
 
     Manually disigned strategy contains two parts:
 
         $$ manual_weights = lam * balanced_weights + (1-lam) uniform_weights
-    
+
         Here we use a generalized version of balanced weights as follows,
         when n limits to infinity, balanced_weights = real_balanced_weights
-    
+
         $$ balanced_weights = uniform_weights ^  (1/n)
-    
-        Then the balanced weights are scaled such that 
-    
+
+        Then the balanced weights are scaled such that
+
         $$ balanced_weights.sum() =  balance_scale * uniform_weights.sum()
 
         Note: above weights are per-class weights
 
-    Overall sampling weights are given as 
+    Overall sampling weights are given as
         $$ sampling_weights = manual_weights * fixed_scale + priority_weights
 
     Arguments:
-        @dataset: A dataset 
+        @dataset: A dataset
         @balance_scale: The scale of balanced_weights
         @lam: A weight to combine balanced weights and uniform weights
             - None for shifting sampling
             - 0 for uniform sampling
             - 1 for balanced sampling
         @fixed_scale: The scale of manually designed weights
-            - fixed_scale < 0 means, the manually designed distribution will 
-              be used as the backend distribution of priorities. 
+            - fixed_scale < 0 means, the manually designed distribution will
+              be used as the backend distribution of priorities.
         @cycle: shifting strategy
             - 0 for linear shifting: 3 -> 2 - > 1
-            - 1 for periodic shifting: 
+            - 1 for periodic shifting:
                 3 -> 2 - > 1 -> 3 -> 2 - > 1 -> 3 -> 2 - > 1
             - 2 for cosine-like periodic shifting:
                 3 -> 2 - > 1 -> 1 -> 2 - > 3 -> 3 -> 2 - > 1
         @nroot:
             - None for truly balanced weights
-            - >= 2 for pseudo-balanced weights 
+            - >= 2 for pseudo-balanced weights
         @rescale: whether to rebalance the manual weights and priority weights
             every epoch
         @root_decay:
-            - 'exp': for exponential decay 
-            - 'linear': for linear decay 
+            - 'exp': for exponential decay
+            - 'linear': for linear decay
     """
 
     def __init__(self, dataset, balance_scale=1.0, fixed_scale=1.0,
@@ -316,10 +317,12 @@ class ClassPrioritySampler(Sampler):
             if cycle == 0:
                 self.lams = np.linspace(0, 1, epochs)
             elif cycle == 1:
-                self.lams = np.concatenate([np.linspace(0, 1, epochs // 3)] * 3)
+                self.lams = np.concatenate(
+                    [np.linspace(0, 1, epochs // 3)] * 3)
             elif cycle == 2:
                 self.lams = np.concatenate([np.linspace(0, 1, epochs // 3),
-                                            np.linspace(0, 1, epochs // 3)[::-1],
+                                            np.linspace(
+                                                0, 1, epochs // 3)[::-1],
                                             np.linspace(0, 1, epochs // 3)])
             else:
                 raise NotImplementedError(
@@ -330,8 +333,8 @@ class ClassPrioritySampler(Sampler):
         # Get num of samples per class
         self.cls_cnts = []
         self.labels = labels = np.array(self.dataset.labels)
-        for l in np.unique(labels):
-            self.cls_cnts.append(np.sum(labels == l))
+        for this_label in np.unique(labels):
+            self.cls_cnts.append(np.sum(labels == this_label))
         self.num_classes = len(self.cls_cnts)
         self.cnts = np.array(self.cls_cnts).astype(float)
 
@@ -343,7 +346,7 @@ class ClassPrioritySampler(Sampler):
         for ci in range(self.num_classes):
             self.cls_idxs[ci] = np.array(self.cls_idxs[ci])
 
-        # Build balanced weights based on class counts 
+        # Build balanced weights based on class counts
         self.balanced_weights = self.get_balanced_weights(self.nroot)
         self.uniform_weights = self.get_uniform_weights()
         self.manual_weights = self.get_manual_weights(self.lams[0])
@@ -351,7 +354,8 @@ class ClassPrioritySampler(Sampler):
         # back_weights = self.get_balanced_weights(1.5)
         back_weights = self.uniform_weights
 
-        # Calculate priority ratios that reshape priority into target distribution
+        # Calculate priority ratios that reshape priority into
+        # target distribution
         self.per_cls_ratios = self.get_cls_ratios(
             self.manual_weights if self.manual_as_backend else back_weights)
         self.per_example_ratios = self.broadcast(self.per_cls_ratios)
@@ -362,16 +366,21 @@ class ClassPrioritySampler(Sampler):
         elif self.ptype in ['CE', 'entropy']:
             self.init_weight = 6.9
         else:
-            raise NotImplementedError('ptype {} not implemented'.format(self.ptype))
+            raise NotImplementedError(
+                'ptype {} not implemented'.format(self.ptype))
         if self.manual_only:
             self.init_weight = 0.
-        self.per_example_uni_weights = np.ones(self.num_samples) * self.init_weight
+        self.per_example_uni_weights = np.ones(
+            self.num_samples) * self.init_weight
         self.per_example_velocities = np.zeros(self.num_samples)
         # init_priorities = np.power(self.init_weight, self.alpha) \
         #                 * self.uniform_weights * self.per_cls_ratios
-        init_priorities = self.init_weight * self.uniform_weights * self.per_cls_ratios
-        self.ptree = PriorityTree(self.num_classes, init_priorities,
-                                  self.manual_weights.copy(), fixed_scale=self.fixed_scale,
+        init_priorities = self.init_weight * self.uniform_weights\
+            * self.per_cls_ratios
+        self.ptree = PriorityTree(self.num_classes,
+                                  init_priorities,
+                                  self.manual_weights.copy(),
+                                  fixed_scale=self.fixed_scale,
                                   alpha=self.alpha)
 
     def get_cls_ratios(self, tgt_weights):
@@ -387,26 +396,27 @@ class ClassPrioritySampler(Sampler):
 
     def broadcast(self, per_cls_info):
         per_exmaple_info = np.zeros(self.num_samples)
-        # Braodcast per-cls info to each example 
+        # Braodcast per-cls info to each example
         for ci in range(self.num_classes):
             per_exmaple_info[self.cls_idxs[ci]] = per_cls_info[ci]
         return per_exmaple_info
 
     def debroadcast_sum(self, per_example_info):
         per_cls_info = np.zeros(self.num_classes)
-        # DeBraodcast per-example info to each cls by summation 
+        # DeBraodcast per-example info to each cls by summation
         for ci in range(self.num_classes):
             per_cls_info[ci] = per_example_info[self.cls_idxs[ci]].sum()
         return per_cls_info
 
     def get_manual_weights(self, lam):
-        # Merge balanced weights and uniform weights 
+        # Merge balanced weights and uniform weights
         if lam == 1:
             manual_weights = self.balanced_weights.copy()
         elif lam == 0:
             manual_weights = self.uniform_weights.copy()
         else:
-            manual_weights = self.balanced_weights * lam + (1 - lam) * self.uniform_weights
+            manual_weights = self.balanced_weights * \
+                lam + (1 - lam) * self.uniform_weights
         return manual_weights
 
     def get_uniform_weights(self):
@@ -434,7 +444,7 @@ class ClassPrioritySampler(Sampler):
 
         # Normalization and rescale
         balanced_weights *= self.num_samples / balanced_weights.sum() * \
-                            self.balance_scale
+            self.balance_scale
         return balanced_weights
 
     def __iter__(self):
@@ -447,19 +457,21 @@ class ClassPrioritySampler(Sampler):
         return self.num_samples
 
     def reset_weights(self, epoch):
-        # If it is linear shifting 
+        # If it is linear shifting
         if not self.freeze:
             e = np.clip(epoch, 0, self.epochs - 1)
             self.manual_weights = self.get_manual_weights(self.lams[e])
-            # make sure 'self.fixed_scale > 0' and 'self.manual_as_backend = True' are 
-            # mutually exclusive 
+            # make sure 'self.fixed_scale > 0' and\
+            # 'self.manual_as_backend = True' are mutually exclusive
             if self.fixed_scale > 0:
-                self.ptree.reset_fixed_weights(self.manual_weights, self.rescale)
+                self.ptree.reset_fixed_weights(
+                    self.manual_weights, self.rescale)
             if self.manual_as_backend:
                 self.update_backend_distribution(self.manual_weights)
 
         # If it is root decay
-        if self.root_decay in ['exp', 'linear', 'autoexp'] and epoch % self.decay_gap == 0:
+        if self.root_decay in ['exp', 'linear', 'autoexp'] and\
+           epoch % self.decay_gap == 0:
             if self.root_decay == 'exp':
                 self.nroot *= 2
             elif self.root_decay == 'linear':
@@ -480,7 +492,8 @@ class ClassPrioritySampler(Sampler):
         self.per_example_ratios = self.broadcast(self.per_cls_ratios)
 
         # Recalculate the new per-class weights based on the new ratios
-        # new_backend_weights = self.init_weight * self.uniform_weights * self.per_cls_ratios
+        # new_backend_weights = self.init_weight * \
+        #     self.uniform_weights * self.per_cls_ratios
         new_cls_weights = self.get_cls_weights()
         self.ptree.reset_adaptive_weights(new_cls_weights)
 
@@ -490,31 +503,38 @@ class ClassPrioritySampler(Sampler):
             weights = np.clip(weights, 0, self.init_weight)
 
             # Iterate over all classes in the batch
-            for l in np.unique(labels):
+            for this_label in np.unique(labels):
                 # Calculate per-class delta weights
-                example_inds = inds[labels == l]
+                example_inds = inds[labels == this_label]
                 last_weights = self.per_example_uni_weights[example_inds]
-                # delta = np.power(weights[labels==l], self.alpha) - \
+                # delta = np.power(weights[labels==this_label], self.alpha) - \
                 #         np.power(last_weights, self.alpha)
-                delta = weights[labels == l] - last_weights
-                delta = self.momentum * self.per_example_velocities[example_inds] + \
-                        (1 - self.momentum) * delta
+                delta = weights[labels == this_label] - last_weights
+                delta = self.momentum * \
+                    self.per_example_velocities[example_inds] + \
+                    (1 - self.momentum) * delta
 
-                # Update velocities 
+                # Update velocities
                 self.per_example_velocities[example_inds] = delta
-                # Update per-example weights 
-                # self.per_example_uni_weights[example_inds] = weights[labels==l]
+                # Update per-example weights
+                # self.per_example_uni_weights[example_inds] =\
+                # weights[labels==this_label]
                 self.per_example_uni_weights[example_inds] += delta
 
-                # Sacle the delta 
+                # Sacle the delta
                 # (ie, the per-example weights both before and after update)
                 delta *= self.per_example_ratios[example_inds]
 
                 # Update tree
                 if self.alpha == 1:
-                    self.ptree.update_delta(l, delta.sum())
+                    self.ptree.update_delta(this_label, delta.sum())
                 else:
-                    self.ptree.update(l, self.per_example_uni_weights[self.cls_idxs[l]].sum())
+                    self.ptree.update(
+                        this_label,
+                        self.per_example_uni_weights[
+                            self.cls_idxs[this_label]
+                        ].sum()
+                    )
 
     def reset_priority(self, weights, labels):
         if self.pri_mode == 'valid':

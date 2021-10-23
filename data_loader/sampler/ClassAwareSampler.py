@@ -13,24 +13,11 @@ All rights reserved.
 """
 
 import random
-
 import numpy as np
 from torch.utils.data.sampler import Sampler
 
 
-##################################################################
-# Class-aware sampling, partly implemented by frombeijingwithlove
-##################################################################
-
 class RandomCycleIter:
-    """Accept a data_list and then return a Iterator which cyclely
-    shuffles the data_list if in the test mode.
-
-    Args:
-        data_list: source list
-        test_mode: decide whether to shuffle the list
-    """
-
     def __init__(self, data_list, test_mode=False):
         self.data_list = list(data_list)
         self.length = len(self.data_list)
@@ -42,7 +29,7 @@ class RandomCycleIter:
 
     def __next__(self):
         self.i += 1
-        # 第一次next, 默认i=length，则自动变为0
+        # 取下一个元素i + 1；初始时，为self.length
         if self.i == self.length:
             # 如果迭代完一轮，则从头来过；
             self.i = 0
@@ -52,35 +39,20 @@ class RandomCycleIter:
         return self.data_list[self.i]
 
 
-def class_aware_sample_generator(cls_iter,
-                                 data_iter_list,
-                                 num_samples,
-                                 num_samples_cls=1,
-                                 epoch=0,):
-    """Generator: yield a list
-    Args:
-        cls_iter: (classes Iterator) Choose which classes to sample
-        data_iter_list: (List of classes data Iterator)
-        num_samples: how many samples in total for single generation.
-        num_samples_cls:
-        epoch:  set different seed
-    """
+def class_aware_sample_generator(cls_iter, data_iter_list, total_samples,
+                                 num_samples_each_cls_draw=1):
     i = 0
     j = 0
-    while i < num_samples:
-        # yield next(data_iter_list[next(cls_iter)])
-
-        if j >= num_samples_cls:
+    while i < total_samples:
+        if j >= num_samples_each_cls_draw:
             j = 0
 
         if j == 0:
-            temp_tuple = next(
-                zip(*[
-                    data_iter_list[next(cls_iter)]
-                ] * num_samples_cls)
-            )
+            temp_tuple = next(zip(
+                *[data_iter_list[next(cls_iter)]] *
+                num_samples_each_cls_draw
+            ))
             yield temp_tuple[j]
-
         else:
             yield temp_tuple[j]
 
@@ -88,49 +60,88 @@ def class_aware_sample_generator(cls_iter,
         j += 1
 
 
-class ClassAwareSampler(Sampler):
-    def __init__(self, dataset, num_samples_cls=1,):
+class ClassAwareSampler (Sampler):
+
+    def __init__(self, dataset, num_samples_each_cls_draw=1, **kwargs):
         """根据dataset得到类等价的sampler
         Args:
             dataset: 数据集对象，使用其labels对象
-            num_samples_cls:
+            num_samples_each_cls_draw: 每类取的样本数量
         """
-        super(ClassAwareSampler, self).__init__(dataset)
-        self.epoch = 0
-
         num_classes = len(np.unique(dataset.labels))
-
-        # turn list [0,..., num_classes-1] to RandomCycleIterator
         self.class_iter = RandomCycleIter(range(num_classes))
 
-        # num_classes * []: 二维列表，按类别收集对应索引
+        # turn list [0,..., num_classes-1] to RandomCycleIterator
         cls_data_list = [list() for _ in range(num_classes)]
         for i, label in enumerate(dataset.labels):
             cls_data_list[label].append(i)
 
-        # 对每类样本的索引列表，生成Iterator
+        # 每类样本的索引列表，生成各类index的Iterator
         self.data_iter_list = [
-            RandomCycleIter(data_this_cls) for data_this_cls in cls_data_list
+            RandomCycleIter(this_cls_data) for this_cls_data in cls_data_list
         ]
 
-        # 最大采样数 * 类数， 以最大类的数量为标准采样
+        # 最大采样数 * 类数， 其实就是以最大类为标准采样
         max_num_samples = max([len(x) for x in cls_data_list])
         self.num_samples = max_num_samples * len(cls_data_list)
 
-        # TODO what does num_samples_cls means???
-        self.num_samples_cls = num_samples_cls
+        # 每类取的样本数量
+        self.num_samples_each_cls_draw = num_samples_each_cls_draw
 
     def __iter__(self):
-        return class_aware_sample_generator(
-            self.class_iter,
-            self.data_iter_list,
-            self.num_samples,
-            self.num_samples_cls,
-            self.epoch
-            )
+        return class_aware_sample_generator(self.class_iter,
+                                            self.data_iter_list,
+                                            self.num_samples,
+                                            self.num_samples_each_cls_draw)
 
     def __len__(self):
         return self.num_samples
 
-    def set_epoch(self, epoch):
-        self.epoch = epoch
+
+def get_sampler():
+    return ClassAwareSampler
+
+
+def get_balanced_samper(dataset):
+    # 基于dataset，设置各类的data indexes
+    buckets = [[] for _ in range(dataset.cls_num)]
+    for idx, label in enumerate(dataset.labels):
+        buckets[label].append(idx)
+    sampler = BalancedSampler(buckets, retain_epoch_size=True)
+    return sampler
+
+
+class BalancedSampler(Sampler):
+    def __init__(self, buckets, retain_epoch_size=False):
+        for bucket in buckets:
+            random.shuffle(bucket)
+
+        self.bucket_num = len(buckets)
+        self.buckets = buckets
+        self.bucket_pointers = [0 for _ in range(self.bucket_num)]
+        self.retain_epoch_size = retain_epoch_size
+
+    def __iter__(self):
+        count = self.__len__()
+        while count > 0:
+            yield self._next_item()
+            count -= 1
+
+    def _next_item(self):
+        bucket_idx = random.randint(0, self.bucket_num - 1)
+        bucket = self.buckets[bucket_idx]
+        item = bucket[self.bucket_pointers[bucket_idx]]
+        self.bucket_pointers[bucket_idx] += 1
+        if self.bucket_pointers[bucket_idx] == len(bucket):
+            self.bucket_pointers[bucket_idx] = 0
+            random.shuffle(bucket)
+        return item
+
+    def __len__(self):
+        if self.retain_epoch_size:
+            # Acrually we need to upscale to next full batch
+            return sum([len(bucket) for bucket in self.buckets])
+        else:
+            # Ensures every instance has the chance to be visited in an epoch
+            return max([len(bucket) for bucket in self.buckets])\
+                    * self.bucket_num
