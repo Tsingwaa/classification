@@ -320,7 +320,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--local_rank', type=int, help='Local Rank for\
                         distributed training. if single-GPU, default: -1')
-    parser.add_argument('--config_fpath', type=str, help='path of config file')
+    parser.add_argument('--config_path', type=str, help='path of config file')
     args = parser.parse_args()
     return args
 
@@ -337,7 +337,7 @@ def main(args):
     warnings.filterwarnings('ignore')
     _set_seed()
     # set_trace()
-    with open(args.config_fpath, 'r') as f:
+    with open(args.config_path, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     trainer = Trainer(local_rank=args.local_rank, config=config)
     trainer.train()

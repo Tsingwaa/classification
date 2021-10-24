@@ -1,11 +1,12 @@
+# Template train config
 experiment:
-  name: "20211024_miniImageNet_0.05_resnet18_oversample"
+  name: "20211024_miniImageNet_resnet18"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
   resume: False
   resume_fpath: "ResNet18_best.pth.tar"
-  save_period: 20
+  save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 train_transform:
@@ -23,19 +24,19 @@ val_transform:
     resize: [224, 224]
 
 train_dataset:
-  name: "imb_miniImageNet"
+  name: "miniImageNet"
   param:
     data_root: "miniImageNet"
     phase: "train"
     # img_lst_fpath: "None"
     # map_fpath: "None"
-    imb_type: 'exp'
-    imb_factor: 0.05
-    rand_seed: 0
+    # imb_type: 'None'
+    # imb_factor: 0
+    # rand_seed: 0
     # download: False
 
 val_dataset:
-  name: "imb_miniImageNet"
+  name: "miniImageNet"
   param:
     data_root: "miniImageNet"
     phase: "val"
@@ -46,14 +47,14 @@ val_dataset:
 trainloader:
   name: "Dataloader"
   param:
-    sampler: "ClassAwareSampler"
-    batch_size: 200
+    sampler: "DistributedSampler"
+    batch_size: 128
     num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 200
+    batch_size: 128
     num_workers: 6
 
 network:

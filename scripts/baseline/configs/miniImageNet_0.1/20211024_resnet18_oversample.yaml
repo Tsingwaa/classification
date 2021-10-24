@@ -47,13 +47,13 @@ trainloader:
   name: "Dataloader"
   param:
     sampler: "ClassAwareSampler"
-    batch_size: 384
+    batch_size: 200
     num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 384
+    batch_size: 200
     num_workers: 6
 
 network:
