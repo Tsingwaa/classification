@@ -350,9 +350,12 @@ class BaseTrainer:
             ' mr:{:.2%} ap:{:.2%}'.format(self.resume_fpath, acc, mr, ap)
         return checkpoint, resume_log
 
-    def save_checkpoint(self, epoch, save_fname, is_best,
+    def save_checkpoint(self, epoch, is_best,
                         acc=None, mr=None, ap=None):
         if epoch > 100:  # start saving checkpoint from 100-th epoch
+            save_fname = '{}_epoch{}_acc{:.2%}_mr{:.2%}_ap{:.2%}_'\
+                'state_dict.pth.tar'.format(self.network_name, str(epoch),
+                                            acc, mr, ap)
             checkpoint = {
                 'model': self.model.state_dict() if self.local_rank == -1
                 else self.model.module.state_dict(),
@@ -366,6 +369,7 @@ class BaseTrainer:
             if not (epoch % self.save_period):
                 save_fpath = join(self.save_dir, save_fname)
                 torch.save(checkpoint, save_fpath)
+
             if is_best:
                 best_fpath = join(
                     self.save_dir, f'{self.network_name}_best.pth.tar'
