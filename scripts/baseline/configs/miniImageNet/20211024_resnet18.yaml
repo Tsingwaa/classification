@@ -48,13 +48,13 @@ trainloader:
   name: "Dataloader"
   param:
     sampler: "DistributedSampler"
-    batch_size: 128
+    batch_size: 200
     num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 128
+    batch_size: 200
     num_workers: 6
 
 network:
