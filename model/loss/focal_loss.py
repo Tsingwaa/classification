@@ -40,7 +40,7 @@ class FocalLoss(nn.Module):
             at = self.alpha.gather(0, select.data.view(-1))
             logpt = logpt * Variable(at)
 
-        loss = -1 * (1 - pt)**self.gamma * logpt
+        loss = -1 * (1 - pt) ** self.gamma * logpt
         if self.size_average:
             return loss.mean()
         else:

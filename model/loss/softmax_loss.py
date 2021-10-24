@@ -33,7 +33,8 @@ class CrossEntropyLabelSmooth(nn.Module):
         targets = torch.zeros(log_probs.size())\
             .scatter_(1, targets.unsqueeze(1).data.cpu(), 1)
         targets = targets.cuda()
-        targets = (1 - self.epsilon) * targets + self.epsilon / self.num_classes
+        targets = (1 - self.epsilon) * targets +\
+            self.epsilon / self.num_classes
         loss = (- targets * log_probs).mean(0).sum()
         return loss
 
