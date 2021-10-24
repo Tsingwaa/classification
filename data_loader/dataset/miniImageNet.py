@@ -81,10 +81,6 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
 
         self.labels = self.targets
 
-        # print("{} Mode: Contain {} images".format(
-        #     phase, len(self.img_paths))
-        # )
-
     def get_img_num_per_cls(self, cls_num, imb_type, imb_factor):
         """Generate imbalanced num samples by 'exp' or 'step'.
         - imb_type: 'exp' or 'step'
@@ -129,10 +125,9 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         self.targets = new_targets
 
     def __getitem__(self, index):
-        path = self.img_paths[index]
+        img_path = self.img_paths[index]
         label = self.labels[index]
-        with open(path, 'rb') as f:
-            img = Image.open(f).convert('RGB')
+        img = Image.open(img_path).convert('RGB')
         if self.transform is not None:
             img = self.transform(img)
 
