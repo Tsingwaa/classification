@@ -38,6 +38,8 @@ class Trainer(BaseTrainer):
 
         if self.trainloader_name == 'DistributedDataloader':
             train_sampler = DistributedSampler(trainset)
+        elif self.train_sampler_name == 'ClassAwareSampler':
+            train_sampler = None
         else:
             train_sampler = None
 
