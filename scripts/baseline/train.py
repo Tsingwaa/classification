@@ -36,10 +36,10 @@ class Trainer(BaseTrainer):
         train_transform = self.init_transform(self.train_transform_config)
         trainset = self.init_dataset(self.trainset_config, train_transform)
 
-        if self.trainloader_name == 'DistributedDataloader':
+        if self.train_sampler_name == 'DistributedSampler':
             train_sampler = DistributedSampler(trainset)
         elif self.train_sampler_name == 'ClassAwareSampler':
-            train_sampler = None
+            train_sampler = self.init_sampler(trainset)
         else:
             train_sampler = None
 
@@ -47,7 +47,7 @@ class Trainer(BaseTrainer):
             print(f'global_rank {self.global_rank},'
                   f'world_size {self.world_size},'
                   f'local_rank {self.local_rank},'
-                  f'{self.trainloader_name}')
+                  f'sampler "{self.train_sampler_name}"')
 
         self.trainloader = DataLoaderX(
             trainset,
