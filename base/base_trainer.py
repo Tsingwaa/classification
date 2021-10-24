@@ -10,6 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from importlib import import_module
 # Distribute Package
 from torch import distributed as dist
+from torch.utils.data.distributed import DistributedSampler
 # Custom package
 from model.loss.builder import build_loss
 from model.backbone.builder import build_backbone
@@ -161,14 +162,20 @@ class BaseTrainer:
         self.logger.info(transform_init_log)
         return transform
 
-    def init_sampler(self, dataloader_config=None, dataset=None):
-        sampler_param = dataloader_config['param']
+    def init_sampler(self, dataset=None):
+        sampler_param = self.trainloader_config['param']
         sampler_name = sampler_param['sampler']
-        sampler_param['dataset'] = dataset
-        sampler = build_sampler(sampler_name, **sampler_param)
-        sampler_init_log = f'===> Initialized {sampler_name} with'\
-            f' resampled size={len(sampler)}'
-        self.logger.info(sampler_init_log)
+        if sampler_name == 'None':
+            sampler = None
+        elif sampler_name == 'DistributedSampler':
+            sampler = DistributedSampler(dataset)
+        else:
+            sampler_param['dataset'] = dataset
+            sampler = build_sampler(sampler_name, **sampler_param)
+            sampler_init_log = f'===> Initialized {sampler_name} with'\
+                f' resampled size={len(sampler)}'
+            self.logger.info(sampler_init_log)
+
         return sampler
 
     def init_dataset(self, dataset_config=None, transform=None):
