@@ -1,11 +1,11 @@
 # Template train config
 experiment:
-  name: "20211024_Caltech256-10_resnet34"
+  name: "20211024_Caltech256-10_resnet18_oversample"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: False
-  resume_fpath: ""
+  resume: True
+  resume_fpath: "ResNet18_epoch160_acc88.30%_mr78.85%_ap83.12%_state_dict.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -24,22 +24,22 @@ val_transform:
     resize: [224, 224]
 
 train_dataset:
-  name: "Caltech256-10-Trainset"
+  name: "Caltech256-Trainset"
   param:
     data_root: "Caltech/Caltech256-10_split/train"
-    train: True
+    phase: "train"
     img_lst_fpath: "None"
     map_fpath: "None"
-    imb_type: 'None'
+    imb_type: "None"
     imb_factor: 0
     rand_seed: 0
     download: False
 
 val_dataset:
-  name: "Caltech256-10-Testset"
+  name: "Caltech256-Testset"
   param:
     data_root: "Caltech/Caltech256-10_split/test"
-    train: False
+    phase: "test"
     img_lst_fpath: "None"
     map_fpath: "None"
     download: False
@@ -47,18 +47,18 @@ val_dataset:
 trainloader:
   name: "Dataloader"
   param:
-    sampler: None
-    batch_size: 384
-    num_workers: 6
+    sampler: "ClassAwareSampler"
+    batch_size: 64
+    num_workers: 4
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 384
-    num_workers: 6
+    batch_size: 64
+    num_workers: 4
 
 network:
-  name: "ResNet34"
+  name: "ResNet18"
   param:
     num_classes: 10
     pretrained: False
