@@ -5,7 +5,7 @@ import argparse
 import yaml
 import numpy as np
 import torch
-from pudb import set_trace
+# from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn import metrics
@@ -173,7 +173,6 @@ class Trainer(BaseTrainer):
                                          'val_ap': val_ap}, epoch)
                 # Save checkpoint.
                 # is_best = (best_acc < val_acc or best_mr < val_mr)
-                set_trace()
                 is_best = best_mr < val_mr
                 if best_acc < val_acc:
                     best_acc = val_acc

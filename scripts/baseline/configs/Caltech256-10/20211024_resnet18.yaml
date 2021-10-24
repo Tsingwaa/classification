@@ -4,8 +4,8 @@ experiment:
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: True
-  resume_fpath: "ResNet18_epoch170_acc89.25%_mr80.41%_ap82.01%_state_dict.pth.tar"
+  resume: False
+  resume_fpath: ""
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -48,14 +48,14 @@ trainloader:
   name: "Dataloader"
   param:
     sampler: "None"
-    batch_size: 64
-    num_workers: 4
+    batch_size: 100
+    num_workers: 8
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 64
-    num_workers: 4
+    batch_size: 100
+    num_workers: 8
 
 network:
   name: "ResNet18"

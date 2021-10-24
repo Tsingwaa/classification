@@ -189,7 +189,7 @@ class DistributedRandomGroupSampler(Sampler):
 
         # Shuffle groups
         random.seed(self.manual_seed + self.epoch)
-        shuffled_group_list = random.shuffle(group_list)
+        random.shuffle(group_list)
 
         # Generate final idxs
         groups_per_batch = self.batch_size / self.num_instances

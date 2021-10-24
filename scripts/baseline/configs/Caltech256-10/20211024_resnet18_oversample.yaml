@@ -4,8 +4,8 @@ experiment:
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: True
-  resume_fpath: "ResNet18_epoch160_acc88.30%_mr78.85%_ap83.12%_state_dict.pth.tar"
+  resume: False
+  resume_fpath: ""
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -28,34 +28,34 @@ train_dataset:
   param:
     data_root: "Caltech/Caltech256-10_split/train"
     phase: "train"
-    img_lst_fpath: "None"
-    map_fpath: "None"
-    imb_type: "None"
-    imb_factor: 0
-    rand_seed: 0
-    download: False
+    # img_lst_fpath: "None"
+    # map_fpath: "None"
+    # imb_type: "None"
+    # imb_factor: 0
+    # rand_seed: 0
+    # download: False
 
 val_dataset:
   name: "Caltech256-Testset"
   param:
     data_root: "Caltech/Caltech256-10_split/test"
     phase: "test"
-    img_lst_fpath: "None"
-    map_fpath: "None"
-    download: False
+    # img_lst_fpath: "None"
+    # map_fpath: "None"
+    # download: False
 
 trainloader:
   name: "Dataloader"
   param:
     sampler: "ClassAwareSampler"
-    batch_size: 64
-    num_workers: 4
+    batch_size: 100
+    num_workers: 8
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 64
-    num_workers: 4
+    batch_size: 100
+    num_workers: 8
 
 network:
   name: "ResNet18"

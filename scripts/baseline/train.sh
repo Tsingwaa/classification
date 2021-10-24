@@ -8,3 +8,5 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 # Single-GPU Training
 CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath \
         'configs/Caltech256-10/20211024_resnet18.yaml'
+CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_fpath \
+        'configs/Caltech256-10/20211024_resnet18_oversample.yaml'
