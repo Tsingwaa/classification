@@ -17,8 +17,8 @@ def split_dataset(data_root, dataset_name, split_ratio=0.8, manual_seed=0):
     random.seed(manual_seed)
 
     dataset_root = join(data_root, dataset_name)
-    train_root = join(data_root, dataset_name, '_split/train')
-    test_root = join(data_root, dataset_name, '_split/test')
+    train_root = join(data_root, dataset_name + '_split/train')
+    test_root = join(data_root, dataset_name + '_split/test')
 
     for class_name in sorted(os.listdir(dataset_root)):
         class_dir = join(dataset_root, class_name)
@@ -50,7 +50,7 @@ def split_dataset(data_root, dataset_name, split_ratio=0.8, manual_seed=0):
 
 if __name__ == '__main__':
     data_root = "/home/waa/Data/Caltech/"
-    dataset_name = "Caltech256-5-1"
+    dataset_name = "Caltech256-10"
     split_ratio = 0.8
 
     split_dataset(data_root, dataset_name, split_ratio)

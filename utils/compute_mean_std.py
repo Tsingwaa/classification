@@ -57,7 +57,7 @@ def compute_mean_and_std(dataset):
 
 
 if __name__ == "__main__":
-    data_root = "/home/waa/Data/miniImageNet"
+    data_root = "/home/waa/Data/Caltech/Caltech256-10_split"
     train_root = data_root + "/train"
     # val_root = data_root + '/val'
     # test_root = data_root + "/test"
