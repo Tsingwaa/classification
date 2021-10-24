@@ -1,7 +1,7 @@
 import torchvision.transforms as transforms
 # from .randaugment import RandAugment
 from .randaugment_fixmatch import RandAugmentMC
-from RandAugment import RandAugment  # From ildoonet/pytorch-randaugment
+from .randaugment import RandAugment
 
 IN_MEAN = [0.485, 0.456, 0.406]
 IN_STD = [0.229, 0.224, 0.225]

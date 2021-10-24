@@ -1,4 +1,5 @@
 # code in this file is adpated from rpmcruz/autoaugment
+# From ildoonet/pytorch-randaugment
 # https://github.com/rpmcruz/autoaugment/blob/master/transformations.py
 import random
 
@@ -201,27 +202,6 @@ def augment_list():  # 16 oeprations and their ranges
     ]
 
 
-def adapt_augment_list(percent):
-    return [
-        (AutoContrast, 0, 1. * percent),
-        (Equalize, 0, 1. * percent),
-        (Invert, 0, 1. * percent),
-        (Rotate, 0, 30. * percent),
-        (Posterize, 0, 4. * percent),
-        (Solarize, 0, 256. * percent),
-        (SolarizeAdd, 0, 110. * percent),
-        (Color, 0.1, 1.9 * percent),
-        (Contrast, 0.1, 1.9 * percent),
-        (Brightness, 0.1, 1.9 * percent),
-        (Sharpness, 0.1, 1.9 * percent),
-        (ShearX, 0., 0.3 * percent),
-        (ShearY, 0., 0.3 * percent),
-        (CutoutAbs, 0., 40. * percent),
-        (TranslateXabs, 0., 100. * percent),
-        (TranslateYabs, 0., 100. * percent),
-    ]
-
-
 class Lighting(object):
     """Lighting noise(AlexNet - style PCA - based noise)"""
 
@@ -272,9 +252,8 @@ class CutoutDefault(object):
 class RandAugment:
     def __init__(self, n, m, percent=None):
         self.n = n
-        self.m = m      # [0, 30]
-        self.augment_list = augment_list() if percent is None\
-            else adapt_augment_list(percent)
+        self.m = m  # [0, 30]
+        self.augment_list = augment_list()
 
     def __call__(self, img):
         ops = random.choices(self.augment_list, k=self.n)
