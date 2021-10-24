@@ -1,5 +1,5 @@
 experiment:
-  name: "20211024_miniImageNet_0.1_resnet18_oversample"
+  name: "20211024_miniImageNet_0.05_resnet18_oversample"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -30,7 +30,7 @@ train_dataset:
     # img_lst_fpath: "None"
     # map_fpath: "None"
     imb_type: 'exp'
-    imb_factor: 0.1
+    imb_factor: 0.05
     rand_seed: 0
     # download: False
 
