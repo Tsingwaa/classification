@@ -1,10 +1,11 @@
+# Template train config
 experiment:
-  name: "20211021_miniImageNet_0.1_resnet18"
+  name: "20211024_Caltech256-10_resnet34"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
   resume: False
-  resume_fpath: "ResNet18_best.pth.tar"
+  resume_fpath: ""
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -19,34 +20,34 @@ val_transform:
   script_path: "data_loader.transform.transform"
   name: "BaseTransform"
   param:
-    phase: "val"
+    phase: "test"
     resize: [224, 224]
 
 train_dataset:
-  name: "imb_miniImageNet"
+  name: "Caltech256-10-Trainset"
   param:
-    data_root: "miniImageNet"
-    phase: "train"
-    # img_lst_fpath: "None"
-    # map_fpath: "None"
-    imb_type: 'exp'
-    imb_factor: 0.1
+    data_root: "Caltech/Caltech256-10_split/train"
+    train: True
+    img_lst_fpath: "None"
+    map_fpath: "None"
+    imb_type: 'None'
+    imb_factor: 0
     rand_seed: 0
-    # download: False
+    download: False
 
 val_dataset:
-  name: "imb_miniImageNet"
+  name: "Caltech256-10-Testset"
   param:
-    data_root: "miniImageNet"
-    phase: "val"
-    # img_lst_fpath: "None"
-    # map_fpath: "None"
-    # download: False
+    data_root: "Caltech/Caltech256-10_split/test"
+    train: False
+    img_lst_fpath: "None"
+    map_fpath: "None"
+    download: False
 
 trainloader:
   name: "Dataloader"
   param:
-    sampler: "None"
+    sampler: None
     batch_size: 384
     num_workers: 6
 
@@ -57,9 +58,9 @@ valloader:
     num_workers: 6
 
 network:
-  name: "ResNet18"
+  name: "ResNet34"
   param:
-    num_classes: 100
+    num_classes: 10
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
@@ -95,7 +96,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [60, 100, 140, 180]
+    milestones: [60, 100, 120, 160]
     gamma: 0.1
 
     # CosineAnnealingWarmRestarts
