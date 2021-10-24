@@ -104,7 +104,7 @@ class Validater(BaseTrainer):
             batch_size=self.val_batch_size,
             shuffle=False,
             num_workers=self.val_num_workers,
-            pin_memory=False,
+            pin_memory=True,
             drop_last=False,
         )
 
