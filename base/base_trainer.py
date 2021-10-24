@@ -166,7 +166,8 @@ class BaseTrainer:
         sampler_name = sampler_param['sampler']
         sampler_param['dataset'] = dataset
         sampler = build_sampler(sampler_name, **sampler_param)
-        sampler_init_log = f'===> Initialized {sampler_name} '
+        sampler_init_log = f'===> Initialized {sampler_name} with'\
+            f' resampled size={len(sampler)}'
         self.logger.info(sampler_init_log)
         return sampler
 
@@ -304,7 +305,7 @@ class BaseTrainer:
             state_dict = torch.load(pretrained_fpath, map_location='cpu')
             if any('ResNet18', 'ResNet34', 'ResNet50', 'ResNet101') in\
                self.network_name:
-                state_dict = {k: v for k, v in state_dict.items() if\
+                state_dict = {k: v for k, v in state_dict.items() if
                               'fc' not in k}
 
             model.load_state_dict(state_dict, strict=False)
