@@ -3,16 +3,14 @@ from PIL import Image
 from torchvision.datasets import ImageFolder
 from data_loader.dataset.builder import Datasets
 
+CALTECH256_MEAN_STD_DICT = {
+    5: ([0.4997, 0.5033, 0.4790], [0.2794, 0.2621, 0.2800]),
+    10: ([0.5205, 0.5066, 0.4863], [0.3200, 0.3114, 0.3215])
+}
+
 
 @Datasets.register_module("Caltech256-Trainset")
 class Train_ImageFolder(ImageFolder):
-    # Caltech256-5
-    # mean = [0.4997, 0.5033, 0.4790]
-    # std = [0.2794, 0.2621, 0.2800]
-
-    # Calutech256-5-1
-    mean = [0.5610, 0.5714, 0.5449]
-    std = [0.2936, 0.4941, 0.3195]
 
     def __init__(self, data_root=None, transform=None, **kwargs):
         super(Train_ImageFolder, self).__init__(
@@ -20,6 +18,8 @@ class Train_ImageFolder(ImageFolder):
             transform=transform,
         )
         self.cls_num = len(self.classes)
+        self.labels = [x[1] for x in self.imgs]
+        self.mean, self.std = CALTECH256_MEAN_STD_DICT[self.cls_num]
 
     def __getitem__(self, index):
         img_fpath, img_label = self.imgs[index]
@@ -41,20 +41,14 @@ class Train_ImageFolder(ImageFolder):
 
 @Datasets.register_module("Caltech256-Valset")
 class Val_ImageFolder(ImageFolder):
-    # Caltech256-5
-    # mean = [0.4997, 0.5033, 0.4790]
-    # std = [0.2794, 0.2621, 0.2800]
-
-    # Calutech256-5-1
-    mean = [0.5610, 0.5714, 0.5449]
-    std = [0.2936, 0.4941, 0.3195]
-
     def __init__(self, data_root=None, transform=None, **kwarg):
         super(Val_ImageFolder, self).__init__(
             root=data_root,
             transform=transform,
         )
         self.cls_num = len(self.classes)
+        self.labels = [x[1] for x in self.imgs]
+        self.mean, self.std = CALTECH256_MEAN_STD_DICT[self.cls_num]
 
     def __getitem__(self, index):
         img_fpath, img_label = self.imgs[index]
@@ -76,20 +70,14 @@ class Val_ImageFolder(ImageFolder):
 
 @Datasets.register_module("Caltech256-Testset")
 class Test_ImageFolder(ImageFolder):
-    # Caltech256-5
-    # mean = [0.4997, 0.5033, 0.4790]
-    # std = [0.2794, 0.2621, 0.2800]
-
-    # Caltech256-5-1
-    mean = [0.5610, 0.5714, 0.5449]
-    std = [0.2936, 0.4941, 0.3195]
-
     def __init__(self, data_root=None, transform=None, **kwarg):
         super(Test_ImageFolder, self).__init__(
             root=data_root,
             transform=transform,
         )
         self.cls_num = len(self.classes)
+        self.labels = [x[1] for x in self.imgs]
+        self.mean, self.std = CALTECH256_MEAN_STD_DICT[self.cls_num]
 
     def __getitem__(self, index):
         img_fpath, img_label = self.imgs[index]
