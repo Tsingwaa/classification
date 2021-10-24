@@ -5,7 +5,7 @@ import argparse
 import yaml
 import numpy as np
 import torch
-# from pudb import set_trace
+from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn import metrics
@@ -13,7 +13,6 @@ from prefetch_generator import BackgroundGenerator
 # Distribute Package
 from apex import amp
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data.distributed import DistributedSampler
 # Custom Package
 from base.base_trainer import BaseTrainer
 from utils import AccAverageMeter
@@ -124,7 +123,8 @@ class Trainer(BaseTrainer):
             train_acc, train_mr, train_ap, train_loss = self.train_epoch(epoch)
 
             if self.local_rank in [-1, 0]:
-                val_acc, val_mr, val_ap, val_loss = self.evaluate(epoch)
+                val_acc, val_mr, val_ap, val_loss, val_recalls = \
+                        self.evaluate(epoch)
 
                 last_train_accs[epoch % 20] = train_acc
                 last_train_mrs[epoch % 20] = train_mr
@@ -153,6 +153,7 @@ class Trainer(BaseTrainer):
                         val_loss=val_loss
                     )
                 )
+                self.logger.info(f"\t\tRecalls: {val_recalls}")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(f'{self.exp_name}/LearningRate',
@@ -172,20 +173,13 @@ class Trainer(BaseTrainer):
                                          'val_ap': val_ap}, epoch)
                 # Save checkpoint.
                 # is_best = (best_acc < val_acc or best_mr < val_mr)
+                set_trace()
                 is_best = best_mr < val_mr
                 if best_acc < val_acc:
                     best_acc = val_acc
                 if best_mr < val_mr:
                     best_mr = val_mr
-                save_fname = '{}_epoch{}_acc{:.2%}_mr{:.2%}_ap{:.2%}_'\
-                    'state_dict.pth.tar'.format(
-                        self.network_name,
-                        str(epoch),
-                        val_acc,
-                        val_mr,
-                        val_ap
-                    )
-                self.save_checkpoint(epoch, save_fname, is_best,
+                self.save_checkpoint(epoch, is_best,
                                      val_acc, val_mr, val_ap)
 
         self.logger.info(
@@ -314,13 +308,13 @@ class Trainer(BaseTrainer):
             if len(val_recalls) <= 10 else '-'
 
         val_pbar.set_postfix_str(
-            'Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%} Recalls:{}'.format(
-                val_loss_meter.avg, val_acc, val_mr, val_ap, val_recalls
+            'Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%}'.format(
+                val_loss_meter.avg, val_acc, val_mr, val_ap
             )
         )
         val_pbar.close()
 
-        return val_acc, val_mr, val_ap, val_loss_meter.avg
+        return val_acc, val_mr, val_ap, val_loss_meter.avg, val_recalls
 
 
 def parse_args():
