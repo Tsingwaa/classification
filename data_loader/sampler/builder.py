@@ -9,4 +9,4 @@ def build_sampler(sampler_name, **kwargs):
         sampler = sampler_template(**kwargs)
         return sampler
     except Exception as error:
-        raise RuntimeError("sampler build failed %s"%(error))
+        raise RuntimeError(f"sampler build failed {error}")

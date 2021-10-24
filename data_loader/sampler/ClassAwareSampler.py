@@ -15,6 +15,7 @@ All rights reserved.
 import random
 import numpy as np
 from torch.utils.data.sampler import Sampler
+from data_loader.sampler.builder import Samplers
 
 
 class RandomCycleIter:
@@ -52,6 +53,14 @@ def class_aware_sample_generator(cls_iter, data_iter_list, total_samples,
                 *[data_iter_list[next(cls_iter)]] *
                 num_samples_each_cls_draw
             ))
+            """解读上面一行代码:
+            data_iter_list[next(cls_iter)]是选定类别的数据迭代器；
+            先复制n个迭代器，然后解索引选定n个迭代器，然后zip组合为一起，
+            再用next读取组合后的迭代器，依次读取n个同一位置的迭代器的下一元素，
+            该轮循环的效果就是，并行取了n个该类的数据索引；
+
+            最终的生成效果就是，总的抽取total_samples，每次抽取一个类别的n个数量；
+            """
             yield temp_tuple[j]
         else:
             yield temp_tuple[j]
@@ -60,13 +69,14 @@ def class_aware_sample_generator(cls_iter, data_iter_list, total_samples,
         j += 1
 
 
+@Samplers.register_module('ClassAwareSampler')
 class ClassAwareSampler (Sampler):
 
     def __init__(self, dataset, num_samples_each_cls_draw=1, **kwargs):
-        """根据dataset得到类等价的sampler
+        """根据dataset得到类等价的sampler, 上采样器
         Args:
             dataset: 数据集对象，使用其labels对象
-            num_samples_each_cls_draw: 每类取的样本数量
+            num_samples_each_cls_draw: 每类每次抽取的样本数量
         """
         num_classes = len(np.unique(dataset.labels))
         self.class_iter = RandomCycleIter(range(num_classes))

@@ -1,7 +1,7 @@
 from torch.utils.data.sampler import Sampler
 # from torch.utils.data import Dataset
 # from torch.utils.data.distributed import DistributedSampler
-from common.dataset.sampler.builder import Samplers
+from data_loader.sampler.builder import Samplers
 from collections import defaultdict
 # from tqdm import tqdm
 
