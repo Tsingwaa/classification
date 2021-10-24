@@ -72,22 +72,23 @@ class BaseTrainer:
             self.writer = SummaryWriter(self.tb_dir)
 
             # Set logger to save .log file and output to screen.
-            self.logger = self.init_logger(self.log_fpath)
+            if self.local_rank in [-1, 0]:
+                self.logger = self.init_logger(self.log_fpath)
 
-            exp_init_log = f'\n**********************************************'\
-                f'**********************************************'\
-                f'\nExperiment: {self.exp_name}\n'\
-                f'Start_epoch: {self.start_epoch}\n'\
-                f'Total_epochs: {self.total_epochs}\n'\
-                f'Save dir: {self.save_dir}\n'\
-                f'Tensorboard dir: {self.tb_dir}\n'\
-                f'Save peroid: {self.save_period}\n'\
-                f'Resume Training: {self.resume}\n'\
-                f'Distributed Training:'\
-                f' {True if self.local_rank != -1 else False}\n'\
-                f'**********************************************'\
-                f'**********************************************\n'
-            self.logger.info(exp_init_log)
+                exp_init_log = f'\n****************************************'\
+                    f'****************************************************'\
+                    f'\nExperiment: {self.exp_name}\n'\
+                    f'Start_epoch: {self.start_epoch}\n'\
+                    f'Total_epochs: {self.total_epochs}\n'\
+                    f'Save dir: {self.save_dir}\n'\
+                    f'Tensorboard dir: {self.tb_dir}\n'\
+                    f'Save peroid: {self.save_period}\n'\
+                    f'Resume Training: {self.resume}\n'\
+                    f'Distributed Training:'\
+                    f' {True if self.local_rank != -1 else False}\n'\
+                    f'**********************************************'\
+                    f'**********************************************\n'
+                self.logger.info(exp_init_log)
 
         if self.resume:
             self.checkpoint = self.resume_checkpoint()
@@ -157,9 +158,11 @@ class BaseTrainer:
         module = import_module(script_path)
         transform = getattr(module, transform_name)(**transform_param)
 
-        transform_init_log = f'===> Initialized {transform_param["phase"]}'\
-            f' {transform_name} from {script_path}'
-        self.logger.info(transform_init_log)
+        if self.local_rank in [-1, 0]:
+            transform_init_log = f'===> Initialized '\
+                f'{transform_param["phase"]}'\
+                f' {transform_name} from {script_path}'
+            self.logger.info(transform_init_log)
         return transform
 
     def init_sampler(self, dataset=None):
@@ -172,9 +175,10 @@ class BaseTrainer:
         else:
             sampler_param['dataset'] = dataset
             sampler = build_sampler(sampler_name, **sampler_param)
-            sampler_init_log = f'===> Initialized {sampler_name} with'\
-                f' resampled size={len(sampler)}'
-            self.logger.info(sampler_init_log)
+            if self.local_rank in [-1, 0]:
+                sampler_init_log = f'===> Initialized {sampler_name} with'\
+                    f' resampled size={len(sampler)}'
+                self.logger.info(sampler_init_log)
 
         return sampler
 
@@ -190,9 +194,11 @@ class BaseTrainer:
         if dataset_param['phase'] == 'train':
             self.train_size = len(dataset)
 
-        dataset_init_log = f'===> Initialized {dataset_param["phase"]}'\
-            f' {dataset_name}(size={len(dataset)}, classes={dataset.cls_num}).'
-        self.logger.info(dataset_init_log)
+        if self.local_rank in [-1, 0]:
+            dataset_init_log = f'===> Initialized {dataset_param["phase"]}'\
+                f' {dataset_name}(size={len(dataset)},'\
+                f' classes={dataset.cls_num}).'
+            self.logger.info(dataset_init_log)
 
         return dataset
 
@@ -225,7 +231,9 @@ class BaseTrainer:
                     f' with lr={self.optimizer_param["lr"]}'
             else:
                 optimizer_init_log = f'===> Initialized {self.optimizer_name}'
-            self.logger.info(optimizer_init_log)
+
+            if self.local_rank in [-1, 0]:
+                self.logger.info(optimizer_init_log)
 
             return optimizer
         except Exception as error:
@@ -265,7 +273,8 @@ class BaseTrainer:
                                        self.optimizer,
                                        **self.lr_scheduler_param
                                    )
-            self.logger.info(lr_scheduler_init_log)
+            if self.local_rank in [-1, 0]:
+                self.logger.info(lr_scheduler_init_log)
             if self.resume:
                 lr_scheduler.load_state_dict(self.checkpoint['lr_scheduler'])
 
@@ -281,10 +290,12 @@ class BaseTrainer:
                         self.warmup_param["warmup_epochs"],
                         self.warmup_param['multiplier'],
                     )
-                self.logger.info(warmup_log)
+                if self.local_rank in [-1, 0]:
+                    self.logger.info(warmup_log)
             else:
                 ret_lr_scheduler = lr_scheduler
-                self.logger.info('\n')
+                if self.local_rank in [-1, 0]:
+                    self.logger.info('\n')
 
             return ret_lr_scheduler
         except Exception as error:
@@ -322,7 +333,8 @@ class BaseTrainer:
         else:
             model_init_log = '===> Initialized {}. Total parameters:'\
                     ' {:.2f}m'.format(self.network_name, total_params)
-        self.logger.info(model_init_log)
+        if self.local_rank in [-1, 0]:
+            self.logger.info(model_init_log)
 
         model.cuda()
 
@@ -331,7 +343,8 @@ class BaseTrainer:
     def init_loss(self):
         loss = build_loss(self.loss_name, **self.loss_param)
         loss_init_log = f'===> Initialized {self.loss_name}'
-        self.logger.info(loss_init_log)
+        if self.local_rank in [-1, 0]:
+            self.logger.info(loss_init_log)
         return loss
 
     def _reduce_loss(self, tensor):
