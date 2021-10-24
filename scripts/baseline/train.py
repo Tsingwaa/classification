@@ -35,19 +35,7 @@ class Trainer(BaseTrainer):
         # set_trace()
         train_transform = self.init_transform(self.train_transform_config)
         trainset = self.init_dataset(self.trainset_config, train_transform)
-
-        if self.train_sampler_name == 'DistributedSampler':
-            train_sampler = DistributedSampler(trainset)
-        elif self.train_sampler_name == 'ClassAwareSampler':
-            train_sampler = self.init_sampler(trainset)
-        else:
-            train_sampler = None
-
-        if self.local_rank != -1:
-            print(f'global_rank {self.global_rank},'
-                  f'world_size {self.world_size},'
-                  f'local_rank {self.local_rank},'
-                  f'sampler "{self.train_sampler_name}"')
+        train_sampler = self.init_sampler(trainset)
 
         self.trainloader = DataLoaderX(
             trainset,
@@ -58,6 +46,12 @@ class Trainer(BaseTrainer):
             drop_last=True,
             sampler=train_sampler
         )
+
+        if self.local_rank != -1:
+            print(f'global_rank {self.global_rank},'
+                  f'world_size {self.world_size},'
+                  f'local_rank {self.local_rank},'
+                  f'sampler "{self.train_sampler_name}"')
 
         if self.local_rank in [-1, 0]:
             val_transform = self.init_transform(self.val_transform_config)
