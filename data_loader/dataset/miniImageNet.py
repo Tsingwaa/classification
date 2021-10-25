@@ -62,6 +62,8 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
             self.img_num = img_num_list
 
         self.labels = self.targets
+        label2ctg = self.get_label2ctg()
+        self.classes = [label2ctg[i] for i in range(self.cls_num)]
 
     def get_img_num_per_cls(self, cls_num, imb_type, imb_factor):
         """Generate imbalanced num samples by 'exp' or 'step'.

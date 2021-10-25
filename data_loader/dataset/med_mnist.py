@@ -12,7 +12,8 @@ from data_loader.dataset.builder import Datasets
 class MedMNIST(data.Dataset):
     cls_num = 0
 
-    def __init__(self, root, sub, split='train', transform=None, imb_factor=0.1):
+    def __init__(self, root, sub, split='train', transform=None,
+                 imb_factor=0.1, **kwargs):
         super(MedMNIST, self).__init__()
         self.transform = transform if transform is not None else lambda x: x
         self.data = np.load(os.path.join(root, '{}.npz'.format(sub)))[split + '_images'].squeeze().astype(np.uint8)
