@@ -181,32 +181,33 @@ class Trainer(BaseTrainer):
                 self.save_checkpoint(epoch, is_best,
                                      val_acc, val_mr, val_ap)
 
-        self.logger.info(
-            "\n===> End experiment {}, results are saved at '{}'\n"
-            "Train Set:\n"
-            "\tAverage accuracy of the last 20 epochs: {:.2%}\n"
-            "\tAverage recall of the last 20 epochs: {:.2%}\n"
-            "\tAverage precision of the last 20 epochs: {:.2%}\n"
-            "\tAverage losses of the last 20 epochs: {:.4f}\n"
-            "Validation Set:\n"
-            "\tAverage accuracy of the last 20 epochs: {:.2%}\n"
-            "\tAverage recall of the last 20 epochs: {:.2%}\n"
-            "\tAverage precision of the last 20 epochs: {:.2%}\n"
-            "\tAverage losses of the last 20 epochs: {:.4f}\n"
-            "*********************************************************"
-            "*********************************************************".format(
-                self.exp_name,
-                self.save_dir,
-                np.mean(last_train_accs),
-                np.mean(last_train_mrs),
-                np.mean(last_train_aps),
-                np.mean(last_train_losses),
-                np.mean(last_val_accs),
-                np.mean(last_val_mrs),
-                np.mean(last_val_aps),
-                np.mean(last_val_losses),
+        if self.local_rank in [-1, 0]:
+            self.logger.info(
+                "\n===> End experiment {}, results are saved at '{}'\n"
+                "Train Set:\n"
+                "\tAverage accuracy of the last 20 epochs: {:.2%}\n"
+                "\tAverage recall of the last 20 epochs: {:.2%}\n"
+                "\tAverage precision of the last 20 epochs: {:.2%}\n"
+                "\tAverage losses of the last 20 epochs: {:.4f}\n"
+                "Validation Set:\n"
+                "\tAverage accuracy of the last 20 epochs: {:.2%}\n"
+                "\tAverage recall of the last 20 epochs: {:.2%}\n"
+                "\tAverage precision of the last 20 epochs: {:.2%}\n"
+                "\tAverage losses of the last 20 epochs: {:.4f}\n"
+                "*************************************************************"
+                "*****************************************************".format(
+                    self.exp_name,
+                    self.save_dir,
+                    np.mean(last_train_accs),
+                    np.mean(last_train_mrs),
+                    np.mean(last_train_aps),
+                    np.mean(last_train_losses),
+                    np.mean(last_val_accs),
+                    np.mean(last_val_mrs),
+                    np.mean(last_val_aps),
+                    np.mean(last_val_losses),
+                )
             )
-        )
 
     def train_epoch(self, epoch):
         self.model.train()
