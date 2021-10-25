@@ -153,14 +153,16 @@ class Validater(BaseTrainer):
         classification_report = metrics.classification_report(
             all_labels, all_preds, target_names=valset.classes
         )
+
         self.logger.info(
             "===> Classification Report:\n" + classification_report
         )
 
-        cm_df = get_cm_with_labels(all_labels, all_preds, valset.classes)
-        self.logger.info(
-            '===> Confusion Matrix:\n' + cm_df.to_string() + '\n'
-        )
+        if len(valset.classes) <= 10:
+            cm_df = get_cm_with_labels(all_labels, all_preds, valset.classes)
+            self.logger.info(
+                '===> Confusion Matrix:\n' + cm_df.to_string() + '\n'
+            )
 
         # save true_list and pred_list
         np.save(
