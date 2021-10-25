@@ -23,7 +23,7 @@ class DataLoaderX(DataLoader):
 
 
 class Validater(BaseTrainer):
-    def __init__(self, config=None):
+    def __init__(self, local_rank, config):
         """ Base validater for all experiments.  """
 
         #######################################################################
@@ -32,6 +32,7 @@ class Validater(BaseTrainer):
         assert torch.cuda.is_available()
         torch.backends.cudnn.benchmark = True
         torch.backends.cudnn.enable = True
+        self.local_rank = local_rank
 
         #######################################################################
         # Experiment setting
@@ -185,16 +186,18 @@ class Validater(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config_fpath", type=str)
+    parser.add_argument('--local_rank', type=int, help='Local Rank for\
+                        distributed training. if single-GPU, default: -1')
+    parser.add_argument("--config_path", type=str)
     args = parser.parse_args()
     return args
 
 
 def main(args):
     warnings.filterwarnings('ignore')
-    with open(args.config_fpath, "r") as f:
+    with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    validater = Validater(config=config)
+    validater = Validater(local_rank=args.local_rank, config=config)
     validater.evaluate()
 
 
