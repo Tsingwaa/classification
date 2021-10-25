@@ -12,7 +12,7 @@ import torch.distributed as dist
 import numpy as np
 
 
-@Samplers.register_module("DistributedRandomCategorySampler")
+@Samplers.register_module("DistRandomCategorySampler")
 class DistributedRandomCategorySampler(Sampler):
     """
     Randomly sample N categories, then for each category,
@@ -109,7 +109,7 @@ class DistributedRandomCategorySampler(Sampler):
         self.epoch = epoch
 
 
-@Samplers.register_module("DistributedRandomGroupSampler")
+@Samplers.register_module("DistRandomGroupSampler")
 class DistributedRandomGroupSampler(Sampler):
     """
     Seperate data of each category into integral groups, and random sample

@@ -61,24 +61,6 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
             self.gen_imbalanced_data(img_num_list)
             self.img_num = img_num_list
 
-            # self.transform = transforms.Compose([
-            #     transforms.RandomResizedCrop(224),
-            #     transforms.RandomHorizontalFlip(),
-            #     transforms.ColorJitter(
-            #         brightness=0.4, contrast=0.4,
-            #         saturation=0.4, hue=0
-            #     ),
-            #     transforms.ToTensor(),
-            #     transforms.Normalize(self.mean, self.std)
-            # ])
-        # else:
-            # self.transform = transforms.Compose([
-            #     transforms.Resize(256),
-            #     transforms.CenterCrop(224),
-            #     transforms.ToTensor(),
-            #     transforms.Normalize(self.mean, self.std)
-            # ])
-
         self.labels = self.targets
 
     def get_img_num_per_cls(self, cls_num, imb_type, imb_factor):

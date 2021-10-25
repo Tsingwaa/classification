@@ -1,22 +1,23 @@
-import numpy as np
-from PIL import Image
-
-from torch.utils.data.sampler import BatchSampler
-
 import random
+import numpy as np
+# from PIL import Image
+from torch.utils.data.sampler import BatchSampler
+from data_loader.sampler.builder import Samplers
 
-@Sampler.register_module("reversedbatchsampler")
+
+@Samplers.register_module("reversedbatchsampler")
 class ReversedBatchSampler(BatchSampler):
 
     def __init__(self, labels, batch_size, random_seed=42):
         """Reverse batch sampler for imbalanced dataset.
-        The probability of sampling a data point from the minority classes is higher than that
-        from the majority classes.
+        The probability of sampling a data point from the minority classes is
+        higher than that from the majority classes.
 
         The detailed formula of computing sampling probability from class i:
-            p_i = \frac{1}{n_i} / \sigma_j \frac{1}{n_j} 
-        For numerical stability and precision, the optimized formula is as followed:
-            p_i = \frac{n_max}{n_i} / \sigma_j \frac{n_max}{n_j}
+            p_i = \\frac{1}{n_i} / \\sigma_j \\frac{1}{n_j}
+        For numerical stability and precision, the optimized formula is as
+        followed:
+            p_i = \\frac{n_max}{n_i} / \\sigma_j \\frac{n_max}{n_j}
         """
         self.labels = np.array(labels)
         self.batch_size = batch_size
@@ -55,4 +56,3 @@ class ReversedBatchSampler(BatchSampler):
 
     def __len__(self):
         return len(self.labels) // self.batch_size
-

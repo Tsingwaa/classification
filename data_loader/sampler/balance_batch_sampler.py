@@ -1,7 +1,8 @@
 import random
 import numpy as np
-from PIL import Image
+# from PIL import Image
 from torch.utils.data.sampler import BatchSampler
+from torch.utils.data import DataLoader
 from common.dataset.sampler.builder import Sampler
 
 
@@ -80,9 +81,9 @@ class BalancedBatchSampler2(BatchSampler):
         return self.n_dataset // self.batch_size
 
 
-if __name__ == '__main__':
-    train_batch_sampler = BalancedBatchSampler(train_dataset.labels, 128)
-    train_loader = DataLoaderX(train_dataset,
-                               batch_sampler=train_batch_sampler,
-                               num_workers=config.workers,
-                               pin_memory=True)
+# if __name__ == '__main__':
+#     train_batch_sampler = BalancedBatchSampler(train_dataset.labels, 128)
+#     train_loader = DataLoader(train_dataset,
+#                               batch_sampler=train_batch_sampler,
+#                               num_workers=config.workers,
+#                               pin_memory=True)
