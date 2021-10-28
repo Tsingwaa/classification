@@ -75,7 +75,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.loss = self.init_loss()
+        self.criterion = self.init_loss()
 
         #######################################################################
         # Initialize Optimizer
@@ -87,10 +87,10 @@ class Trainer(BaseTrainer):
         #######################################################################
         self.adv_param.update({
             "predict": self.model,
-            "loss_fn": self.loss
+            "loss_fn": self.criterion
         })
-        self.adv = self.init_model(network_name=self.adv_name,
-                                   network_param=self.adv_param)
+        self.attack = self.init_module(network_name=self.adv_name,
+                                       network_param=self.adv_param)
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
@@ -239,9 +239,14 @@ class Trainer(BaseTrainer):
 
             self.optimizer.zero_grad()
             batch_imgs, batch_labels = batch_imgs.cuda(), batch_labels.cuda()
-            batch_prob = self.model(batch_imgs)
 
-            avg_loss = self.loss(batch_prob, batch_labels)
+            # Adversarial Training
+            # Step 1: generate perturbed samples
+            batch_perturbed_imgs = self.attack(batch_imgs, batch_labels)
+            # Step 2: train with perturbed imgs
+            batch_prob = self.model(batch_perturbed_imgs)
+
+            avg_loss = self.criterion(batch_prob, batch_labels)
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()
@@ -303,7 +308,7 @@ class Trainer(BaseTrainer):
                 batch_labels = batch_labels.cuda()
                 batch_probs = self.model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]
-                avg_loss = self.loss(batch_probs, batch_labels)
+                avg_loss = self.criterion(batch_probs, batch_labels)
                 val_loss_meter.update(avg_loss.item(), 1)
 
                 all_labels.extend(batch_labels.cpu().numpy().tolist())
