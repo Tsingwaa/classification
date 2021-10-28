@@ -27,7 +27,7 @@ from .utils import replicate_input
 from .utils import batch_l1_proj
 from .utils import rand_init_delta
 
-from model.network.builder import Networks  
+from model.network.builder import Networks
 
 
 def perturb_iterative(xvar, yvar, predict, nb_iter, eps, eps_iter, loss_fn,
