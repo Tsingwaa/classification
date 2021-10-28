@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from common.backbone.builder import Backbones
+from model.network.builder import Networks
 __all__ = ['EfficientNetB4', 'EfficientNetB7']
 
 from .utils import (
@@ -283,7 +283,7 @@ class EfficientNet(nn.Module):
                              ', '.join(valid_models))
 
 
-@Backbones.register_module("efficientnet-b4")
+@Networks.register_module("efficientnet-b4")
 class EfficientNetB4:
     def __init__(self, pretrained=False):
         self.pretrained = pretrained
@@ -298,7 +298,7 @@ class EfficientNetB4:
         return model
 
 
-@Backbones.register_module("efficientnet-b7")
+@Networks.register_module("efficientnet-b7")
 class EfficientNetB7:
     def __init__(self, pretrained=False):
         self.pretrained = pretrained

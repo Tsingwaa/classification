@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from model.backbone.builder import Backbones
+from model.network.builder import Networks
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-f37072fd.pth',
@@ -263,7 +263,7 @@ class ResNet(nn.Module):
         return x
 
 
-@Backbones.register_module('ResNet18')
+@Networks.register_module('ResNet18')
 class ResNet18(ResNet):
     def __init__(self, num_classes, **kwargs):
         super(ResNet18, self).__init__(
@@ -273,7 +273,7 @@ class ResNet18(ResNet):
         )
 
 
-@Backbones.register_module('ResNet34')
+@Networks.register_module('ResNet34')
 class ResNet34(ResNet):
     def __init__(self, num_classes, **kwargs):
         super(ResNet34, self).__init__(
@@ -283,7 +283,7 @@ class ResNet34(ResNet):
         )
 
 
-@Backbones.register_module('ResNet50')
+@Networks.register_module('ResNet50')
 class ResNet50(ResNet):
     def __init__(self, num_classes, **kwargs):
         super(ResNet50, self).__init__(
@@ -293,7 +293,7 @@ class ResNet50(ResNet):
         )
 
 
-@Backbones.register_module('ResNet101')
+@Networks.register_module('ResNet101')
 class ResNet101(ResNet):
     def __init__(self, num_classes, **kwargs):
         super(ResNet101, self).__init__(
@@ -303,7 +303,7 @@ class ResNet101(ResNet):
         )
 
 
-@Backbones.register_module('ResNet152')
+@Networks.register_module('ResNet152')
 class ResNet152(ResNet):
     def __init__(self, num_classes, **kwargs):
         super(ResNet152, self).__init__(
