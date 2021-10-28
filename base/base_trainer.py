@@ -13,7 +13,7 @@ from torch import distributed as dist
 from torch.utils.data.distributed import DistributedSampler
 # Custom package
 from model.loss.builder import build_loss
-from model.backbone.builder import build_backbone
+from model.network.builder import build_network
 from data_loader.dataset.builder import build_dataset
 from data_loader.sampler.builder import build_sampler
 from utils import GradualWarmupScheduler
@@ -302,8 +302,13 @@ class BaseTrainer:
             logging.info(f'LR scheduler initilize failed: {error} !')
             raise AttributeError(f'LR scheduler initial failed: {error} !')
 
-    def init_model(self):
-        model = build_backbone(self.network_name, **self.network_param)
+    def init_model(self, network_name=None, network_param=None):
+        if network_name is None:
+            network_name = self.network_name
+        if network_param is None:
+            network_param = self.network_param
+
+        model = build_network(network_name, **network_param)
 
         # Count the total amount of parameters with gradient.
         total_params = 0
@@ -311,28 +316,28 @@ class BaseTrainer:
             total_params += np.prod(x.data.numpy().shape)
         total_params /= 10 ** 6
 
-        pretrained = self.network_param['pretrained']
+        pretrained = network_param['pretrained']
         if self.resume:
             model.load_state_dict(self.checkpoint['model'])
             model_init_log = '===> Resumed {} from "{}". Total'\
                 'parameters: {:.2f}m'.format(
-                    self.network_name, self.resume_fpath, total_params)
+                    network_name, self.resume_fpath, total_params)
 
         elif pretrained:
-            pretrained_fpath = self.network_param['pretrained_fpath']
+            pretrained_fpath = network_param['pretrained_fpath']
             state_dict = torch.load(pretrained_fpath, map_location='cpu')
             if any('ResNet18', 'ResNet34', 'ResNet50', 'ResNet101') in\
-               self.network_name:
+               network_name:
                 state_dict = {k: v for k, v in state_dict.items() if
                               'fc' not in k}
 
             model.load_state_dict(state_dict, strict=False)
             model_init_log = '===> Initialized pretrained {} from "{}". Total'\
                 'parameters: {:.2f}m'.format(
-                    self.network_name, pretrained_fpath, total_params)
+                    network_name, pretrained_fpath, total_params)
         else:
             model_init_log = '===> Initialized {}. Total parameters:'\
-                    ' {:.2f}m'.format(self.network_name, total_params)
+                    ' {:.2f}m'.format(network_name, total_params)
         if self.local_rank in [-1, 0]:
             self.logger.info(model_init_log)
 
@@ -340,9 +345,13 @@ class BaseTrainer:
 
         return model
 
-    def init_loss(self):
-        loss = build_loss(self.loss_name, **self.loss_param)
-        loss_init_log = f'===> Initialized {self.loss_name}'
+    def init_loss(self, loss_name=None, **kwargs):
+        if loss_name is None:
+            loss_name = self.loss_name
+        if kwargs is None:
+            loss_param = self.loss_param
+        loss = build_loss(loss_name, **loss_param)
+        loss_init_log = f'===> Initialized {loss_name}'
         if self.local_rank in [-1, 0]:
             self.logger.info(loss_init_log)
         return loss
@@ -353,14 +362,16 @@ class BaseTrainer:
             if self.local_rank == 0:
                 tensor /= self.world_size
 
-    def resume_checkpoint(self):
-        checkpoint = torch.load(self.resume_fpath, map_location='cpu')
+    def resume_checkpoint(self, resume_fpath=None):
+        if resume_fpath is None:
+            resume_fpath = self.resume_fpath
+        checkpoint = torch.load(resume_fpath, map_location='cpu')
         self.start_epoch = checkpoint['epoch']
         acc = checkpoint['acc']
         mr = checkpoint['mr']
         ap = checkpoint['ap']
         resume_log = '===> Resume checkpoint from "{}".\nResume acc:{:.2%}'\
-            ' mr:{:.2%} ap:{:.2%}'.format(self.resume_fpath, acc, mr, ap)
+            ' mr:{:.2%} ap:{:.2%}'.format(resume_fpath, acc, mr, ap)
         return checkpoint, resume_log
 
     def save_checkpoint(self, epoch, is_best,
