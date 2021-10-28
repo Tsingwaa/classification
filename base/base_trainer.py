@@ -14,6 +14,7 @@ from torch.utils.data.distributed import DistributedSampler
 # Custom package
 from model.loss.builder import build_loss
 from model.network.builder import build_network
+from model.module.builder import build_module
 from data_loader.dataset.builder import build_dataset
 from data_loader.sampler.builder import build_sampler
 from utils import GradualWarmupScheduler
@@ -344,6 +345,12 @@ class BaseTrainer:
         model.cuda()
 
         return model
+
+    def init_module(self, module_name=None, module_param=None):
+        module = build_module(module_name, **module_param)
+        module_init_log = '===> Initialized {}.'.format(module_name)
+        self.logger.info(module_init_log)
+        return module
 
     def init_loss(self, loss_name=None, **kwargs):
         if loss_name is None:
