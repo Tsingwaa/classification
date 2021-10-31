@@ -121,14 +121,17 @@ def get_balanced_samper(dataset):
     return sampler
 
 
+@Samplers.register_module('BalanceSampler')
 class BalancedSampler(Sampler):
-    def __init__(self, buckets, retain_epoch_size=False):
-        for bucket in buckets:
-            random.shuffle(bucket)
+    def __init__(self, dataset, retain_epoch_size=False):
+        self.num_buckets = len(np.unique(dataset.labels))
+        self.buckets = [[] for _ in range(self.num_buckets)]
+        for idx, label in enumerate(dataset.labels):
+            self.buckets[label].append(idx)
 
-        self.bucket_num = len(buckets)
-        self.buckets = buckets
-        self.bucket_pointers = [0 for _ in range(self.bucket_num)]
+        # Pointer for each class to mark which index we should choose next.
+        # Initialize pointer as the first one (index = 0)
+        self.bucket_pointers = [0 for _ in range(self.num_buckets)]
         self.retain_epoch_size = retain_epoch_size
 
     def __iter__(self):
@@ -138,13 +141,18 @@ class BalancedSampler(Sampler):
             count -= 1
 
     def _next_item(self):
-        bucket_idx = random.randint(0, self.bucket_num - 1)
+        # Randomly choose one class
+        bucket_idx = random.randint(0, self.num_buckets - 1)
+        # get indexes of corresponding class
         bucket = self.buckets[bucket_idx]
+        # choose the pointed item
         item = bucket[self.bucket_pointers[bucket_idx]]
         self.bucket_pointers[bucket_idx] += 1
         if self.bucket_pointers[bucket_idx] == len(bucket):
+            # if all is drawn, shuffle and redraw.
             self.bucket_pointers[bucket_idx] = 0
             random.shuffle(bucket)
+
         return item
 
     def __len__(self):
@@ -153,5 +161,7 @@ class BalancedSampler(Sampler):
             return sum([len(bucket) for bucket in self.buckets])
         else:
             # Ensures every instance has the chance to be visited in an epoch
-            return max([len(bucket) for bucket in self.buckets])\
-                    * self.bucket_num
+            # oversample each class size to max class size.
+            return max(
+                [len(bucket) for bucket in self.buckets]
+            ) * self.bucket_num
