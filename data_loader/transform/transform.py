@@ -18,7 +18,7 @@ class BaseTransform:
                 transforms.Resize(int(self.resize[1] / 0.875)),
                 transforms.RandomCrop(self.resize),
                 transforms.RandomHorizontalFlip(0.5),
-                # transforms.RandomRotation(25),
+                transforms.RandomRotation(25),
                 transforms.ColorJitter(
                     brightness=0.4,
                     saturation=0.4,

@@ -8,7 +8,7 @@ import math
 
 import torch.nn as nn
 from torch.utils import model_zoo
-from common.backbone.builder import Backbones
+from model.network.builder import Networks
 
 __all__ = ['SENet', 'senet154', 'se_resnet50', 'se_resnet101', 'se_resnet152',
            'se_resnext50_32x4d', 'se_resnext101_32x4d']
@@ -366,7 +366,7 @@ def initialize_pretrained_model(model, num_classes, settings):
     model.std = settings['std']
 
 
-#@Backbones.register_module("senet154")
+#@Networks.register_module("senet154")
 def senet154(num_classes=1000, pretrained='imagenet'):
     model = SENet(SEBottleneck, [3, 8, 36, 3], groups=64, reduction=16,
                   dropout_p=0.2, num_classes=num_classes)
@@ -376,7 +376,7 @@ def senet154(num_classes=1000, pretrained='imagenet'):
     return model
 
 
-@Backbones.register_module("se_resnet50")
+@Networks.register_module("se_resnet50")
 class se_resnet50:
     def __init__(self, pretrained=False):
         self.pretrained = pretrained
@@ -395,7 +395,7 @@ class se_resnet50:
         return model
 
 
-#@Backbones.register_module("se_resnet101")
+#@Networks.register_module("se_resnet101")
 def se_resnet101(num_classes=1000, pretrained='imagenet'):
     model = SENet(SEResNetBottleneck, [3, 4, 23, 3], groups=1, reduction=16,
                   dropout_p=None, inplanes=64, input_3x3=False,
@@ -407,7 +407,7 @@ def se_resnet101(num_classes=1000, pretrained='imagenet'):
     return model
 
 
-#@Backbones.register_module("se_resnet152")
+#@Networks.register_module("se_resnet152")
 def se_resnet152(num_classes=1000, pretrained='imagenet'):
     model = SENet(SEResNetBottleneck, [3, 8, 36, 3], groups=1, reduction=16,
                   dropout_p=None, inplanes=64, input_3x3=False,
@@ -419,7 +419,7 @@ def se_resnet152(num_classes=1000, pretrained='imagenet'):
     return model
 
 
-#@Backbones.register_module("se_resnext50_32x4d")
+#@Networks.register_module("se_resnext50_32x4d")
 def se_resnext50_32x4d(num_classes=1000, pretrained='imagenet'):
     model = SENet(SEResNeXtBottleneck, [3, 4, 6, 3], groups=32, reduction=16,
                   dropout_p=None, inplanes=64, input_3x3=False,
@@ -431,7 +431,7 @@ def se_resnext50_32x4d(num_classes=1000, pretrained='imagenet'):
     return model
 
 
-@Backbones.register_module("se_resnext101_32x4d")
+@Networks.register_module("se_resnext101_32x4d")
 class se_resnext101_32x4d:
     def __init__(self, num_classes=1000, pretrained='imagenet'):
         self.num_classes = num_classes
