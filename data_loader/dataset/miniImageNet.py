@@ -5,6 +5,7 @@ Customized by Kaihua Tang
 # import os
 import torch
 import numpy as np
+# from pudb import set_trace
 from os.path import join
 from PIL import Image
 # from torchvision import transforms
@@ -33,6 +34,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
 
     cls_num = 100
 
+    # set_trace()
     def __init__(self, data_root, phase, img_lst_fpath=None, transform=None,
                  imb_type='exp', imb_factor=0.1, seed=0, **kwargs):
         self.img_paths = []
