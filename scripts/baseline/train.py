@@ -153,7 +153,8 @@ class Trainer(BaseTrainer):
                         val_loss=val_loss
                     )
                 )
-                self.logger.info(f"\t\tRecalls: {val_recalls}")
+                if len(val_recalls) <= 10:
+                    self.logger.info(f"\t\tR:ecalls: {val_recalls}")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(f'{self.exp_name}/LearningRate',
