@@ -17,4 +17,4 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_path \
 #         'configs/miniImageNet20_0.1/20211031_resnet18.yaml'
 CUDA_VISIBLE_DEVICES=1 python3 train.py --local_rank -1 --config_path \
-        'configs/miniImageNet20_0.1/20211031_resnet18_CAsampler.yaml'
+        'configs/miniImageNet20_0.1/20211031_r18_balsample.yaml'

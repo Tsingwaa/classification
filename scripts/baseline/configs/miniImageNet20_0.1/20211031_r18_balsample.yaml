@@ -1,5 +1,5 @@
 experiment:
-  name: "20211031_miniImageNet20_0.1_r18_CAsampler"
+  name: "miniImageNet20_0.1_r18_balsample"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -46,14 +46,15 @@ val_dataset:
 trainloader:
   name: "Dataloader"
   param:
-    sampler: "ClassAwareSampler"
-    batch_size: 256
+    sampler: "BalanceSampler"
+    retain_epoch_size: True
+    batch_size: 64
     num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 256
+    batch_size: 64
     num_workers: 6
 
 network:
