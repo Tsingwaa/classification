@@ -1,11 +1,11 @@
 experiment:
-  name: "20211024_miniImageNet_0.1_resnet18_oversample"
+  name: "20211031_miniImageNet20_0.1_baseline"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: True
+  resume: False
   resume_fpath: "ResNet18_best.pth.tar"
-  save_period: 20
+  save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 train_transform:
@@ -23,43 +23,43 @@ val_transform:
     resize: [224, 224]
 
 train_dataset:
-  name: "imb_miniImageNet"
+  name: "imb_miniImageNet20"
   param:
     data_root: "miniImageNet"
     phase: "train"
-    # img_lst_fpath: "None"
+    img_lst_fpath: "train20.txt"
     # map_fpath: "None"
     imb_type: 'exp'
-    imb_factor: 0.1
+    imb_factor: 0.01
     rand_seed: 0
     # download: False
 
 val_dataset:
-  name: "imb_miniImageNet"
+  name: "imb_miniImageNet20"
   param:
     data_root: "miniImageNet"
     phase: "val"
-    # img_lst_fpath: "None"
+    img_lst_fpath: "val20.txt"
     # map_fpath: "None"
     # download: False
 
 trainloader:
   name: "Dataloader"
   param:
-    sampler: "ClassAwareSampler"
-    batch_size: 200
+    sampler: "None"
+    batch_size: 256
     num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 200
+    batch_size: 256
     num_workers: 6
 
 network:
   name: "ResNet18"
   param:
-    num_classes: 100
+    num_classes: 20
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
