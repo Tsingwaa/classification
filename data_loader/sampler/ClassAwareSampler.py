@@ -123,7 +123,7 @@ def get_balanced_samper(dataset):
 
 @Samplers.register_module('BalanceSampler')
 class BalancedSampler(Sampler):
-    def __init__(self, dataset, retain_epoch_size=False):
+    def __init__(self, dataset, retain_epoch_size=True, **kwargs):
         self.num_buckets = len(np.unique(dataset.labels))
         self.buckets = [[] for _ in range(self.num_buckets)]
         for idx, label in enumerate(dataset.labels):
