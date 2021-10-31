@@ -2,7 +2,7 @@
 Customized by Kaihua Tang
 """
 
-import os
+# import os
 import torch
 import numpy as np
 from os.path import join
@@ -33,16 +33,20 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
 
     cls_num = 100
 
-    def __init__(self, data_root, phase, transform=None,
+    def __init__(self, data_root, phase, img_lst_fpath=None, transform=None,
                  imb_type='exp', imb_factor=0.1, seed=0, **kwargs):
         self.img_paths = []
         self.targets = []
         self.transform = transform
+
         # build img_path-target pairs
-        img_lst_fpath = os.path.join(data_root, phase + '.txt')
+        if img_lst_fpath is not None and '/' not in img_lst_fpath:
+            img_lst_fpath = join(data_root, img_lst_fpath)
+        else:
+            img_lst_fpath = join(data_root, phase + '.txt')
         with open(img_lst_fpath) as f:
             for line in f:
-                img_path = os.path.join(data_root, line.split()[0][1:])
+                img_path = join(data_root, line.split()[0][1:])
                 # line starts with '/', so index by [1:]
                 self.img_paths.append(img_path)
                 self.targets.append(int(line.split()[1]))
@@ -56,8 +60,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
             img_num_list = self.get_img_num_per_cls(
                 self.cls_num, imb_type, imb_factor
             )
-            # according to the generated img_samples,
-            # generate new self.img_paths and self.targets
+            # regenerate self.img_paths and self.targets
             self.gen_imbalanced_data(img_num_list)
             self.img_num = img_num_list
 
@@ -134,11 +137,22 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         return label2ctg
 
 
+@Datasets.register_module('imb_miniImageNet20')
+class ImbalanceMiniImageNet20(ImbalanceMiniImageNet):
+    """Select the former 20 classes as a small imbalanced dataset
+    for test use
+    """
+    mean = [0.4439, 0.4279, 0.3567]
+    std = [0.2705, 0.2584, 0.2761]
+    cls_num = 20
+
+
 @Datasets.register_module("miniImageNet")
 class miniImageNet(ImageFolder):
     # Full miniImageNet
     mean = [0.4759, 0.4586, 0.4153]
     std = [0.2847, 0.2785, 0.2955]
+    cls_num = 100
 
     def __init__(self, data_root, phase, transform=None, **kwargs):
         super(miniImageNet, self).__init__(
@@ -170,6 +184,7 @@ class miniImageNet_eval(ImageFolder):
     # Full miniImageNet
     mean = [0.4759, 0.4586, 0.4153]
     std = [0.2847, 0.2785, 0.2955]
+    cls_num = 100
 
     def __init__(self, data_root, phase, transform=None, **kwarg):
         super(miniImageNet_eval, self).__init__(

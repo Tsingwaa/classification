@@ -349,14 +349,14 @@ class BaseTrainer:
     def init_module(self, module_name=None, module_param=None):
         module = build_module(module_name, **module_param)
         module_init_log = '===> Initialized {}.'.format(module_name)
-        self.logger.info(module_init_log)
+        if self.local_rank in [-1, 0]:
+            self.logger.info(module_init_log)
         return module
 
     def init_loss(self, loss_name=None, **kwargs):
         if loss_name is None:
             loss_name = self.loss_name
-        if kwargs is None:
-            loss_param = self.loss_param
+        loss_param = self.loss_param if kwargs is None else kwargs
         loss = build_loss(loss_name, **loss_param)
         loss_init_log = f'===> Initialized {loss_name}'
         if self.local_rank in [-1, 0]:
