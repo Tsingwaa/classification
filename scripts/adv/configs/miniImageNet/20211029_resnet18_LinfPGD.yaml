@@ -1,6 +1,6 @@
 # Template train config
 experiment:
-  name: "20211028_miniImageNet_resnet18_LinfPGD"
+  name: "20211029_miniImageNet_resnet18_LinfPGD"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -48,14 +48,14 @@ trainloader:
   name: "Dataloader"
   param:
     sampler: None
-    batch_size: 128
-    num_workers: 8
+    batch_size: 196
+    num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 128
-    num_workers: 16
+    batch_size: 196
+    num_workers: 6
 
 network:
   name: "ResNet18"

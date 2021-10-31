@@ -5,7 +5,7 @@ import argparse
 import yaml
 import numpy as np
 import torch
-# from pudb import set_trace
+from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn import metrics
@@ -89,8 +89,8 @@ class Trainer(BaseTrainer):
             "predict": self.model,
             "loss_fn": self.criterion
         })
-        self.attack = self.init_module(network_name=self.adv_name,
-                                       network_param=self.adv_param)
+        self.attack = self.init_module(module_name=self.adv_name,
+                                       module_param=self.adv_param)
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
