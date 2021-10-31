@@ -15,8 +15,8 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 
 # Single-GPU Training
 CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_path \
-        'configs/miniImageNet20_0.05/20211031_r18.yaml'
+        'configs/miniImageNet20_0.1/20211031_r18.yaml'
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_path \
-#         'configs/miniImageNet20_0.05/20211031_r18_oversample.yaml'
+#         'configs/miniImageNet20_0.1/20211031_r18_oversample.yaml'
 # CUDA_VISIBLE_DEVICES=1 python3 train.py --local_rank -1 --config_path \
-#         'configs/miniImageNet20_0.05/20211031_r18_balance.yaml'
+#         'configs/miniImageNet20_0.1/20211031_r18_balance.yaml'

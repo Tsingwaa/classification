@@ -26,9 +26,9 @@ class DataLoaderX(DataLoader):
 class Trainer(BaseTrainer):
     def __init__(self, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
-        adv_config = config['adv']
-        self.adv_name = adv_config['name']
-        self.adv_param = adv_config['param']
+        # adv_config = config['adv']
+        # self.adv_name = adv_config['name']
+        # self.adv_param = adv_config['param']
 
     def train(self):
         #######################################################################
@@ -82,15 +82,6 @@ class Trainer(BaseTrainer):
         #######################################################################
         self.optimizer = self.init_optimizer()
 
-        #######################################################################
-        # Initialize Adversarial Training
-        #######################################################################
-        self.adv_param.update({
-            "predict": self.model,
-            "loss_fn": self.criterion
-        })
-        self.attack = self.init_module(module_name=self.adv_name,
-                                       module_param=self.adv_param)
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
