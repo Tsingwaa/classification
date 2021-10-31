@@ -229,3 +229,19 @@ def get_cm_with_labels(targets, preds, classes):
     cm_df = pd.DataFrame(cm, index=classes, columns=classes)
 
     return cm_df
+
+
+def rotation(inputs):
+    batch = inputs.shape[0]
+    target = torch.Tensor(
+        np.random.permutation([0, 1, 2, 3] * (int(batch / 4) + 1)),
+        device=inputs.device
+    )[:batch]
+
+    target = target.long()
+    image = torch.zeros_like(inputs)
+    image.copy_(inputs)
+    for i in range(batch):
+        image[i, :, :, :] = torch.rot90(inputs[i, :, :, :], target[i], [1, 2])
+
+    return image, target
