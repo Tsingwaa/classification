@@ -1,0 +1,105 @@
+experiment:
+  name: "miniImageNet20_0.1_r18_balsample"
+  start_epoch: 1
+  total_epochs: 200
+  log_fname: "train.log"
+  resume: False
+  resume_fpath: "ResNet18_best.pth.tar"
+  save_period: 10
+  eval_period: 1  # if 0, remove validate process when training.
+
+train_transform:
+  script_path: "data_loader.transform.transform"
+  name: "BaseTransform"
+  param:
+    phase: "train"
+    resize: [224, 224]
+
+val_transform:
+  script_path: "data_loader.transform.transform"
+  name: "BaseTransform"
+  param:
+    phase: "val"
+    resize: [224, 224]
+
+train_dataset:
+  name: "imb_miniImageNet20"
+  param:
+    data_root: "miniImageNet"
+    phase: "train"
+    img_lst_fpath: "train20.txt"
+    # map_fpath: "None"
+    imb_type: 'exp'
+    imb_factor: 0.05
+    seed: 0
+    # download: False
+
+val_dataset:
+  name: "imb_miniImageNet20"
+  param:
+    data_root: "miniImageNet"
+    phase: "val"
+    img_lst_fpath: "val20.txt"
+    # map_fpath: "None"
+    # download: False
+
+trainloader:
+  name: "Dataloader"
+  param:
+    sampler: "BalanceSampler"
+    retain_epoch_size: False
+    batch_size: 64
+    num_workers: 6
+
+valloader:
+  name: "Dataloader"
+  param:
+    batch_size: 64
+    num_workers: 6
+
+network:
+  name: "ResNet18"
+  param:
+    num_classes: 20
+    pretrained: False
+    pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
+
+loss:
+  name: "CrossEntropyLoss"
+  param:
+    a: 0.1
+
+optimizer:
+  name: "SGD"
+  param:
+    lr: 0.1
+    weight_decay: 5.0e-4
+    momentum: 0.9
+    nesterov: True
+
+warmup_lr_scheduler:
+  warmup: True
+  param:
+    warmup_epochs: 10
+    multiplier: 1
+
+lr_scheduler:
+  # name: "CyclicLR"
+  # name: "StepLR"
+  name: "MultiStepLR"
+  # name: "CosineAnnealingWarmRestarts"
+  param:
+    # CyclicLR
+    # step_size_up: 3  # 3 * iterations
+    # step_size_down: 2  # 2 * iterations
+    # max_lr: 5.0e-2
+    # base_lr: 5.0e-7
+    
+    # MultiStepLR
+    milestones: [60, 100, 140, 180]
+    gamma: 0.1
+
+    # CosineAnnealingWarmRestarts
+    # T_0: 5
+    # T_mult: 1
+    # eta_min: 0
