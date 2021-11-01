@@ -249,9 +249,9 @@ class Trainer(BaseTrainer):
 
             # Add progressive training
             # Startly, mainly use ssp; Finally, use supervision progressively.
-            # sp_weight = epoch / self.total_epochs
-            # total_loss = sp_weight * sp_loss + (1 - sp_weight) * selfsp_loss
-            total_loss = sp_loss + selfsp_loss
+            sp_weight = epoch / self.total_epochs
+            total_loss = sp_weight * sp_loss + (1 - sp_weight) * selfsp_loss
+            # total_loss = sp_loss + selfsp_loss
             if self.local_rank != -1:
                 with amp.scale_loss(total_loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()

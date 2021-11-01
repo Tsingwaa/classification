@@ -48,13 +48,13 @@ trainloader:
   param:
     sampler: "None"
     batch_size: 128
-    num_workers: 8
+    num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
     batch_size: 128
-    num_workers: 8
+    num_workers: 6
 
 network:
   name: "ResNet18"

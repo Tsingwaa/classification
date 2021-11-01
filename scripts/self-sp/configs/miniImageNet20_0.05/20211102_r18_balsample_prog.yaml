@@ -1,5 +1,5 @@
 experiment:
-  name: "miniImageNet20_0.1_r18_balsample_ssp"
+  name: "miniImageNet20_0.05_r18_balsample_prog_ssp"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -30,7 +30,7 @@ train_dataset:
     img_lst_fpath: "train20.txt"
     # map_fpath: "None"
     imb_type: 'exp'
-    imb_factor: 0.1
+    imb_factor: 0.05
     seed: 0
     # download: False
 
@@ -48,19 +48,20 @@ trainloader:
   param:
     sampler: "BalanceSampler"
     retain_epoch_size: True
-    batch_size: 64
+    batch_size: 128
     num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 64
+    batch_size: 128
     num_workers: 6
 
 network:
   name: "ResNet18"
   param:
     num_classes: 20
+    use_ssp: True
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
