@@ -251,6 +251,8 @@ class CutoutDefault(object):
 
 class RandAugment:
     def __init__(self, n, m, percent=None):
+        assert n >= 1
+        assert 1 <= m <= 20
         self.n = n
         self.m = m  # [0, 30]
         self.augment_list = augment_list()
