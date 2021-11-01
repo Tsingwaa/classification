@@ -4,8 +4,8 @@ from torchvision.datasets import ImageFolder
 from data_loader.dataset.builder import Datasets
 
 CALTECH256_MEAN_STD_DICT = {
-    5: ([0.4997, 0.5033, 0.4790], [0.2794, 0.2621, 0.2800]),
-    10: ([0.5205, 0.5066, 0.4863], [0.3200, 0.3114, 0.3215])
+    5: ([0.4790, 0.5033, 0.4997], [0.2800, 0.2621, 0.2794]),
+    10: ([0.4863, 0.5066, 0.5205], [0.3215, 0.3114, 0.3200])
 }
 
 

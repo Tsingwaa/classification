@@ -5,12 +5,14 @@ Customized by Kaihua Tang
 # import os
 import torch
 import numpy as np
+import imghdr
 # from pudb import set_trace
 from os.path import join
-from PIL import Image
+from PIL import Image, TiffImagePlugin
 # from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from data_loader.dataset.builder import Datasets
+# TiffImagePlugin.DEBUG = True
 
 
 @Datasets.register_module('imb_miniImageNet')
@@ -29,8 +31,8 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
     # std = [0.229, 0.224, 0.225]
 
     # Full miniImageNet
-    mean = [0.4759, 0.4586, 0.4153]
-    std = [0.2847, 0.2785, 0.2955]
+    mean = [0.4153, 0.4586, 0.4759]
+    std = [0.2955, 0.2785, 0.2847]
 
     cls_num = 100
 
@@ -50,6 +52,8 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
             for line in f:
                 img_path = join(data_root, line.split()[0][1:])
                 # line starts with '/', so index by [1:]
+                if imghdr.what(img_path) == '.tiff':
+                    print(img_path)
                 self.img_paths.append(img_path)
                 self.targets.append(int(line.split()[1]))
 
@@ -117,6 +121,8 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         img_path = self.img_paths[index]
         label = self.labels[index]
         img = Image.open(img_path).convert('RGB')
+        img = self._check_channel(img)  # 对单通道灰度图复制为三通道
+
         if self.transform is not None:
             img = self.transform(img)
 
@@ -125,12 +131,12 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.labels)
 
-    def get_num_classes(self):
-        return self.cls_num
+    # def get_num_classes(self):
+    #     return self.cls_num
 
-    def get_img_num_list(self):
-        """list of num_samples"""
-        return self.img_num
+    # def get_img_num_list(self):
+    #     """list of num_samples"""
+    #     return self.img_num
 
     def get_label2ctg(self):
         label2ctg = dict()
@@ -140,22 +146,29 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
                 label2ctg[self.labels[i]] = category
         return label2ctg
 
+    def _check_channel(self, Image_obj):
+        img_arr = np.array(Image_obj)
+        if len(img_arr.shape) < 3:
+            img_arr_expand = np.repeat(img_arr[:, :, np.newaxis], 3, axis=2)
+            Image_obj = Image.fromarray(img_arr_expand)
+        return Image_obj
+
 
 @Datasets.register_module('imb_miniImageNet20')
 class ImbalanceMiniImageNet20(ImbalanceMiniImageNet):
     """Select the former 20 classes as a small imbalanced dataset
     for test use
     """
-    mean = [0.4439, 0.4279, 0.3567]
-    std = [0.2705, 0.2584, 0.2761]
+    mean = [0.3567, 0.4279, 0.4439]
+    std = [0.2761, 0.2584, 0.2705]
     cls_num = 20
 
 
 @Datasets.register_module("miniImageNet")
 class miniImageNet(ImageFolder):
     # Full miniImageNet
-    mean = [0.4759, 0.4586, 0.4153]
-    std = [0.2847, 0.2785, 0.2955]
+    mean = [0.4153, 0.4586, 0.4759]
+    std = [0.2955, 0.2785, 0.2847]
     cls_num = 100
 
     def __init__(self, data_root, phase, transform=None, **kwargs):
@@ -186,8 +199,8 @@ class miniImageNet(ImageFolder):
 @Datasets.register_module("miniImageNet_eval")
 class miniImageNet_eval(ImageFolder):
     # Full miniImageNet
-    mean = [0.4759, 0.4586, 0.4153]
-    std = [0.2847, 0.2785, 0.2955]
+    mean = [0.4153, 0.4586, 0.4759]
+    std = [0.2955, 0.2785, 0.2847]
     cls_num = 100
 
     def __init__(self, data_root, phase, transform=None, **kwarg):

@@ -23,7 +23,7 @@ class BaseTransform:
                     brightness=0.4,
                     saturation=0.4,
                     contrast=0.4,
-                    hue=0
+                    hue=0.05
                 ),
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std),
