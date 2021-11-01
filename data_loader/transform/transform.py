@@ -19,12 +19,12 @@ class BaseTransform:
                 transforms.RandomCrop(self.resize),
                 transforms.RandomHorizontalFlip(0.5),
                 transforms.RandomRotation(25),
-                transforms.ColorJitter(
-                    brightness=0.4,
-                    saturation=0.4,
-                    contrast=0.4,
-                    hue=0.05
-                ),
+                # transforms.ColorJitter(
+                #     brightness=0.4,
+                #     saturation=0.4,
+                #     contrast=0.4,
+                #     hue=0.05
+                # ),
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std),
                 # transforms.RandomErasing()
