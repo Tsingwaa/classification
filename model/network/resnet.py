@@ -201,7 +201,7 @@ class ResNet(nn.Module):
         # add an output head for self-supervision, rotation respectively.
         if use_ssp:
             self.use_ssp = use_ssp
-            self.ssp_fc = nn.Linear(512 * num_classes, 4)
+            self.ssp_fc = nn.Linear(512 * block.expansion, 4)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
