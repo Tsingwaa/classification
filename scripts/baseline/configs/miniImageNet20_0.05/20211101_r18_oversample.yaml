@@ -47,7 +47,7 @@ trainloader:
   name: "Dataloader"
   param:
     sampler: "ClassAwareSampler"
-    retain_epoch_size: True
+    retain_epoch_size: False
     batch_size: 64
     num_workers: 6
 
