@@ -274,7 +274,7 @@ class ResNet(nn.Module):
 
 @Networks.register_module('ResNet18')
 class ResNet18(ResNet):
-    def __init__(self, num_classes, use_ssp=False, **kwargs):
+    def __init__(self, num_classes, use_ssp, **kwargs):
         super(ResNet18, self).__init__(
             block=BasicBlock,
             layers=[2, 2, 2, 2],
@@ -285,7 +285,7 @@ class ResNet18(ResNet):
 
 @Networks.register_module('ResNet34')
 class ResNet34(ResNet):
-    def __init__(self, num_classes, use_ssp=False, **kwargs):
+    def __init__(self, num_classes, use_ssp, **kwargs):
         super(ResNet34, self).__init__(
             block=BasicBlock,
             layers=[3, 4, 6, 3],
@@ -296,7 +296,7 @@ class ResNet34(ResNet):
 
 @Networks.register_module('ResNet50')
 class ResNet50(ResNet):
-    def __init__(self, num_classes, use_ssp=False, **kwargs):
+    def __init__(self, num_classes, use_ssp, **kwargs):
         super(ResNet50, self).__init__(
             block=Bottleneck,
             layers=[3, 4, 6, 3],
@@ -307,7 +307,7 @@ class ResNet50(ResNet):
 
 @Networks.register_module('ResNet101')
 class ResNet101(ResNet):
-    def __init__(self, num_classes, use_ssp=False, **kwargs):
+    def __init__(self, num_classes, use_ssp, **kwargs):
         super(ResNet101, self).__init__(
             block=Bottleneck,
             layers=[3, 4, 23, 3],
@@ -318,7 +318,7 @@ class ResNet101(ResNet):
 
 @Networks.register_module('ResNet152')
 class ResNet152(ResNet):
-    def __init__(self, num_classes, use_ssp=False, **kwargs):
+    def __init__(self, num_classes, use_ssp, **kwargs):
         super(ResNet152, self).__init__(
             block=Bottleneck,
             layers=[3, 8, 36, 3],
