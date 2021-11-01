@@ -50,8 +50,7 @@ class Trainer(BaseTrainer):
         )
 
         if self.local_rank != -1:
-            print(f'global_rank {self.global_rank},'
-                  f'world_size {self.world_size},'
+            print(f'global_rank {self.global_rank}/{self.world_size},'
                   f'local_rank {self.local_rank},'
                   f'sampler "{self.train_sampler_name}"')
 
@@ -120,7 +119,7 @@ class Trainer(BaseTrainer):
             if self.lr_scheduler_mode == 'epoch':
                 self.lr_scheduler.step()
 
-            if self.local_rank != -1:
+            if self.local_rank != -1:  # 多卡同步sampler生成的索引块
                 train_sampler.set_epoch(epoch)
 
             train_acc, train_mr, train_ap, train_loss = self.train_epoch(epoch)
@@ -156,7 +155,7 @@ class Trainer(BaseTrainer):
                         val_loss=val_loss
                     )
                 )
-                if len(val_recalls) <= 10:
+                if len(val_recalls) <= 10 or epoch != self.total_epochs - 1:
                     self.logger.info(f"\t\tRecalls: {val_recalls}")
 
                 # Save log by tensorboard
@@ -247,6 +246,11 @@ class Trainer(BaseTrainer):
                                      batch_labels)
             selfsp_loss = self.criterion(batch_selfsp_prob,
                                          batch_selfsp_labels)
+
+            # Add progressive training
+            # Startly, mainly use ssp; Finally, use supervision progressively.
+            # sp_weight = epoch / self.total_epochs
+            # total_loss = sp_weight * sp_loss + (1 - sp_weight) * selfsp_loss
             total_loss = sp_loss + selfsp_loss
             if self.local_rank != -1:
                 with amp.scale_loss(total_loss, self.optimizer) as scaled_loss:
@@ -322,8 +326,7 @@ class Trainer(BaseTrainer):
                                          average='macro')
         val_mr = metrics.recall_score(all_labels, all_preds, average='macro')
         val_recalls = metrics.recall_score(all_labels, all_preds, average=None)
-        val_recalls = np.around(val_recalls, decimals=2).tolist() \
-            if len(val_recalls) <= 10 else '-'
+        val_recalls = np.around(val_recalls, decimals=2).tolist()
 
         val_pbar.set_postfix_str(
             'Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%}'.format(
