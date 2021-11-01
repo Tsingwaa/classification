@@ -240,7 +240,7 @@ class Trainer(BaseTrainer):
 
             # Step 2: train with rotated imgs
             batch_prob = self.model(batch_imgs)
-            batch_selfsp_prob = self.model(batch_selfsp_imgs)
+            batch_selfsp_prob = self.model(batch_selfsp_imgs, ssp=True)
 
             sp_loss = self.criterion(batch_prob,
                                      batch_labels)
