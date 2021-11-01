@@ -155,7 +155,7 @@ class Trainer(BaseTrainer):
                         val_loss=val_loss
                     )
                 )
-                if len(val_recalls) <= 10 or epoch != self.total_epochs - 1:
+                if len(val_recalls) <= 10 or epoch == self.total_epochs - 1:
                     self.logger.info(f"\t\tRecalls: {val_recalls}")
 
                 # Save log by tensorboard

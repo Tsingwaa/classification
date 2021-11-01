@@ -47,19 +47,20 @@ trainloader:
   name: "Dataloader"
   param:
     sampler: "None"
-    batch_size: 64
-    num_workers: 6
+    batch_size: 128
+    num_workers: 8
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 64
-    num_workers: 6
+    batch_size: 128
+    num_workers: 8
 
 network:
   name: "ResNet18"
   param:
     num_classes: 20
+    use_ssp: False
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
