@@ -1,5 +1,5 @@
 experiment:
-  name: "miniImageNet20_0.05_r18_balsample_over"
+  name: "miniImageNet20_0.05_r18_oversample"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -46,16 +46,16 @@ val_dataset:
 trainloader:
   name: "Dataloader"
   param:
-    sampler: "BalanceSampler"
-    retain_epoch_size: False
-    batch_size: 128
-    num_workers: 6
+    sampler: "ClassAwareSampler"
+    # retain_epoch_size: True
+    batch_size: 64
+    num_workers: 8
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 128
-    num_workers: 6
+    batch_size: 64
+    num_workers: 8
 
 network:
   name: "ResNet18"
@@ -74,7 +74,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.1
-    weight_decay: 5.0e-4
+    weight_decay: 1.0e-3
     momentum: 0.9
     nesterov: True
 
