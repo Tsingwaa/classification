@@ -1,5 +1,5 @@
 experiment:
-  name: "miniImageNet20_0.05_r18_balsample_ssp"
+  name: "miniImageNet20_0.05_r18_prog_ssp"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -46,15 +46,14 @@ val_dataset:
 trainloader:
   name: "Dataloader"
   param:
-    sampler: "BalanceSampler"
-    retain_epoch_size: True
-    batch_size: 64
+    sampler: "None"
+    batch_size: 128
     num_workers: 8
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 64
+    batch_size: 128
     num_workers: 8
 
 network:
