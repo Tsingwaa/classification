@@ -31,7 +31,6 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
-        # set_trace()
         train_transform = self.init_transform(self.train_transform_config)
         trainset = self.init_dataset(self.trainset_config, train_transform)
         train_sampler = self.init_sampler(trainset)
@@ -124,7 +123,7 @@ class Trainer(BaseTrainer):
 
             if self.local_rank in [-1, 0]:
                 val_acc, val_mr, val_ap, val_loss, val_recalls = \
-                        self.evaluate(epoch)
+                    self.evaluate(epoch)
 
                 last_train_accs[epoch % 20] = train_acc
                 last_train_mrs[epoch % 20] = train_mr
@@ -337,7 +336,6 @@ def _set_seed(seed=0):
 def main(args):
     warnings.filterwarnings('ignore')
     _set_seed()
-    # set_trace()
     with open(args.config_path, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     trainer = Trainer(local_rank=args.local_rank, config=config)

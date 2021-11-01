@@ -119,7 +119,7 @@ def compute_mean_and_std(img_paths):
     mean_b = 0.
     print("===> Computing mean...")
     for img_path in tqdm(img_paths, ncols=80):
-        img = Image.open(img_path)
+        img = Image.open(img_path)  # 默认打开的通道为BGR
         img = np.asarray(img)  # change PIL Image to numpy array
         if len(img.shape) < 3 or img.shape[2] < 3:
             img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
@@ -131,9 +131,9 @@ def compute_mean_and_std(img_paths):
     mean_g /= len(img_paths)
     mean_r /= len(img_paths)
 
-    mean = (mean_b.item() / 255.0,
+    mean = (mean_r.item() / 255.0,
             mean_g.item() / 255.0,
-            mean_r.item() / 255.0)
+            mean_b.item() / 255.0)
 
     print(
         '===> mean: [{:.4f},{:.4f},{:.4f}]\n'.format(mean[0], mean[1], mean[2])
@@ -146,7 +146,7 @@ def compute_mean_and_std(img_paths):
     N = 0.
     print("===> Computing std...")
     for img_path in tqdm(img_paths, ncols=80):
-        img = Image.open(img_path)
+        img = Image.open(img_path)  # 默认打开的通道为BGR
         img = np.asarray(img)
         if len(img.shape) < 3 or img.shape[2] < 3:
             img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
@@ -156,13 +156,13 @@ def compute_mean_and_std(img_paths):
 
         N += np.prod(img[:, :, 0].shape)
 
-    std_b = np.sqrt(diff_b / N)
-    std_g = np.sqrt(diff_g / N)
     std_r = np.sqrt(diff_r / N)
+    std_g = np.sqrt(diff_g / N)
+    std_b = np.sqrt(diff_b / N)
 
-    std = (std_b.item() / 255.0,
+    std = (std_r.item() / 255.0,
            std_g.item() / 255.0,
-           std_r.item() / 255.0)
+           std_b.item() / 255.0)
 
     print('===> std: [{:.4f},{:.4f},{:.4f}]'.format(std[0], std[1], std[2]))
 
