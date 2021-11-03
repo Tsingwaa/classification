@@ -1,5 +1,5 @@
 experiment:
-  name: "20211029_miniImageNet_0.05_resnet18_LinfPGD"
+  name: "miniImageNet20_0.05_r18_LinfPGD"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -23,11 +23,11 @@ val_transform:
     resize: [224, 224]
 
 train_dataset:
-  name: "imb_miniImageNet"
+  name: "imb_miniImageNet20"
   param:
     data_root: "miniImageNet"
     phase: "train"
-    # img_lst_fpath: "None"
+    img_lst_fpath: "train20.txt"
     # map_fpath: "None"
     imb_type: 'exp'
     imb_factor: 0.05
@@ -35,11 +35,11 @@ train_dataset:
     # download: False
 
 val_dataset:
-  name: "imb_miniImageNet"
+  name: "imb_miniImageNet20"
   param:
     data_root: "miniImageNet"
     phase: "val"
-    # img_lst_fpath: "None"
+    img_lst_fpath: "val20.txt"
     # map_fpath: "None"
     # download: False
 
@@ -47,19 +47,20 @@ trainloader:
   name: "Dataloader"
   param:
     sampler: None
-    batch_size: 196
+    batch_size: 128
     num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 196
+    batch_size: 128
     num_workers: 6
 
 network:
   name: "ResNet18"
   param:
-    num_classes: 100
+    num_classes: 20
+    use_ssp: False
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
