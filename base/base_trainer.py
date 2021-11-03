@@ -204,21 +204,21 @@ class BaseTrainer:
         return dataset
 
     def init_optimizer(self):
-        model_params = [
-            {
-                'params': [p for n, p in self.model.named_parameters()
-                           if not any(nd in n for nd in ['bias', 'bn'])],
-                'weight_decay': self.weight_decay
-            },
-            {
-                'params': [p for n, p in self.model.named_parameters()
-                           if any(nd in n for nd in ['bias', 'bn'])],
-                'weight_decay': 0.0
-            }
-        ]
+        # model_params = [
+        #     {
+        #         'params': [p for n, p in self.model.named_parameters()
+        #                    if not any(nd in n for nd in ['bias', 'bn'])],
+        #         'weight_decay': self.weight_decay
+        #     },
+        #     {
+        #         'params': [p for n, p in self.model.named_parameters()
+        #                    if any(nd in n for nd in ['bias', 'bn'])],
+        #         'weight_decay': 0.0
+        #     }
+        # ]
         try:
             optimizer = getattr(torch.optim, self.optimizer_name)(
-                model_params, **self.optimizer_param
+                self.model.parameters(), **self.optimizer_param
             )
             if self.resume:
                 optimizer.load_state_dict(self.checkpoint['optimizer'])
@@ -227,9 +227,6 @@ class BaseTrainer:
                     f' with init_lr={self.optimizer_param["lr"]}'\
                     f' momentum={self.optimizer_param["momentum"]}'\
                     f' nesterov={self.optimizer_param["nesterov"]}'
-            elif self.optimizer_name == 'Adam':
-                optimizer_init_log = f'===> Initialized {self.optimizer_name}'\
-                    f' with lr={self.optimizer_param["lr"]}'
             else:
                 optimizer_init_log = f'===> Initialized {self.optimizer_name}'
 
@@ -377,18 +374,12 @@ class BaseTrainer:
         acc = checkpoint['acc']
         mr = checkpoint['mr']
         ap = checkpoint['ap']
-        resume_log = '===> Resume checkpoint from "{}".\nResume acc:{:.2%}'\
+        resume_log = '\n===> Resume checkpoint from "{}".\nResume acc:{:.2%}'\
             ' mr:{:.2%} ap:{:.2%}'.format(resume_fpath, acc, mr, ap)
         return checkpoint, resume_log
 
-    def save_checkpoint(self, epoch, is_best,
-                        acc=None, mr=None, ap=None):
-        if epoch > 100 or is_best:
-            # save_fname = '{}_epoch{}_acc{:.2%}_mr{:.2%}_ap{:.2%}_'\
-            #     'state_dict.pth.tar'.format(
-            #         self.network_name, str(epoch), acc, mr, ap
-            #     )
-
+    def save_checkpoint(self, epoch, acc=None, mr=None, ap=None):
+        if epoch == self.total_epochs:
             checkpoint = {
                 'model': self.model.state_dict() if self.local_rank == -1
                 else self.model.module.state_dict(),
@@ -399,16 +390,8 @@ class BaseTrainer:
                 'mr': mr,
                 'ap': ap,
             }
-
-            # if not (epoch % self.save_period):
-            #     save_fpath = join(self.save_dir, save_fname)
-            #     torch.save(checkpoint, save_fpath)
-
-            if is_best:
-                best_fpath = join(
-                    self.save_dir, f'{self.network_name}_best.pth.tar'
-                )
-                torch.save(checkpoint, best_fpath)
+            last_fpath = join(self.save_dir, 'last.pth.tar')
+            torch.save(checkpoint, last_fpath)
 
     def init_logger(self, log_fpath):
         logger = logging.getLogger()
