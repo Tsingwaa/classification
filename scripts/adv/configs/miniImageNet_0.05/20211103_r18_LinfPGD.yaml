@@ -67,7 +67,7 @@ network:
 adv:
   name: "LinfPGDAttack"
   param:
-    nb_iter: 10
+    nb_iter: 8
     eps: 0.3
     eps_iter: 0.01
     rand_init: True
