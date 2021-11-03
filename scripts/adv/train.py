@@ -114,16 +114,8 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Start Training
         #######################################################################
-        last_train_accs = np.zeros(20)
-        last_train_mrs = np.zeros(20)
-        last_train_aps = np.zeros(20)
-        last_train_losses = np.zeros(20)
-        last_val_accs = np.zeros(20)
-        last_val_mrs = np.zeros(20)
-        last_val_aps = np.zeros(20)
-        last_val_losses = np.zeros(20)
-        best_acc = 0
         best_mr = 0
+        best_epoch = 1
         for epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == 'epoch':
@@ -137,15 +129,6 @@ class Trainer(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 val_acc, val_mr, val_ap, val_loss, val_recalls = \
                         self.evaluate(epoch)
-
-                last_train_accs[epoch % 20] = train_acc
-                last_train_mrs[epoch % 20] = train_mr
-                last_train_aps[epoch % 20] = train_ap
-                last_train_losses[epoch % 20] = train_loss
-                last_val_accs[epoch % 20] = val_acc
-                last_val_mrs[epoch % 20] = val_mr
-                last_val_aps[epoch % 20] = val_ap
-                last_val_losses[epoch % 20] = val_loss
 
                 self.logger.debug(
                     'Epoch[{epoch:>3d}/{total_epochs}] '
@@ -165,7 +148,8 @@ class Trainer(BaseTrainer):
                         val_loss=val_loss
                     )
                 )
-                self.logger.info(f"\t\tRecalls: {val_recalls}")
+                if len(val_recalls) <= 10:
+                    self.logger.info(f"\t\tRecalls: {val_recalls}")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(f'{self.exp_name}/LearningRate',
@@ -184,10 +168,7 @@ class Trainer(BaseTrainer):
                                         {'train_ap': train_ap,
                                          'val_ap': val_ap}, epoch)
                 # Save checkpoint.
-                # is_best = (best_acc < val_acc or best_mr < val_mr)
                 is_best = best_mr < val_mr
-                if best_acc < val_acc:
-                    best_acc = val_acc
                 if best_mr < val_mr:
                     best_mr = val_mr
                 self.save_checkpoint(epoch, is_best,
@@ -195,29 +176,11 @@ class Trainer(BaseTrainer):
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
-                "\n===> End experiment {}, results are saved at '{}'\n"
-                "Train Set:\n"
-                "\tAverage accuracy of the last 20 epochs: {:.2%}\n"
-                "\tAverage recall of the last 20 epochs: {:.2%}\n"
-                "\tAverage precision of the last 20 epochs: {:.2%}\n"
-                "\tAverage losses of the last 20 epochs: {:.4f}\n"
-                "Validation Set:\n"
-                "\tAverage accuracy of the last 20 epochs: {:.2%}\n"
-                "\tAverage recall of the last 20 epochs: {:.2%}\n"
-                "\tAverage precision of the last 20 epochs: {:.2%}\n"
-                "\tAverage losses of the last 20 epochs: {:.4f}\n"
+                "\n===> The result of Experiment {} are saved at '{}'\n"
+                "===> The best result of mean recall is {} @epoch{}"
                 "*************************************************************"
                 "*****************************************************".format(
-                    self.exp_name,
-                    self.save_dir,
-                    np.mean(last_train_accs),
-                    np.mean(last_train_mrs),
-                    np.mean(last_train_aps),
-                    np.mean(last_train_losses),
-                    np.mean(last_val_accs),
-                    np.mean(last_val_mrs),
-                    np.mean(last_val_aps),
-                    np.mean(last_val_losses),
+                    self.exp_name, self.save_dir, best_mr, best_epoch
                 )
             )
 

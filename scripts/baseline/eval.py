@@ -158,7 +158,7 @@ class Validater(BaseTrainer):
             "===> Classification Report:\n" + classification_report
         )
 
-        if len(valset.classes) <= 10:
+        if len(valset.classes) <= 20:
             cm_df = get_cm_with_labels(all_labels, all_preds, valset.classes)
             self.logger.info(
                 '===> Confusion Matrix:\n' + cm_df.to_string() + '\n'
