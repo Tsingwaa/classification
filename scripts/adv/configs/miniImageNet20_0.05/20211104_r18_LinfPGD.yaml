@@ -1,5 +1,5 @@
 experiment:
-  name: "miniImageNet20_0.05_r18_LinfPGD"
+  name: "miniImageNet20_0.05_r18_LinfPGD1"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -47,13 +47,13 @@ trainloader:
   name: "Dataloader"
   param:
     sampler: None
-    batch_size: 128
+    batch_size: 64
     num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 128
+    batch_size: 64
     num_workers: 6
 
 network:
@@ -67,9 +67,9 @@ network:
 adv:
   name: "LinfPGDAttack"
   param:
-    nb_iter: 8
-    eps: 0.03
-    eps_iter: 0.01
+    nb_iter: 7
+    eps: 0.0314
+    eps_iter: 0.0078
     rand_init: True
     clip_min: 0.
     clip_max: 1.

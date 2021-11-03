@@ -114,8 +114,14 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Start Training
         #######################################################################
-        best_mr = 0
-        best_epoch = 1
+        last_train_accs = np.zeros(20)
+        last_train_mrs = np.zeros(20)
+        last_train_aps = np.zeros(20)
+        last_train_losses = np.zeros(20)
+        last_val_accs = np.zeros(20)
+        last_val_mrs = np.zeros(20)
+        last_val_aps = np.zeros(20)
+        last_val_losses = np.zeros(20)
         for epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == 'epoch':
@@ -129,6 +135,15 @@ class Trainer(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 val_acc, val_mr, val_ap, val_loss, val_recalls = \
                         self.evaluate(epoch)
+
+                last_train_accs[epoch % 20] = train_acc
+                last_train_mrs[epoch % 20] = train_mr
+                last_train_aps[epoch % 20] = train_ap
+                last_train_losses[epoch % 20] = train_loss
+                last_val_accs[epoch % 20] = val_acc
+                last_val_mrs[epoch % 20] = val_mr
+                last_val_aps[epoch % 20] = val_ap
+                last_val_losses[epoch % 20] = val_loss
 
                 self.logger.debug(
                     'Epoch[{epoch:>3d}/{total_epochs}] '
@@ -148,7 +163,7 @@ class Trainer(BaseTrainer):
                         val_loss=val_loss
                     )
                 )
-                if len(val_recalls) <= 10:
+                if len(val_recalls) <= 10 or epoch == self.total_epochs:
                     self.logger.info(f"\t\tRecalls: {val_recalls}")
 
                 # Save log by tensorboard
@@ -167,22 +182,35 @@ class Trainer(BaseTrainer):
                 self.writer.add_scalars(f'{self.exp_name}/Precision',
                                         {'train_ap': train_ap,
                                          'val_ap': val_ap}, epoch)
-                # Save checkpoint.
-                is_best = best_mr < val_mr
-                if best_mr < val_mr:
-                    best_mr = val_mr
-                self.save_checkpoint(epoch, is_best,
-                                     val_acc, val_mr, val_ap)
+                self.save_checkpoint(epoch, val_acc, val_mr, val_ap)
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
-                "\n===> The result of Experiment {} are saved at '{}'\n"
-                "===> The best result of mean recall is {} @epoch{}"
+                "\nTrain Set:\n"
+                "\tAverage accuracy of the last 20 epochs: {:.2%}\n"
+                "\tAverage recall of the last 20 epochs: {:.2%}\n"
+                "\tAverage precision of the last 20 epochs: {:.2%}\n"
+                "\tAverage losses of the last 20 epochs: {:.4f}\n"
+                "Validation Set:\n"
+                "\tAverage accuracy of the last 20 epochs: {:.2%}\n"
+                "\tAverage recall of the last 20 epochs: {:.2%}\n"
+                "\tAverage precision of the last 20 epochs: {:.2%}\n"
+                "\tAverage losses of the last 20 epochs: {:.4f}\n"
+                "===> The result of Experiment '{}' are saved at '{}'\n"
                 "*************************************************************"
                 "*****************************************************".format(
-                    self.exp_name, self.save_dir, best_mr, best_epoch
+                    np.mean(last_train_accs),
+                    np.mean(last_train_mrs),
+                    np.mean(last_train_aps),
+                    np.mean(last_train_losses),
+                    np.mean(last_val_accs),
+                    np.mean(last_val_mrs),
+                    np.mean(last_val_aps),
+                    np.mean(last_val_losses),
+                    self.exp_name,
+                    self.save_dir,
                 )
-            )
+             )
 
     def train_epoch(self, epoch):
         self.model.train()
@@ -195,7 +223,9 @@ class Trainer(BaseTrainer):
         all_labels = []
         all_preds = []
         train_acc_meter = AccAverageMeter()
-        train_loss_meter = AccAverageMeter()
+        final_loss_meter = AccAverageMeter()
+        adv_loss_meter = AccAverageMeter()
+        clean_loss_meter = AccAverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(self.trainloader):
             if self.lr_scheduler_mode == 'iteration':
                 self.lr_scheduler.step()
@@ -207,22 +237,28 @@ class Trainer(BaseTrainer):
             # Step 1: generate perturbed samples
             batch_perturbed_imgs = self.attack(batch_imgs, batch_labels)
             # Step 2: train with perturbed imgs
-            batch_prob = self.model(batch_perturbed_imgs)
+            batch_perturbed_prob = self.model(batch_perturbed_imgs)
+            batch_prob = self.model(batch_imgs)
 
-            avg_loss = self.criterion(batch_prob, batch_labels)
+            adv_loss = self.criterion(batch_perturbed_prob, batch_labels)
+            clean_loss = self.criterion(batch_prob, batch_labels)
+            alpha = 0.5
+            final_loss = alpha * clean_loss + (1 - alpha) * adv_loss
             if self.local_rank != -1:
-                with amp.scale_loss(avg_loss, self.optimizer) as scaled_loss:
+                with amp.scale_loss(final_loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()
                 self.optimizer.step()
-                self._reduce_loss(avg_loss)
+                self._reduce_loss(final_loss)
             else:
-                avg_loss.backward()
+                final_loss.backward()
                 self.optimizer.step()
 
             batch_pred = batch_prob.max(1)[1]
             acc = (batch_pred == batch_labels).float().mean()
             train_acc_meter.update(acc, 1)
-            train_loss_meter.update(avg_loss.item(), 1)
+            final_loss_meter.update(final_loss.item(), 1)
+            adv_loss_meter.update(adv_loss.item(), 1)
+            clean_loss_meter.update(clean_loss.item(), 1)
 
             all_labels.extend(batch_labels.cpu().numpy().tolist())
             all_preds.extend(batch_pred.cpu().numpy().tolist())
@@ -230,9 +266,12 @@ class Trainer(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str(
-                    'LR:{:.1e} Loss:{:.4f} Acc:{:.2%}'.format(
+                    'LR:{:.1e} FinalLoss:{:.2f} ADV:{:.2f}'
+                    ' CLN:{:.2f} Acc:{:.2%}'.format(
                         self.optimizer.param_groups[0]['lr'],
-                        train_loss_meter.avg,
+                        final_loss_meter.avg,
+                        adv_loss_meter.avg,
+                        clean_loss_meter.avg,
                         train_acc_meter.avg,
                     )
                 )
@@ -246,12 +285,12 @@ class Trainer(BaseTrainer):
         train_pbar.set_postfix_str(
             'LR:{:.1e} Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%}'.format(
                 self.optimizer.param_groups[0]['lr'],
-                train_loss_meter.avg, train_acc, train_mr, train_ap
+                final_loss_meter.avg, train_acc, train_mr, train_ap
             )
         )
         train_pbar.close()
 
-        return train_acc, train_mr, train_ap, train_loss_meter.avg
+        return train_acc, train_mr, train_ap, final_loss_meter.avg
 
     def evaluate(self, epoch):
         self.model.eval()
