@@ -176,9 +176,9 @@ class Validater(BaseTrainer):
             np.array(all_probs)
         )
 
-        save_log = f"Results are saved at '{self.save_dir}'.\n"\
-            f"===> Ended Evaluation of experiment '{self.exp_name}'"\
-            f" @epoch{self.test_epoch}.\n"\
+        save_log = f"===> Results of epoch{self.test_epoch} "\
+            f" in '{self.exp_name}'  are saved at:\n"\
+            f" '{self.save_dir}' \n"\
             f"*********************************************************"\
             f"*********************************************************\n\n"
         self.logger.info(save_log)
