@@ -32,8 +32,7 @@ from model.module.builder import Modules
 
 def perturb_iterative(xvar, yvar, predict, nb_iter, eps, eps_iter, loss_fn,
                       delta_init=None, minimize=False, ord=np.inf,
-                      clip_min=0.0, clip_max=1.0,
-                      l1_sparsity=None):
+                      clip_min=0.0, clip_max=1.0, l1_sparsity=None):
     """
     Iteratively maximize the loss over the input. It is a shared method for
     iterative attacks including IterativeGradientSign, LinfPGD, etc.
@@ -72,7 +71,7 @@ def perturb_iterative(xvar, yvar, predict, nb_iter, eps, eps_iter, loss_fn,
         if ord == np.inf:
             grad_sign = delta.grad.data.sign()
             delta.data = delta.data + batch_multiply(eps_iter, grad_sign)
-            delta.data = batch_clamp(eps, delta.data)
+            delta.data = batch_clamp(eps, delta.data)  # clamp delta.data
             delta.data = clamp(xvar.data + delta.data, clip_min, clip_max
                                ) - xvar.data
 
@@ -136,10 +135,9 @@ class PGDAttack(Attack, LabelMixin):
     :param targeted: if the attack is targeted.
     """
 
-    def __init__(
-            self, predict, loss_fn=None, eps=0.3, nb_iter=40,
-            eps_iter=0.01, rand_init=True, clip_min=0., clip_max=1.,
-            ord=np.inf, l1_sparsity=None, targeted=False):
+    def __init__(self, predict, loss_fn=None, eps=0.3, nb_iter=40,
+                 eps_iter=0.01, rand_init=True, clip_min=0., clip_max=1.,
+                 ord=np.inf, l1_sparsity=None, targeted=False):
         """
         Create an instance of the PGDAttack.
 
@@ -208,10 +206,9 @@ class LinfPGDAttack(PGDAttack):
     :param targeted: if the attack is targeted.
     """
 
-    def __init__(
-            self, predict, loss_fn=None, eps=0.3, nb_iter=40,
-            eps_iter=0.01, rand_init=True, clip_min=0., clip_max=1.,
-            targeted=False):
+    def __init__(self, predict, loss_fn=None, eps=0.3, nb_iter=40,
+                 eps_iter=0.01, rand_init=True, clip_min=0., clip_max=1.,
+                 targeted=False):
         ord = np.inf
         super(LinfPGDAttack, self).__init__(
             predict=predict, loss_fn=loss_fn, eps=eps, nb_iter=nb_iter,
@@ -236,10 +233,9 @@ class L2PGDAttack(PGDAttack):
     :param targeted: if the attack is targeted.
     """
 
-    def __init__(
-            self, predict, loss_fn=None, eps=0.3, nb_iter=40,
-            eps_iter=0.01, rand_init=True, clip_min=0., clip_max=1.,
-            targeted=False):
+    def __init__(self, predict, loss_fn=None, eps=0.3, nb_iter=40,
+                 eps_iter=0.01, rand_init=True, clip_min=0., clip_max=1.,
+                 targeted=False):
         ord = 2
         super(L2PGDAttack, self).__init__(
             predict=predict, loss_fn=loss_fn, eps=eps, nb_iter=nb_iter,
@@ -264,10 +260,9 @@ class L1PGDAttack(PGDAttack):
     :param targeted: if the attack is targeted.
     """
 
-    def __init__(
-            self, predict, loss_fn=None, eps=10., nb_iter=40,
-            eps_iter=0.01, rand_init=True, clip_min=0., clip_max=1.,
-            targeted=False):
+    def __init__(self, predict, loss_fn=None, eps=10., nb_iter=40,
+                 eps_iter=0.01, rand_init=True, clip_min=0., clip_max=1.,
+                 targeted=False):
         ord = 1
         super(L1PGDAttack, self).__init__(
             predict=predict, loss_fn=loss_fn, eps=eps, nb_iter=nb_iter,
@@ -293,10 +288,9 @@ class SparseL1DescentAttack(PGDAttack):
     :param l1_sparsity: proportion of zeros in gradient updates
     """
 
-    def __init__(
-            self, predict, loss_fn=None, eps=0.3, nb_iter=40,
-            eps_iter=0.01, rand_init=False, clip_min=0., clip_max=1.,
-            l1_sparsity=0.95, targeted=False):
+    def __init__(self, predict, loss_fn=None, eps=0.3, nb_iter=40,
+                 eps_iter=0.01, rand_init=False, clip_min=0., clip_max=1.,
+                 l1_sparsity=0.95, targeted=False):
         ord = 1
         super(SparseL1DescentAttack, self).__init__(
             predict=predict, loss_fn=loss_fn, eps=eps, nb_iter=nb_iter,
@@ -378,10 +372,9 @@ class MomentumIterativeAttack(Attack, LabelMixin):
     :param ord: the order of maximum distortion (inf or 2).
     """
 
-    def __init__(
-            self, predict, loss_fn=None, eps=0.3, nb_iter=40, decay_factor=1.,
-            eps_iter=0.01, clip_min=0., clip_max=1., targeted=False,
-            ord=np.inf):
+    def __init__(self, predict, loss_fn=None, eps=0.3, nb_iter=40,
+                 decay_factor=1., eps_iter=0.01, clip_min=0., clip_max=1.,
+                 targeted=False, ord=np.inf):
         """Create an instance of the MomentumIterativeAttack."""
         super(MomentumIterativeAttack, self).__init__(
             predict, loss_fn, clip_min, clip_max)
@@ -469,9 +462,9 @@ class L2MomentumIterativeAttack(MomentumIterativeAttack):
     :param targeted: if the attack is targeted.
     """
 
-    def __init__(
-            self, predict, loss_fn=None, eps=0.3, nb_iter=40, decay_factor=1.,
-            eps_iter=0.01, clip_min=0., clip_max=1., targeted=False):
+    def __init__(self, predict, loss_fn=None, eps=0.3, nb_iter=40,
+                 decay_factor=1., eps_iter=0.01, clip_min=0., clip_max=1.,
+                 targeted=False):
         """Create an instance of the MomentumIterativeAttack."""
         ord = 2
         super(L2MomentumIterativeAttack, self).__init__(
