@@ -68,7 +68,7 @@ adv:
   name: "LinfPGDAttack"
   param:
     nb_iter: 8
-    eps: 0.3
+    eps: 0.03
     eps_iter: 0.01
     rand_init: True
     clip_min: 0.

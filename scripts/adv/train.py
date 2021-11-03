@@ -5,7 +5,7 @@ import argparse
 import yaml
 import numpy as np
 import torch
-from pudb import set_trace
+# from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn import metrics
@@ -284,8 +284,7 @@ class Trainer(BaseTrainer):
                                          average='macro')
         val_mr = metrics.recall_score(all_labels, all_preds, average='macro')
         val_recalls = metrics.recall_score(all_labels, all_preds, average=None)
-        val_recalls = np.around(val_recalls, decimals=2).tolist() \
-            if len(val_recalls) <= 10 else '-'
+        val_recalls = np.around(val_recalls, decimals=2).tolist()
 
         val_pbar.set_postfix_str(
             'Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%}'.format(
