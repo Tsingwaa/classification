@@ -240,7 +240,7 @@ class BaseTrainer:
             raise AttributeError(f'Optimizer initialize failed: {error} !')
 
     def init_lr_scheduler(self):
-        if self.lr_scheduler_name == 'CyclicLR':# {{{
+        if self.lr_scheduler_name == 'CyclicLR':
             self.iter_num = int(
                 np.ceil(self.train_size / self.train_batch_size)
             )
@@ -265,7 +265,7 @@ class BaseTrainer:
             lr_scheduler_init_log = '===> Initialized {} with {}'.format(
                 self.lr_scheduler_name,
                 self.lr_scheduler_param
-            )# }}}
+            )
         try:
             lr_scheduler = getattr(torch.optim.lr_scheduler,
                                    self.lr_scheduler_name)(
@@ -395,7 +395,7 @@ class BaseTrainer:
             torch.save(checkpoint, last_fpath)
 
     def init_logger(self, log_fpath):
-        logger = logging.getLogger()# {{{
+        logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
 
         # Save log to file
@@ -418,7 +418,7 @@ class BaseTrainer:
         logger.addHandler(stream_handler)
 
         return logger
-# }}}
+
     def train(self):
         pass
 
