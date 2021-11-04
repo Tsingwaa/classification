@@ -369,7 +369,7 @@ class BaseTrainer:
         return checkpoint, resume_log
 
     def save_checkpoint(self, epoch, acc=None, mr=None, ap=None):
-        if epoch == self.total_epochs:
+        if epoch > 100 and epoch % self.save_period == 0:
             checkpoint = {'model': self.model.state_dict()
                           if self.local_rank == -1 else
                           self.model.module.state_dict(),
