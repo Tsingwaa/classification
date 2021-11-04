@@ -189,8 +189,7 @@ class BaseTrainer:
         dataset_name = dataset_config['name']
         dataset_param = dataset_config['param']
         dataset_param['data_root'] = join(
-            self.user_root, 'Data', dataset_param['data_root']
-        )
+            self.user_root, 'Data', dataset_param['data_root'])
         dataset_param['transform'] = transform
         dataset = build_dataset(dataset_name, **dataset_param)
         if dataset_param['phase'] == 'train':
@@ -205,7 +204,7 @@ class BaseTrainer:
         return dataset
 
     def init_optimizer(self):
-        # model_params = [{{{
+        # model_params = [
         #     {
         #         'params': [p for n, p in self.model.named_parameters()
         #                    if not any(nd in n for nd in ['bias', 'bn'])],
@@ -216,11 +215,10 @@ class BaseTrainer:
         #                    if any(nd in n for nd in ['bias', 'bn'])],
         #         'weight_decay': 0.0
         #     }
-        # ]}}}
+        # ]
         try:
             optimizer = getattr(torch.optim, self.optimizer_name)(
-                self.model.parameters(), **self.optimizer_param
-            )
+                self.model.parameters(), **self.optimizer_param)
             if self.resume:
                 optimizer.load_state_dict(self.checkpoint['optimizer'])
             if self.optimizer_name == 'SGD':
@@ -242,8 +240,7 @@ class BaseTrainer:
     def init_lr_scheduler(self):
         if self.lr_scheduler_name == 'CyclicLR':
             self.iter_num = int(
-                np.ceil(self.train_size / self.train_batch_size)
-            )
+                np.ceil(self.train_size / self.train_batch_size))
             self.lr_scheduler_param['step_size_up'] *= self.iter_num
             self.lr_scheduler_param['step_size_down'] *= self.iter_num
             lr_scheduler_init_log = '===> Initialized {} with step_size_up={}'\
@@ -252,26 +249,21 @@ class BaseTrainer:
                     self.lr_scheduler_param['step_size_up'],
                     self.lr_scheduler_param['step_size_down'],
                     self.lr_scheduler_param['base_lr'],
-                    self.lr_scheduler_param['max_lr'],
-                )
+                    self.lr_scheduler_param['max_lr'],)
         elif self.lr_scheduler_name == 'MultiStepLR':
             lr_scheduler_init_log = '===> Initialized {} with milestones={}'\
-                    ' gamma={}'.format(
-                        self.lr_scheduler_name,
-                        self.lr_scheduler_param['milestones'],
-                        self.lr_scheduler_param['gamma']
-                    )
+                    ' gamma={}'.format(self.lr_scheduler_name,
+                                       self.lr_scheduler_param['milestones'],
+                                       self.lr_scheduler_param['gamma'])
         else:
             lr_scheduler_init_log = '===> Initialized {} with {}'.format(
                 self.lr_scheduler_name,
-                self.lr_scheduler_param
-            )
+                self.lr_scheduler_param)
         try:
             lr_scheduler = getattr(torch.optim.lr_scheduler,
                                    self.lr_scheduler_name)(
                                        self.optimizer,
-                                       **self.lr_scheduler_param
-                                   )
+                                       **self.lr_scheduler_param)
             if self.local_rank in [-1, 0]:
                 self.logger.info(lr_scheduler_init_log)
             if self.resume:
@@ -282,13 +274,10 @@ class BaseTrainer:
                     self.optimizer,
                     multiplier=self.warmup_param['multiplier'],
                     warmup_epochs=self.warmup_param['warmup_epochs'],
-                    after_scheduler=lr_scheduler,
-                )
+                    after_scheduler=lr_scheduler,)
                 warmup_log = '===> Warmup for {} epochs with multiplier={}\n'\
-                    ''.format(
-                        self.warmup_param["warmup_epochs"],
-                        self.warmup_param['multiplier'],
-                    )
+                    ''.format(self.warmup_param["warmup_epochs"],
+                              self.warmup_param['multiplier'],)
                 if self.local_rank in [-1, 0]:
                     self.logger.info(warmup_log)
             else:
@@ -381,16 +370,15 @@ class BaseTrainer:
 
     def save_checkpoint(self, epoch, acc=None, mr=None, ap=None):
         if epoch == self.total_epochs:
-            checkpoint = {
-                'model': self.model.state_dict() if self.local_rank == -1
-                else self.model.module.state_dict(),
-                'optimizer': self.optimizer.state_dict(),
-                'lr_scheduler': self.lr_scheduler.state_dict(),
-                'epoch': epoch,
-                'acc': acc,
-                'mr': mr,
-                'ap': ap,
-            }
+            checkpoint = {'model': self.model.state_dict()
+                          if self.local_rank == -1 else
+                          self.model.module.state_dict(),
+                          'optimizer': self.optimizer.state_dict(),
+                          'lr_scheduler': self.lr_scheduler.state_dict(),
+                          'epoch': epoch,
+                          'acc': acc,
+                          'mr': mr,
+                          'ap': ap}
             last_fpath = join(self.save_dir, 'last.pth.tar')
             torch.save(checkpoint, last_fpath)
 
@@ -404,8 +392,7 @@ class BaseTrainer:
         file_handler_formatter = logging.Formatter(
             '%(asctime)s: %(levelname)s:'
             ' [%(filename)s:%(lineno)d]: %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S',
-        )
+            datefmt='%Y-%m-%d %H:%M:%S',)
         file_handler.setFormatter(file_handler_formatter)
 
         # print to the screen
