@@ -88,8 +88,7 @@ class Trainer(BaseTrainer):
         # Initialize Adversarial Training
         #######################################################################
         self.adv_param.update({
-            "predict": self.model,
-            "loss_fn": self.criterion
+            "model": self.model,
         })
         self.attacker = self.init_module(module_name=self.adv_name,
                                          module_param=self.adv_param)
@@ -259,6 +258,7 @@ class Trainer(BaseTrainer):
 
             all_labels.extend(batch_labels.cpu().numpy().tolist())
             all_adv_preds.extend(batch_adv_pred.cpu().numpy().tolist())
+
             if self.joint_training:
                 adv_loss_meter.update(batch_adv_loss.item(), 1)
                 clean_loss_meter.update(batch_clean_loss.item(), 1)
@@ -296,17 +296,20 @@ class Trainer(BaseTrainer):
         train_adv_acc = metrics.accuracy_score(all_labels, all_adv_preds)
         train_adv_mr = metrics.recall_score(all_labels, all_adv_preds,
                                             average='macro')
-        train_clean_acc = metrics.accuracy_score(all_labels, all_clean_preds)
-        train_clean_mr = metrics.recall_score(all_labels, all_clean_preds,
-                                              average='macro')
+
         if self.joint_training:
+            train_clean_acc = metrics.accuracy_score(all_labels,
+                                                     all_clean_preds)
+            train_clean_mr = metrics.recall_score(all_labels,
+                                                  all_clean_preds,
+                                                  average='macro')
             postfix_str = 'LR:{:.1e} TotalLoss:{:.2f}'\
-                    ' ADV Loss:{:.2f} Acc:{:.0%} MR:{:.0%} '\
-                    '| CLN Loss:{:.2f} Acc:{:.0%} MR:{.0%}'.format(
-                        self.optimizer.param_groups[0]['lr'],
-                        final_loss_meter.avg,
-                        adv_loss_meter.avg, train_adv_acc, train_adv_mr,
-                        clean_loss_meter.avg, train_clean_acc, train_clean_mr)
+                ' ADV Loss:{:.2f} Acc:{:.0%} MR:{:.0%} '\
+                '| CLN Loss:{:.2f} Acc:{:.0%} MR:{.0%}'.format(
+                    self.optimizer.param_groups[0]['lr'],
+                    final_loss_meter.avg,
+                    adv_loss_meter.avg, train_adv_acc, train_adv_mr,
+                    clean_loss_meter.avg, train_clean_acc, train_clean_mr)
         else:
             postfix_str = 'LR:{:.1e} ADV Loss:{:.2f} Acc:{:.0%} MR:{:.0%}'\
                     ''.format(self.optimizer.param_groups[0]['lr'],
