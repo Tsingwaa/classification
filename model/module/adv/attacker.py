@@ -9,8 +9,9 @@ class LinfPGD(nn.Module):
     Can be used to adversarial training.
     """
 
-    def __init__(self, model, epsilon=8/255, step=2/255, iterations=20,
-                 criterion=None, random_start=True, targeted=False, **kwargs):
+    def __init__(self, model, epsilon=8/255, step=2/255, iterations=7,
+                 criterion=None, random_start=True, targeted=False,
+                 clip_min=0., clip_max=1.):
         super(LinfPGD, self).__init__()
         # Arguments of PGD
         self.device = next(model.parameters()).device
@@ -21,6 +22,8 @@ class LinfPGD(nn.Module):
         self.iterations = iterations
         self.random_start = random_start
         self.targeted = targeted
+        self.clip_min = clip_min
+        self.clip_max = clip_max
 
         self.criterion = criterion
         if self.criterion is None:
@@ -38,7 +41,9 @@ class LinfPGD(nn.Module):
         # Project the perturbation to Lp ball
         perturbation = self.project(adv_x - x)
         # Clamp the adversarial image to a legal 'image'
-        perturbation = torch.clamp(x+perturbation, 0., 1.) - x
+        perturbation = torch.clamp(x + perturbation,
+                                   self.clip_min,
+                                   self.clip_max) - x
 
         return perturbation
 
@@ -73,7 +78,7 @@ class LinfPGD(nn.Module):
 
     def random_perturbation(self, x):
         perturbation = torch.rand_like(x).to(device=self.device)
-        perturbation = self.compute_perturbation(x+perturbation, x)
+        perturbation = self.compute_perturbation(x + perturbation, x)
 
         return perturbation
 
@@ -108,7 +113,7 @@ class L2PGD(nn.Module):
     """
 
     def __init__(self, model, epsilon=5, step=1, iterations=20, criterion=None,
-                 random_start=True, targeted=False, **kwargs):
+                 random_start=True, targeted=False):
         super(L2PGD, self).__init__()
         # Arguments of PGD
         self.device = next(model.parameters()).device
