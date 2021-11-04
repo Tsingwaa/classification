@@ -3,8 +3,8 @@ experiment:
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: False
-  resume_fpath: "ResNet18_best.pth.tar"
+  resume: True
+  resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -73,8 +73,8 @@ network:
   name: "Norm_ResNet18"
   param:
     num_classes: 20
-    mean: [0.3567, 0.4279, 0.4439] # [0., 0., 0.]  # [0.3567, 0.4279, 0.4439]
-    std: [0.2761, 0.2584, 0.2705] # [1., 1., 1.]  # [0.2761, 0.2584, 0.2705]
+    mean: [0.3567, 0.4279, 0.4439]
+    std: [0.2761, 0.2584, 0.2705]
     use_ssp: False
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
