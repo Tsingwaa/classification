@@ -10,14 +10,14 @@ experiment:
 
 train_transform:
   script_path: "data_loader.transform.transform"
-  name: "BaseTransform"
+  name: "AdvTransform"
   param:
     phase: "train"
     resize: [224, 224]
 
 val_transform:
   script_path: "data_loader.transform.transform"
-  name: "BaseTransform"
+  name: "AdvTransform"
   param:
     phase: "val"
     resize: [224, 224]
@@ -60,22 +60,22 @@ network:
   name: "Norm_ResNet18"
   param:
     num_classes: 20
-    mean: [0.3567, 0.4279, 0.4439]
-    std: [0.2761, 0.2584, 0.2705]
+    mean: [0., 0., 0.]  # [0.3567, 0.4279, 0.4439]
+    std: [1., 1., 1.]# [0.2761, 0.2584, 0.2705]
     use_ssp: False
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
 adv:
-  name: "LinfPGDAttack"
+  name: "LinfPGD"
   param:
-    nb_iter: 7
-    eps: 0.0314
-    eps_iter: 0.0078
-    rand_init: True
-    clip_min: 0.
-    clip_max: 1.
-    targeted: False
+    iterations: 7  # Default: 7
+    # step: 0.0078  # Default: 2/255
+    # epsilon: 0.0314  # Default: 8/255
+    # random_start: True  # Default: True
+    # targeted: False  # Default: False
+    # clip_min: 0.  # Default: 0.
+    # clip_max: 1.  # Default: 0.
 
 loss:
   name: "CrossEntropyLoss"
