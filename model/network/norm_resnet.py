@@ -44,8 +44,9 @@ class resnet18(nn.Module):
             *list(models.resnet18(pretrained=False).children())[:-1]
             + [nn.Flatten()]
         )
-        self.classifier = nn.Linear(
-            in_features=512, out_features=num_classes, bias=False)
+        self.classifier = nn.Linear(in_features=512,
+                                    out_features=num_classes,
+                                    bias=False)
         self.encoder.apply(_init_weight)
 
     def forward(self, x):
