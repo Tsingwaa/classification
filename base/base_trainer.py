@@ -1,17 +1,18 @@
 """Base Trainer"""
+# ############# Build-in Package #############
 import os
 # import shutil
 import logging
-import torch
-import numpy as np
-# from pudb import set_trace
 from os.path import join
+# ########### Third-Party Package ############
+import numpy as np
+import torch
+# from pudb import set_trace
 from torch.utils.tensorboard import SummaryWriter
 from importlib import import_module
-# Distribute Package
 from torch import distributed as dist
 from torch.utils.data.distributed import DistributedSampler
-# Custom package
+# ############## Custom package ##############
 from model.loss.builder import build_loss
 from model.network.builder import build_network
 from model.module.builder import build_module
@@ -24,9 +25,9 @@ class BaseTrainer:
     def __init__(self, local_rank=-1, config=None):
         """ Base trainer for all experiments.  """
 
-        ##################################
+        #######################################################################
         # Device setting
-        ##################################
+        #######################################################################
         assert torch.cuda.is_available()
         torch.backends.cudnn.benchmark = True
         torch.backends.cudnn.enable = True
@@ -38,9 +39,9 @@ class BaseTrainer:
             self.global_rank = dist.get_rank()
             self.world_size = dist.get_world_size()
 
-        ##################################
+        #######################################################################
         # Experiment setting
-        ##################################
+        #######################################################################
         self.experiment_config = config['experiment']
         self.exp_name = self.experiment_config['name']
         self.user_root = os.environ['HOME']
@@ -94,17 +95,17 @@ class BaseTrainer:
         if self.resume:
             self.checkpoint = self.resume_checkpoint()
 
-        ##################################
+        #######################################################################
         # Dataset setting
-        ##################################
+        #######################################################################
         self.train_transform_config = config['train_transform']
         self.trainset_config = config['train_dataset']
         self.val_transform_config = config['val_transform']
         self.valset_config = config['val_dataset']
 
-        ##################################
+        #######################################################################
         # Dataloader setting
-        ##################################
+        #######################################################################
         self.trainloader_config = config['trainloader']
         self.trainloader_name = self.trainloader_config['name']
         self.trainloader_param = self.trainloader_config['param']
@@ -118,31 +119,31 @@ class BaseTrainer:
         self.val_batch_size = self.valloader_param['batch_size']
         self.val_num_workers = self.valloader_param['num_workers']
 
-        ##################################
+        #######################################################################
         # Network setting
-        ##################################
+        #######################################################################
         self.network_config = config['network']
         self.network_name = self.network_config['name']
         self.network_param = self.network_config['param']
 
-        ##################################
+        #######################################################################
         # Loss setting
-        ##################################
+        #######################################################################
         self.loss_config = config['loss']
         self.loss_name = self.loss_config['name']
         self.loss_param = self.loss_config['param']
 
-        ##################################
+        #######################################################################
         # Optimizer setting
-        ##################################
+        #######################################################################
         self.optimizer_config = config['optimizer']
         self.optimizer_name = self.optimizer_config['name']
         self.optimizer_param = self.optimizer_config['param']
         self.weight_decay = self.optimizer_param['weight_decay']
 
-        ##################################
+        #######################################################################
         # LR scheduler setting
-        ##################################
+        #######################################################################
         self.warmup_lr_scheduler_config = config['warmup_lr_scheduler']
         self.warmup = self.warmup_lr_scheduler_config['warmup']
         self.warmup_param = self.warmup_lr_scheduler_config['param']
@@ -204,7 +205,7 @@ class BaseTrainer:
         return dataset
 
     def init_optimizer(self):
-        # model_params = [
+        # model_params = [{{{
         #     {
         #         'params': [p for n, p in self.model.named_parameters()
         #                    if not any(nd in n for nd in ['bias', 'bn'])],
@@ -215,7 +216,7 @@ class BaseTrainer:
         #                    if any(nd in n for nd in ['bias', 'bn'])],
         #         'weight_decay': 0.0
         #     }
-        # ]
+        # ]}}}
         try:
             optimizer = getattr(torch.optim, self.optimizer_name)(
                 self.model.parameters(), **self.optimizer_param
@@ -239,7 +240,7 @@ class BaseTrainer:
             raise AttributeError(f'Optimizer initialize failed: {error} !')
 
     def init_lr_scheduler(self):
-        if self.lr_scheduler_name == 'CyclicLR':
+        if self.lr_scheduler_name == 'CyclicLR':# {{{
             self.iter_num = int(
                 np.ceil(self.train_size / self.train_batch_size)
             )
@@ -264,7 +265,7 @@ class BaseTrainer:
             lr_scheduler_init_log = '===> Initialized {} with {}'.format(
                 self.lr_scheduler_name,
                 self.lr_scheduler_param
-            )
+            )# }}}
         try:
             lr_scheduler = getattr(torch.optim.lr_scheduler,
                                    self.lr_scheduler_name)(
@@ -394,7 +395,7 @@ class BaseTrainer:
             torch.save(checkpoint, last_fpath)
 
     def init_logger(self, log_fpath):
-        logger = logging.getLogger()
+        logger = logging.getLogger()# {{{
         logger.setLevel(logging.DEBUG)
 
         # Save log to file
@@ -417,7 +418,7 @@ class BaseTrainer:
         logger.addHandler(stream_handler)
 
         return logger
-
+# }}}
     def train(self):
         pass
 
