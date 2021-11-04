@@ -361,14 +361,15 @@ class BaseTrainer:
             resume_fpath = self.resume_fpath
         checkpoint = torch.load(resume_fpath, map_location='cpu')
         self.start_epoch = checkpoint['epoch']
-        acc = checkpoint['acc']
         mr = checkpoint['mr']
-        ap = checkpoint['ap']
-        resume_log = '\n===> Resume checkpoint from "{}".\nResume acc:{:.2%}'\
-            ' mr:{:.2%} ap:{:.2%}'.format(resume_fpath, acc, mr, ap)
+        recalls = checkpoint['recalls']
+        # ap = checkpoint['ap']
+        resume_log = '\n===> Resume checkpoint from "{}".\n'\
+            'Checkpoint:\n Mean recall:{:.2%}\n'\
+            'Class recalls:{}'.format(resume_fpath, mr, recalls)
         return checkpoint, resume_log
 
-    def save_checkpoint(self, epoch, acc=None, mr=None, ap=None):
+    def save_checkpoint(self, epoch, mr=None, ap=None, recalls=[]):
         if epoch > 100 and epoch % self.save_period == 0:
             checkpoint = {'model': self.model.state_dict()
                           if self.local_rank == -1 else
@@ -376,9 +377,8 @@ class BaseTrainer:
                           'optimizer': self.optimizer.state_dict(),
                           'lr_scheduler': self.lr_scheduler.state_dict(),
                           'epoch': epoch,
-                          'acc': acc,
                           'mr': mr,
-                          'ap': ap}
+                          'recalls': recalls, }
             last_fpath = join(self.save_dir, 'last.pth.tar')
             torch.save(checkpoint, last_fpath)
 
