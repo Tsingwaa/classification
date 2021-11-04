@@ -11,7 +11,7 @@ class LinfPGD(nn.Module):
 
     def __init__(self, model, epsilon=8/255, step=2/255, iterations=7,
                  criterion=None, random_start=True, targeted=False,
-                 clip_min=0., clip_max=1.):
+                 clip_min=0., clip_max=1., **kwargs):
         super(LinfPGD, self).__init__()
         # Arguments of PGD
         self.device = next(model.parameters()).device
@@ -113,7 +113,7 @@ class L2PGD(nn.Module):
     """
 
     def __init__(self, model, epsilon=5, step=1, iterations=20, criterion=None,
-                 random_start=True, targeted=False):
+                 random_start=True, targeted=False, **kwargs):
         super(L2PGD, self).__init__()
         # Arguments of PGD
         self.device = next(model.parameters()).device
