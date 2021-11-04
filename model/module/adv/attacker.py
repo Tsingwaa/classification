@@ -113,7 +113,8 @@ class L2PGD(nn.Module):
     """
 
     def __init__(self, model, epsilon=5, step=1, iterations=20, criterion=None,
-                 random_start=True, targeted=False, **kwargs):
+                 random_start=True, targeted=False, clip_min=0., clip_max=1.,
+                 **kwargs):
         super(L2PGD, self).__init__()
         # Arguments of PGD
         self.device = next(model.parameters()).device
@@ -124,6 +125,8 @@ class L2PGD(nn.Module):
         self.iterations = iterations
         self.random_start = random_start
         self.targeted = targeted
+        self.clip_min = clip_min
+        self.clip_max = clip_max
 
         self.criterion = criterion
         if self.criterion is None:
@@ -141,7 +144,9 @@ class L2PGD(nn.Module):
         # Project the perturbation to Lp ball
         perturbation = self.project(adv_x - x)
         # Clamp the adversarial image to a legal 'image'
-        perturbation = torch.clamp(x+perturbation, 0., 1.) - x
+        perturbation = torch.clamp(x + perturbation,
+                                   self.clip_min,
+                                   self.clip_max) - x
 
         return perturbation
 
@@ -155,9 +160,8 @@ class L2PGD(nn.Module):
         self.model.zero_grad()
         atk_loss.backward()
         grad = adv_x.grad
-        g_norm = torch.norm(
-            grad.view(x.shape[0], -1), p=2, dim=1).view(
-                -1, *([1]*(len(x.shape) - 1))
+        g_norm = torch.norm(grad.view(x.shape[0], -1), p=2, dim=1).view(
+                -1, *([1] * (len(x.shape) - 1))
             )
         grad = grad / (g_norm + 1e-10)
         # Essential: delete the computation graph to save GPU ram
