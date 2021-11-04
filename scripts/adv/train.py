@@ -29,8 +29,8 @@ class Trainer(BaseTrainer):
         adv_config = config['adv']
         self.adv_name = adv_config['name']
         self.adv_param = adv_config['param']
-        self.joint_training = adv_config['joint_training']
-        self.clean_weight = adv_config['clean_weight']
+        self.joint_training = self.adv_param['joint_training']
+        self.clean_weight = self.adv_param['clean_weight']
 
     def train(self):
         #######################################################################
@@ -118,11 +118,9 @@ class Trainer(BaseTrainer):
         #######################################################################
         last_train_accs = np.zeros(20)
         last_train_mrs = np.zeros(20)
-        last_train_aps = np.zeros(20)
         last_train_losses = np.zeros(20)
         last_val_accs = np.zeros(20)
         last_val_mrs = np.zeros(20)
-        last_val_aps = np.zeros(20)
         last_val_losses = np.zeros(20)
         for epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
@@ -132,36 +130,32 @@ class Trainer(BaseTrainer):
             if self.local_rank != -1:
                 train_sampler.set_epoch(epoch)
 
-            train_acc, train_mr, train_ap, train_loss = self.train_epoch(epoch)
+            train_acc, train_mr, train_loss = self.train_epoch(epoch)
 
             if self.local_rank in [-1, 0]:
-                val_acc, val_mr, val_ap, val_loss, val_recalls = \
+                val_acc, val_mr, val_loss, val_recalls = \
                         self.evaluate(epoch)
 
                 last_train_accs[epoch % 20] = train_acc
                 last_train_mrs[epoch % 20] = train_mr
-                last_train_aps[epoch % 20] = train_ap
                 last_train_losses[epoch % 20] = train_loss
                 last_val_accs[epoch % 20] = val_acc
                 last_val_mrs[epoch % 20] = val_mr
-                last_val_aps[epoch % 20] = val_ap
                 last_val_losses[epoch % 20] = val_loss
 
                 self.logger.debug(
                     'Epoch[{epoch:>3d}/{total_epochs}] '
                     'Trainset Acc={train_acc:.2%}, MR={train_mr:.2%}, '
-                    'AP={train_ap:.2%}, Loss={train_loss:.4f} || '
+                    'Loss={train_loss:.4f} || '
                     'Valset Acc={val_acc:.2%}, MR={val_mr:.2%}, '
-                    'AP={val_ap:.2%}, Loss={val_loss:.4f}'.format(
+                    'Loss={val_loss:.4f}'.format(
                         epoch=epoch,
                         total_epochs=self.total_epochs,
                         train_acc=train_acc,
                         train_mr=train_mr,
-                        train_ap=train_ap,
                         train_loss=train_loss,
                         val_acc=val_acc,
                         val_mr=val_mr,
-                        val_ap=val_ap,
                         val_loss=val_loss
                     )
                 )
@@ -181,33 +175,26 @@ class Trainer(BaseTrainer):
                 self.writer.add_scalars(f'{self.exp_name}/Recall',
                                         {'train_mr': train_mr,
                                          'val_mr': val_mr}, epoch)
-                self.writer.add_scalars(f'{self.exp_name}/Precision',
-                                        {'train_ap': train_ap,
-                                         'val_ap': val_ap}, epoch)
-                self.save_checkpoint(epoch, val_acc, val_mr, val_ap)
+                self.save_checkpoint(epoch, val_acc, val_mr)
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
                 "\nTrain Set:\n"
                 "\tAverage accuracy of the last 20 epochs: {:.2%}\n"
                 "\tAverage recall of the last 20 epochs: {:.2%}\n"
-                "\tAverage precision of the last 20 epochs: {:.2%}\n"
                 "\tAverage losses of the last 20 epochs: {:.4f}\n"
                 "Validation Set:\n"
                 "\tAverage accuracy of the last 20 epochs: {:.2%}\n"
                 "\tAverage recall of the last 20 epochs: {:.2%}\n"
-                "\tAverage precision of the last 20 epochs: {:.2%}\n"
                 "\tAverage losses of the last 20 epochs: {:.4f}\n"
                 "===> The result of Experiment '{}' are saved at '{}'\n"
                 "*************************************************************"
                 "*****************************************************".format(
                     np.mean(last_train_accs),
                     np.mean(last_train_mrs),
-                    np.mean(last_train_aps),
                     np.mean(last_train_losses),
                     np.mean(last_val_accs),
                     np.mean(last_val_mrs),
-                    np.mean(last_val_aps),
                     np.mean(last_val_losses),
                     self.exp_name,
                     self.save_dir,
@@ -309,13 +296,9 @@ class Trainer(BaseTrainer):
         train_adv_acc = metrics.accuracy_score(all_labels, all_adv_preds)
         train_adv_mr = metrics.recall_score(all_labels, all_adv_preds,
                                             average='macro')
-        train_adv_ap = metrics.precision_score(all_labels, all_adv_preds,
-                                               average='macro')
         train_clean_acc = metrics.accuracy_score(all_labels, all_clean_preds)
         train_clean_mr = metrics.recall_score(all_labels, all_clean_preds,
                                               average='macro')
-        train_clean_ap = metrics.precision_score(all_labels, all_clean_preds,
-                                                 average='macro')
         if self.joint_training:
             postfix_str = 'LR:{:.1e} TotalLoss:{:.2f}'\
                     ' ADV Loss:{:.2f} Acc:{:.0%} MR:{:.0%} '\
@@ -332,7 +315,7 @@ class Trainer(BaseTrainer):
         train_pbar.set_postfix_str(postfix_str)
         train_pbar.close()
 
-        return train_adv_acc, train_adv_mr, train_adv_ap, final_loss_meter.avg
+        return train_adv_acc, train_adv_mr, final_loss_meter.avg
 
     def evaluate(self, epoch):
         self.model.eval()
@@ -361,20 +344,18 @@ class Trainer(BaseTrainer):
                 val_pbar.update()
 
         val_acc = metrics.accuracy_score(all_labels, all_preds)
-        val_ap = metrics.precision_score(all_labels, all_preds,
-                                         average='macro')
         val_mr = metrics.recall_score(all_labels, all_preds, average='macro')
         val_recalls = metrics.recall_score(all_labels, all_preds, average=None)
         val_recalls = np.around(val_recalls, decimals=2).tolist()
 
         val_pbar.set_postfix_str(
-            'Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%}'.format(
-                val_loss_meter.avg, val_acc, val_mr, val_ap
+            'Loss:{:.2f} Acc:{:.2%} MR:{:.2%}'.format(
+                val_loss_meter.avg, val_acc, val_mr
             )
         )
         val_pbar.close()
 
-        return val_acc, val_mr, val_ap, val_loss_meter.avg, val_recalls
+        return val_acc, val_mr, val_loss_meter.avg, val_recalls
 
 
 def parse_args():
