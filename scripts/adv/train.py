@@ -29,6 +29,8 @@ class Trainer(BaseTrainer):
         adv_config = config['adv']
         self.adv_name = adv_config['name']
         self.adv_param = adv_config['param']
+        self.joint_training = adv_config['joint_training']
+        self.clean_weight = adv_config['clean_weight']
 
     def train(self):
         #######################################################################
@@ -221,11 +223,14 @@ class Trainer(BaseTrainer):
         )
 
         all_labels = []
-        all_preds = []
-        train_acc_meter = AccAverageMeter()
+        all_adv_preds = []
+        adv_acc_meter = AccAverageMeter()
         final_loss_meter = AccAverageMeter()
-        adv_loss_meter = AccAverageMeter()
-        clean_loss_meter = AccAverageMeter()
+        if self.joint_training:
+            all_clean_preds = []
+            clean_acc_meter = AccAverageMeter()
+            adv_loss_meter = AccAverageMeter()
+            clean_loss_meter = AccAverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(self.trainloader):
             if self.lr_scheduler_mode == 'iteration':
                 self.lr_scheduler.step()
@@ -235,63 +240,99 @@ class Trainer(BaseTrainer):
 
             # Adversarial Training
             # Step 1: generate perturbed samples
-            batch_perturbed_imgs = self.attacker.perturb(batch_imgs,
-                                                         batch_labels)
+            batch_adv_imgs = self.attacker.attack(batch_imgs, batch_labels)
             # Step 2: train with perturbed imgs
-            batch_perturbed_prob = self.model(batch_perturbed_imgs)
-            batch_prob = self.model(batch_imgs)
+            batch_adv_probs = self.model(batch_adv_imgs)
+            batch_adv_loss = self.criterion(batch_adv_probs, batch_labels)
 
-            adv_loss = self.criterion(batch_perturbed_prob, batch_labels)
-            clean_loss = self.criterion(batch_prob, batch_labels)
-            alpha = 0.5
-            final_loss = alpha * clean_loss + (1 - alpha) * adv_loss
-            if self.local_rank != -1:
-                with amp.scale_loss(final_loss, self.optimizer) as scaled_loss:
-                    scaled_loss.backward()
-                self.optimizer.step()
-                self._reduce_loss(final_loss)
+            if not self.joint_training:
+                # Only adversarial training
+                batch_final_loss = batch_adv_loss
             else:
-                final_loss.backward()
+                # Joint adversarial and clean training
+                batch_probs = self.model(batch_imgs)
+                batch_clean_loss = self.criterion(batch_probs, batch_labels)
+                batch_final_loss = self.clean_weight * batch_clean_loss +\
+                    (1 - self.clean_weight) * batch_adv_loss
+            if self.local_rank != -1:
+                with amp.scale_loss(batch_final_loss, self.optimizer)\
+                        as scaled_loss:
+                    scaled_loss.backward()
+
+                self.optimizer.step()
+                self._reduce_loss(batch_final_loss)
+            else:
+                batch_final_loss.backward()
                 self.optimizer.step()
 
-            batch_pred = batch_prob.max(1)[1]
-            acc = (batch_pred == batch_labels).float().mean()
-            train_acc_meter.update(acc, 1)
-            final_loss_meter.update(final_loss.item(), 1)
-            adv_loss_meter.update(adv_loss.item(), 1)
-            clean_loss_meter.update(clean_loss.item(), 1)
+            batch_adv_pred = batch_adv_probs.max(1)[1]
+            batch_adv_acc = (batch_adv_pred == batch_labels).float().mean()
+            final_loss_meter.update(batch_final_loss.item(), 1)
+            adv_acc_meter.update(batch_adv_acc, n=1)
 
             all_labels.extend(batch_labels.cpu().numpy().tolist())
-            all_preds.extend(batch_pred.cpu().numpy().tolist())
+            all_adv_preds.extend(batch_adv_pred.cpu().numpy().tolist())
+            if self.joint_training:
+                adv_loss_meter.update(batch_adv_loss.item(), 1)
+                clean_loss_meter.update(batch_clean_loss.item(), 1)
+
+                batch_clean_preds = batch_probs.max(1)[1]
+                batch_clean_acc = \
+                    (batch_clean_preds == batch_labels).float().mean()
+                clean_acc_meter.update(batch_clean_acc, n=1)
+                all_clean_preds.extend(
+                    batch_clean_preds.cpu().numpy().tolist())
 
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
-                train_pbar.set_postfix_str(
-                    'LR:{:.1e} FinalLoss:{:.2f} ADV:{:.2f}'
-                    ' CLN:{:.2f} Acc:{:.2%}'.format(
+                if self.joint_training:
+                    train_pbar.set_postfix_str(
+                        'LR:{:.1e} FinalLoss:{:.2f} ADV:{:.2f}'
+                        ' Acc:{:.2%} CLN:{:.2f} Acc:{:.2%}'.format(
+                            self.optimizer.param_groups[0]['lr'],
+                            final_loss_meter.avg,
+                            adv_loss_meter.avg,
+                            adv_acc_meter.avg,
+                            clean_loss_meter.avg,
+                            clean_acc_meter.avg
+                        )
+                    )
+                else:
+                    train_pbar.set_postfix_str(
+                        'LR:{:.1e} Loss:{:.2f} Acc:{:.2%}'.format(
+                            self.optimizer.param_groups[0]['lr'],
+                            final_loss_meter.avg,
+                            adv_acc_meter.avg,
+                        )
+                    )
+
+        train_adv_acc = metrics.accuracy_score(all_labels, all_adv_preds)
+        train_adv_mr = metrics.recall_score(all_labels, all_adv_preds,
+                                            average='macro')
+        train_adv_ap = metrics.precision_score(all_labels, all_adv_preds,
+                                               average='macro')
+        train_clean_acc = metrics.accuracy_score(all_labels, all_clean_preds)
+        train_clean_mr = metrics.recall_score(all_labels, all_clean_preds,
+                                              average='macro')
+        train_clean_ap = metrics.precision_score(all_labels, all_clean_preds,
+                                                 average='macro')
+        if self.joint_training:
+            postfix_str = 'LR:{:.1e} TotalLoss:{:.2f}'\
+                    ' ADV Loss:{:.2f} Acc:{:.0%} MR:{:.0%} '\
+                    '| CLN Loss:{:.2f} Acc:{:.0%} MR:{.0%}'.format(
                         self.optimizer.param_groups[0]['lr'],
                         final_loss_meter.avg,
-                        adv_loss_meter.avg,
-                        clean_loss_meter.avg,
-                        train_acc_meter.avg,
-                    )
-                )
-
-        train_acc = metrics.accuracy_score(all_labels, all_preds)
-        train_mr = metrics.recall_score(all_labels, all_preds,
-                                        average='macro')
-        train_ap = metrics.precision_score(all_labels, all_preds,
-                                           average='macro')
-
-        train_pbar.set_postfix_str(
-            'LR:{:.1e} Loss:{:.2f} Acc:{:.0%} MR:{:.0%} AP:{:.0%}'.format(
-                self.optimizer.param_groups[0]['lr'],
-                final_loss_meter.avg, train_acc, train_mr, train_ap
-            )
-        )
+                        adv_loss_meter.avg, train_adv_acc, train_adv_mr,
+                        clean_loss_meter.avg, train_clean_acc, train_clean_mr)
+        else:
+            postfix_str = 'LR:{:.1e} ADV Loss:{:.2f} Acc:{:.0%} MR:{:.0%}'\
+                    ''.format(self.optimizer.param_groups[0]['lr'],
+                              final_loss_meter.avg,
+                              train_adv_acc, train_adv_mr)
+        train_pbar.set_postfix_str(postfix_str)
         train_pbar.close()
 
-        return train_acc, train_mr, train_ap, final_loss_meter.avg
+        return train_adv_acc, train_adv_mr, train_adv_ap, final_loss_meter.avg
 
     def evaluate(self, epoch):
         self.model.eval()
