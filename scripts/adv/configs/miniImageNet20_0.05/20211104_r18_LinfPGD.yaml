@@ -1,5 +1,5 @@
 experiment:
-  name: "miniImageNet20_0.05_r18_LinfPGD1"
+  name: "miniImageNet20_0.05_r18_LinfPGD"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
