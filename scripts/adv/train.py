@@ -89,8 +89,8 @@ class Trainer(BaseTrainer):
             "predict": self.model,
             "loss_fn": self.criterion
         })
-        self.attack = self.init_module(module_name=self.adv_name,
-                                       module_param=self.adv_param)
+        self.attacker = self.init_module(module_name=self.adv_name,
+                                         module_param=self.adv_param)
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
@@ -235,7 +235,8 @@ class Trainer(BaseTrainer):
 
             # Adversarial Training
             # Step 1: generate perturbed samples
-            batch_perturbed_imgs = self.attack(batch_imgs, batch_labels)
+            batch_perturbed_imgs = self.attacker.perturb(batch_imgs,
+                                                         batch_labels)
             # Step 2: train with perturbed imgs
             batch_perturbed_prob = self.model(batch_perturbed_imgs)
             batch_prob = self.model(batch_imgs)
