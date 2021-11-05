@@ -62,16 +62,17 @@ class BasicBlock(nn.Module):
         self.bn2_clean = norm_layer(planes)
         self.downsample = downsample
         self.stride = stride
+        self.is_clean = True
 
-    def forward(self, x, is_adv=False):
+    def forward(self, x):
         identity = x
 
         out = self.conv1(x)
-        out = self.bn1_adv(out) if is_adv else self.bn1_clean(out)
+        out = self.bn1_clean(out) if self.is_clean else self.bn1_adv(out)
         out = self.relu(out)
 
         out = self.conv2(out)
-        out = self.bn2_adv(out) if is_adv else self.bn2_clean(out)
+        out = self.bn2_clean(out) if self.is_clean else self.bn2_adv(out)
 
         if self.downsample is not None:
             identity = self.downsample(x)
@@ -103,7 +104,7 @@ class Bottleneck(nn.Module):
         # Both self.conv2 and self.downsample layers
         # downsample the input when stride != 1
         self.conv1 = conv1x1(inplanes, width)
-        self.bn1_adv = norm_layer(planes)
+        self.bn1_adv= norm_layer(planes)
         self.bn1_clean = norm_layer(planes)
         self.conv2 = conv3x3(width, width, stride, groups, dilation)
         self.bn2_adv = norm_layer(planes)
@@ -114,20 +115,21 @@ class Bottleneck(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
+        self.is_clean = True
 
-    def forward(self, x, is_adv=False):
+    def forward(self, x):
         identity = x
 
         out = self.conv1(x)
-        out = self.bn1_adv(out) if is_adv else self.bn1_clean(out)
+        out = self.bn1_clean(out) if self.is_clean else self.bn1_adv(out)
         out = self.relu(out)
 
         out = self.conv2(out)
-        out = self.bn2_adv(out) if is_adv else self.bn2_clean(out)
+        out = self.bn2_clean(out) if self.is_clean else self.bn2_adv(out)
         out = self.relu(out)
 
         out = self.conv3(out)
-        out = self.bn3_adv(out) if is_adv else self.bn3_clean(out)
+        out = self.bn3_clean(out) if self.is_clean else self.bn3_adv(out)
 
         if self.downsample is not None:
             identity = self.downsample(x)
@@ -177,6 +179,7 @@ class NormResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
+        self.is_clean = False
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -227,18 +230,18 @@ class NormResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, is_adv=False):
+    def forward(self, x):
         # See note [TorchScript super()]
         x = self.norm(x)
         x = self.conv1(x)
-        x = self.bn1_adv(x) if is_adv else self.bn1_clean(x)
+        x = self.bn1_clean(x) if self.is_clean else self.bn1_adv(x)
         x = self.relu(x)
         x = self.maxpool(x)
 
-        x = self.layer1(x, is_adv)
-        x = self.layer2(x, is_adv)
-        x = self.layer3(x, is_adv)
-        x = self.layer4(x, is_adv)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
