@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn.functional import cross_entropy
 from model.module.builder import Modules
 from utils import switch_adv
 
@@ -29,9 +30,7 @@ class LinfPGD(nn.Module):
         self.criterion = criterion
         if self.criterion is None:
             self.criterion = lambda model, input, target:\
-                    nn.functional.cross_entropy(
-                        model(input, is_adv=True), target
-                    )
+                    cross_entropy(model(input), target)
 
         # Model status
         self.training = self.model.training
