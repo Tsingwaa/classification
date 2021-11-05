@@ -31,6 +31,7 @@ class Trainer(BaseTrainer):
         self.adv_param = adv_config['param']
         self.joint_training = self.adv_param['joint_training']
         self.clean_weight = self.adv_param['clean_weight']
+        self.dual_bn = self.adv_param['dual_bn']
 
     def train(self):
         #######################################################################
@@ -204,7 +205,7 @@ class Trainer(BaseTrainer):
             # Step 1: generate perturbed samples
             batch_adv_imgs = self.attacker.attack(batch_imgs, batch_labels)
             # Step 2: train with perturbed imgs
-            batch_adv_probs = self.model(batch_adv_imgs)
+            batch_adv_probs = self.model(batch_adv_imgs, is_adv=True)
             batch_adv_loss = self.criterion(batch_adv_probs, batch_labels)
 
             if not self.joint_training:
@@ -212,7 +213,7 @@ class Trainer(BaseTrainer):
                 batch_final_loss = batch_adv_loss
             else:
                 # Joint adversarial and clean training
-                batch_probs = self.model(batch_imgs)
+                batch_probs = self.model(batch_imgs, is_adv=False)
                 batch_clean_loss = self.criterion(batch_probs, batch_labels)
                 batch_final_loss = self.clean_weight * batch_clean_loss +\
                     (1 - self.clean_weight) * batch_adv_loss
@@ -300,7 +301,7 @@ class Trainer(BaseTrainer):
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
                 batch_imgs = batch_imgs.cuda()
                 batch_labels = batch_labels.cuda()
-                batch_probs = self.model(batch_imgs)
+                batch_probs = self.model(batch_imgs, is_adv=False)
                 batch_preds = batch_probs.max(1)[1]
                 avg_loss = self.criterion(batch_probs, batch_labels)
                 val_loss_meter.update(avg_loss.item(), 1)

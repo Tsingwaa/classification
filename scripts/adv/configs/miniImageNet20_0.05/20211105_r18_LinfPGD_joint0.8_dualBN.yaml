@@ -1,5 +1,5 @@
 experiment:
-  name: "miniImageNet20_0.05_r18_LinfPGD_dualBN"
+  name: "miniImageNet20_0.05_r18_LinfPGD_joint0.8_dualBN"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -11,8 +11,8 @@ experiment:
 adv:
   name: "LinfPGD"
   param:
-    joint_training: False
-    clean_weight: 0.
+    joint_training: True
+    clean_weight: 0.8
     # iterations: 7  # Default: 7
     # step: 0.0078  # Default: 2/255
     # epsilon: 0.0314  # Default: 8/255
@@ -66,11 +66,11 @@ trainloader:
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 64
+    batch_size: 128
     num_workers: 6
 
 network:
-  name: "Norm_ResNet18"
+  name: "NormResNet18"
   param:
     num_classes: 20
     mean: [0.3567, 0.4279, 0.4439]
@@ -111,7 +111,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [60, 100, 140, 180]
+    milestones: [60, 100, 140, 170, 190]
     gamma: 0.1
 
     # CosineAnnealingWarmRestarts
