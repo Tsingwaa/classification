@@ -31,7 +31,6 @@ class Trainer(BaseTrainer):
         self.adv_param = adv_config['param']
         self.joint_training = self.adv_param['joint_training']
         self.clean_weight = self.adv_param['clean_weight']
-        self.dual_bn = self.adv_param['dual_bn']
 
     def train(self):
         #######################################################################
