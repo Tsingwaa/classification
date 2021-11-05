@@ -4,9 +4,8 @@ import warnings
 import argparse
 import yaml
 import numpy as np
-from functools import partial
 import torch
-# from pudb import set_trace
+from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn import metrics
@@ -129,6 +128,7 @@ class Trainer(BaseTrainer):
             train_mr, train_loss = self.train_epoch(epoch)
 
             if self.local_rank in [-1, 0]:
+                self.model.apply(switch_clean)
                 val_mr, val_loss, val_recalls = self.evaluate(epoch)
 
                 last_train_mrs[epoch % 20] = train_mr
@@ -303,8 +303,7 @@ class Trainer(BaseTrainer):
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
                 batch_imgs = batch_imgs.cuda()
                 batch_labels = batch_labels.cuda()
-                self.model.apply(switch_clean)
-                batch_probs = self.model(batch_imgs, is_adv=False)
+                batch_probs = self.model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]
                 avg_loss = self.criterion(batch_probs, batch_labels)
                 val_loss_meter.update(avg_loss.item(), 1)
@@ -346,7 +345,6 @@ def _set_seed(seed=0):
 def main(args):
     warnings.filterwarnings('ignore')
     _set_seed()
-    # set_trace()
     with open(args.config_path, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     trainer = Trainer(local_rank=args.local_rank, config=config)
