@@ -4,6 +4,7 @@ import warnings
 import argparse
 import yaml
 import numpy as np
+from functools import partial
 import torch
 # from pudb import set_trace
 from torch.utils.data import DataLoader
@@ -15,7 +16,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AccAverageMeter
+from utils import AccAverageMeter, switch_adv, switch_clean
 
 
 class DataLoaderX(DataLoader):
@@ -204,7 +205,8 @@ class Trainer(BaseTrainer):
             # Step 1: generate perturbed samples
             batch_adv_imgs = self.attacker.attack(batch_imgs, batch_labels)
             # Step 2: train with perturbed imgs
-            batch_adv_probs = self.model(batch_adv_imgs, is_adv=True)
+            self.model.apply(switch_adv)
+            batch_adv_probs = self.model(batch_adv_imgs)
             batch_adv_loss = self.criterion(batch_adv_probs, batch_labels)
 
             if not self.joint_training:
@@ -212,7 +214,8 @@ class Trainer(BaseTrainer):
                 batch_final_loss = batch_adv_loss
             else:
                 # Joint adversarial and clean training
-                batch_probs = self.model(batch_imgs, is_adv=False)
+                self.model.apply(switch_clean)
+                batch_probs = self.model(batch_imgs)
                 batch_clean_loss = self.criterion(batch_probs, batch_labels)
                 batch_final_loss = self.clean_weight * batch_clean_loss +\
                     (1 - self.clean_weight) * batch_adv_loss
@@ -300,6 +303,7 @@ class Trainer(BaseTrainer):
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
                 batch_imgs = batch_imgs.cuda()
                 batch_labels = batch_labels.cuda()
+                self.model.apply(switch_clean)
                 batch_probs = self.model(batch_imgs, is_adv=False)
                 batch_preds = batch_probs.max(1)[1]
                 avg_loss = self.criterion(batch_probs, batch_labels)
