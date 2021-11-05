@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from model.module.builder import Modules
+from utils import switch_adv
 
 
 @Modules.register_module('LinfPGD')
@@ -54,6 +55,7 @@ class LinfPGD(nn.Module):
         adv_x = x + perturbation
         adv_x.requires_grad = True
 
+        self.model.apply(switch_adv)
         atk_loss = self.criterion(self.model, adv_x, target)
 
         self.model.zero_grad()
@@ -98,6 +100,7 @@ class LinfPGD(nn.Module):
             perturbation = self.random_perturbation(x)
 
         with torch.enable_grad():
+            self.model.apply(switch_adv)
             for i in range(self.iterations):
                 perturbation = self.onestep(x, perturbation, target)
 
