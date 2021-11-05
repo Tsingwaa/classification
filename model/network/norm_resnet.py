@@ -142,7 +142,7 @@ class NormResNet(nn.Module):
     def __init__(self, block, layers, num_classes=1000, groups=1,
                  zero_init_residual=False, width_per_group=64,
                  replace_stride_with_dilation=None, norm_layer=None,
-                 mean=None, std=None):
+                 mean=None, std=None, **kwargs):
         super(NormResNet, self).__init__()
 
         self.norm = Normalization(mean, std)
@@ -249,8 +249,8 @@ class NormResNet(nn.Module):
 
 @Networks.register_module('NormResNet18')
 class NormDualBNResNet18(NormResNet):
-    def __init__(self, num_classes=1000, block=BasicBlock,
-                 layers=[2, 2, 2, 2], mean=None, std=None):
+    def __init__(self, num_classes=1000, block=BasicBlock, layers=[2, 2, 2, 2],
+                 mean=None, std=None, **kwargs):
         super(NormDualBNResNet18, self).__init__(
             block=block, num_classes=num_classes, layers=layers,
             mean=mean, std=std,

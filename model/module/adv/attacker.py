@@ -28,7 +28,9 @@ class LinfPGD(nn.Module):
         self.criterion = criterion
         if self.criterion is None:
             self.criterion = lambda model, input, target:\
-                    nn.functional.cross_entropy(model(input), target)
+                    nn.functional.cross_entropy(
+                        model(input, is_adv=True), target
+                    )
 
         # Model status
         self.training = self.model.training
