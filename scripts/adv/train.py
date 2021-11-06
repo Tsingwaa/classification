@@ -15,7 +15,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AccAverageMeter, switch_adv, switch_clean
+from utils import AccAverageMeter, switch_adv, switch_clean, switch_mix
 
 
 class DataLoaderX(DataLoader):
@@ -196,19 +196,26 @@ class Trainer(BaseTrainer):
             batch_adv_imgs = self.attacker.attack(batch_imgs, batch_labels)
             # Step 2: train with perturbed imgs
             self.model.apply(switch_adv)
-            batch_adv_probs = self.model(batch_adv_imgs)
-            batch_adv_loss = self.criterion(batch_adv_probs, batch_labels)
 
             if not self.joint_training:
                 # Only adversarial training
-                batch_final_loss = batch_adv_loss
+                self.model.apply(switch_adv)
+                batch_adv_probs = self.model(batch_adv_imgs)
+                batch_final_loss = self.criterion(batch_adv_probs,
+                                                  batch_labels)
             else:
-                # Joint adversarial and clean training
-                self.model.apply(switch_clean)
-                batch_probs = self.model(batch_imgs)
+                # Joint clean and adversarial training, 并行加速运算
+                batch_mix_imgs = torch.cat((batch_imgs, batch_adv_imgs), 0)
+                self.model.apply(switch_mix)
+                batch_mix_probs = self.model(batch_mix_imgs)
+                batch_probs, batch_adv_probs = batch_mix_probs.chunk(2, 0)
+                # 将batch_mix_probs沿着0维，等分切为两份
+
                 batch_clean_loss = self.criterion(batch_probs, batch_labels)
+                batch_adv_loss = self.criterion(batch_adv_probs, batch_labels)
                 batch_final_loss = self.clean_weight * batch_clean_loss +\
                     (1 - self.clean_weight) * batch_adv_loss
+
             if self.local_rank != -1:
                 with amp.scale_loss(batch_final_loss, self.optimizer)\
                         as scaled_loss:
@@ -238,21 +245,16 @@ class Trainer(BaseTrainer):
                 train_pbar.update()
                 if self.joint_training:
                     train_pbar.set_postfix_str(
-                        'LR:{:.1e} Loss:{:.2f} AD:{:.2f}'
-                        ' CL:{:.2f}'.format(
+                        "LR:{:.1e} Loss:{:.2f} AD:{:.2f} CL:{:.2f}".format(
                             self.optimizer.param_groups[0]['lr'],
                             final_loss_meter.avg,
                             adv_loss_meter.avg,
-                            clean_loss_meter.avg,
-                        )
-                    )
+                            clean_loss_meter.avg,))
                 else:
                     train_pbar.set_postfix_str(
                         'LR:{:.1e} Loss:{:.2f}'.format(
                             self.optimizer.param_groups[0]['lr'],
-                            final_loss_meter.avg,
-                        )
-                    )
+                            final_loss_meter.avg,))
 
         train_adv_mr = metrics.balanced_accuracy_score(all_labels,
                                                        all_adv_preds)
@@ -261,13 +263,10 @@ class Trainer(BaseTrainer):
             train_clean_mr = metrics.balanced_accuracy_score(all_labels,
                                                              all_clean_preds)
             train_mr = {'adv': train_adv_mr, 'clean': train_clean_mr}
-            train_loss = {
-                'final': final_loss_meter.avg,
-                'adv': adv_loss_meter.avg,
-                'clean': clean_loss_meter.avg
-            }
-            postfix_str = 'LR:{:.1e} Loss:{:.1f} '\
-                'Adv:{:.1f} MR:{:.2%} | '\
+            train_loss = {'final': final_loss_meter.avg,
+                          'adv': adv_loss_meter.avg,
+                          'clean': clean_loss_meter.avg}
+            postfix_str = 'LR:{:.1e} Loss:{:.1f} Adv:{:.1f} MR:{:.2%} | '\
                 'Cln:{:.1f} MR:{:.2%}'.format(
                     self.optimizer.param_groups[0]['lr'],
                     final_loss_meter.avg,
@@ -276,10 +275,10 @@ class Trainer(BaseTrainer):
         else:
             train_mr = {'adv': train_adv_mr}
             train_loss = {'final': final_loss_meter.avg}
-            postfix_str = 'LR:{:.1e} AdvLoss:{:.2f} MR:{:.2%}'\
-                ''.format(self.optimizer.param_groups[0]['lr'],
-                          final_loss_meter.avg,
-                          train_adv_mr)
+            postfix_str = 'LR:{:.1e} Adv Loss:{:.2f} MR:{:.2%}'.format(
+                self.optimizer.param_groups[0]['lr'],
+                final_loss_meter.avg,
+                train_adv_mr)
         train_pbar.set_postfix_str(postfix_str)
         train_pbar.close()
 
