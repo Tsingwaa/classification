@@ -363,9 +363,8 @@ class BaseTrainer:
         self.start_epoch = checkpoint['epoch']
         mr = checkpoint['mr']
         recalls = checkpoint['recalls']
-        # ap = checkpoint['ap']
         resume_log = '\n===> Resume checkpoint from "{}".\n'\
-            'Checkpoint:\n Mean recall:{:.2%}\n'\
+            'Mean recall:{:.2%}\n'\
             'Class recalls:{}'.format(resume_fpath, mr, recalls)
         return checkpoint, resume_log
 
