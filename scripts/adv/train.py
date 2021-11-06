@@ -243,7 +243,7 @@ class Trainer(BaseTrainer):
                 train_pbar.update()
                 if self.joint_training:
                     train_pbar.set_postfix_str(
-                        "LR:{:.1e} Loss:{:.2f} AD:{:.2f} CL:{:.2f}".format(
+                        "LR:{:.1e} Loss:{:.2f} Adv:{:.2f} Cln:{:.2f}".format(
                             self.optimizer.param_groups[0]['lr'],
                             final_loss_meter.avg,
                             adv_loss_meter.avg,
