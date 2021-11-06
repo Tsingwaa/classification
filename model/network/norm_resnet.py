@@ -23,6 +23,57 @@ class Normalization(nn.Module):
         return y
 
 
+class MixBatchNorm2d(nn.BatchNorm2d):
+    '''
+    if the dimensions of the tensors from dataloader is [N, 3, 224, 224]
+    that of the inputs of the MixBatchNorm2d should be [2*N, 3, 224, 224].
+
+    If you set batch_type as 'mix', this network will using one batchnorm
+    (main bn) to calculate the features corresponding to [:N, 3, 224, 224],
+    while using another batch normalization (auxiliary bn) for the features
+    of [N:, 3, 224, 224].
+
+    During training, the batch_type should be set as 'mix'.
+
+    During validation, we only need the results of the features using some
+    specific batchnormalization.
+    if you set batch_type as 'clean', the features are calculated using main
+    bn;
+    if you set it as 'adv', the features are calculated using auxiliary bn.
+
+    Usually, we use to_clean_status, to_adv_status, and to_mix_status to set
+    the batch_type recursively. It should be noticed that the batch_type
+    should be set as 'adv' while attacking.
+    '''
+
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True,
+                 track_running_stats=True):
+        super(MixBatchNorm2d, self).__init__(num_features,
+                                             eps,
+                                             momentum,
+                                             affine,
+                                             track_running_stats)
+        self.aux_bn = nn.BatchNorm2d(num_features,
+                                     eps=eps,
+                                     momentum=momentum,
+                                     affine=affine,
+                                     track_running_stats=track_running_stats)
+        self.batch_type = 'clean'
+
+    def forward(self, x):
+        if self.batch_type == 'adv':
+            output = self.aux_bn(x)
+        elif self.batch_type == 'clean':
+            output = super(MixBatchNorm2d, self).forward(x)
+        else:
+            assert self.batch_type == 'mix'
+            clean_x, adv_x = x.chunk(2, 0)  # 沿0维二等分
+            clean_output = super(MixBatchNorm2d, self).forward(clean_x)
+            adv_output = self.aux_bn(adv_x)
+            output = torch.cat((clean_output, adv_output), 0)  # 沿0维合并
+        return output
+
+
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1,
             groups: int = 1, dilation: int = 1) -> nn.Conv2d:
     """3x3 convolution with padding"""
@@ -54,25 +105,29 @@ class BasicBlock(nn.Module):
         # Both self.conv1 and self.downsample layers
         # downsample the input when stride != 1
         self.conv1 = conv3x3(inplanes, planes, stride)
-        self.bn1_adv = norm_layer(planes)
-        self.bn1_clean = norm_layer(planes)
+        self.bn1 = norm_layer(planes)
+        # self.bn1_adv = norm_layer(planes)
+        # self.bn1_clean = norm_layer(planes)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = conv3x3(planes, planes)
-        self.bn2_adv = norm_layer(planes)
-        self.bn2_clean = norm_layer(planes)
+        self.bn2 = norm_layer(planes)
+        # self.bn2_adv = norm_layer(planes)
+        # self.bn2_clean = norm_layer(planes)
         self.downsample = downsample
         self.stride = stride
-        self.is_clean = True
+        # self.is_clean = True
 
     def forward(self, x):
         identity = x
 
         out = self.conv1(x)
-        out = self.bn1_clean(out) if self.is_clean else self.bn1_adv(out)
+        out = self.bn1(out)
+        # out = self.bn1_clean(out) if self.is_clean else self.bn1_adv(out)
         out = self.relu(out)
 
         out = self.conv2(out)
-        out = self.bn2_clean(out) if self.is_clean else self.bn2_adv(out)
+        out = self.bn2(out)
+        # out = self.bn2_clean(out) if self.is_clean else self.bn2_adv(out)
 
         if self.downsample is not None:
             identity = self.downsample(x)
@@ -104,32 +159,38 @@ class Bottleneck(nn.Module):
         # Both self.conv2 and self.downsample layers
         # downsample the input when stride != 1
         self.conv1 = conv1x1(inplanes, width)
-        self.bn1_adv= norm_layer(planes)
-        self.bn1_clean = norm_layer(planes)
+        self.bn1 = norm_layer(planes)
+        # self.bn1_adv = norm_layer(planes)
+        # self.bn1_clean = norm_layer(planes)
         self.conv2 = conv3x3(width, width, stride, groups, dilation)
-        self.bn2_adv = norm_layer(planes)
-        self.bn2_clean = norm_layer(planes)
+        self.bn2 = norm_layer(planes)
+        # self.bn2_adv = norm_layer(planes)
+        # self.bn2_clean = norm_layer(planes)
         self.conv3 = conv1x1(width, planes * self.expansion)
-        self.bn3_adv = norm_layer(planes * self.expansion)
-        self.bn3_clean = norm_layer(planes * self.expansion)
+        self.bn3 = norm_layer(planes * self.expansion)
+        # self.bn3_adv = norm_layer(planes * self.expansion)
+        # self.bn3_clean = norm_layer(planes * self.expansion)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
-        self.is_clean = True
+        # self.is_clean = True
 
     def forward(self, x):
         identity = x
 
         out = self.conv1(x)
-        out = self.bn1_clean(out) if self.is_clean else self.bn1_adv(out)
+        out = self.bn1(out)
+        # out = self.bn1_clean(out) if self.is_clean else self.bn1_adv(out)
         out = self.relu(out)
 
         out = self.conv2(out)
-        out = self.bn2_clean(out) if self.is_clean else self.bn2_adv(out)
+        out = self.bn2(out)
+        # out = self.bn2_clean(out) if self.is_clean else self.bn2_adv(out)
         out = self.relu(out)
 
         out = self.conv3(out)
-        out = self.bn3_clean(out) if self.is_clean else self.bn3_adv(out)
+        out = self.bn3(out)
+        # out = self.bn3_clean(out) if self.is_clean else self.bn3_adv(out)
 
         if self.downsample is not None:
             identity = self.downsample(x)
@@ -144,7 +205,7 @@ class NormResNet(nn.Module):
     def __init__(self, block, layers, num_classes=1000, groups=1,
                  zero_init_residual=False, width_per_group=64,
                  replace_stride_with_dilation=None, norm_layer=None,
-                 mean=None, std=None, **kwargs):
+                 mean=None, std=None, dual_BN=False, **kwargs):
         super(NormResNet, self).__init__()
 
         self.norm = Normalization(mean, std)
@@ -166,8 +227,9 @@ class NormResNet(nn.Module):
         self.base_width = width_per_group
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2,
                                padding=3, bias=False)
-        self.bn1_adv = norm_layer(self.inplanes)
-        self.bn1_clean = norm_layer(self.inplanes)
+        self.bn1 = norm_layer(self.inplanes)
+        # self.bn1_adv = norm_layer(self.inplanes)
+        # self.bn1_clean = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0])
@@ -179,7 +241,7 @@ class NormResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
-        self.is_clean = False
+        # self.is_clean = False
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -234,7 +296,8 @@ class NormResNet(nn.Module):
         # See note [TorchScript super()]
         x = self.norm(x)
         x = self.conv1(x)
-        x = self.bn1_clean(x) if self.is_clean else self.bn1_adv(x)
+        x = self.bn1(x)
+        # x = self.bn1_clean(x) if self.is_clean else self.bn1_adv(x)
         x = self.relu(x)
         x = self.maxpool(x)
 
@@ -253,10 +316,11 @@ class NormResNet(nn.Module):
 @Networks.register_module('NormResNet18')
 class NormDualBNResNet18(NormResNet):
     def __init__(self, num_classes=1000, block=BasicBlock, layers=[2, 2, 2, 2],
-                 mean=None, std=None, **kwargs):
+                 mean=None, std=None, dual_BN=False, **kwargs):
+        norm_layer = MixBatchNorm2d if dual_BN else None
         super(NormDualBNResNet18, self).__init__(
             block=block, num_classes=num_classes, layers=layers,
-            mean=mean, std=std,
+            mean=mean, std=std, norm_layer=norm_layer,
         )
 
 
