@@ -15,6 +15,7 @@ from tqdm import tqdm
 from prefetch_generator import BackgroundGenerator
 from base.base_trainer import BaseTrainer
 from utils.utils import get_cm_with_labels
+from utils import switch_clean
 
 
 class DataLoaderX(DataLoader):
@@ -47,8 +48,7 @@ class Validater(BaseTrainer):
         else:
             self.resume_fpath = join(
                 self.user_root, 'Experiments', self.exp_name,
-                self.experiment_config['resume_fpath']
-            )
+                self.experiment_config['resume_fpath'])
 
         self.checkpoint, resume_log = self.resume_checkpoint()
         self.test_epoch = self.checkpoint['epoch']
@@ -66,10 +66,7 @@ class Validater(BaseTrainer):
 
         exp_init_log = '===> Evaluate experiment "{}" @epoch{}\n'\
             'Log filepath: "{}"\n'.format(
-                self.exp_name,
-                self.test_epoch,
-                self.log_fpath,
-            )
+                self.exp_name, self.test_epoch, self.log_fpath,)
         self.logger.info(exp_init_log)
 
         #######################################################################
@@ -123,6 +120,7 @@ class Validater(BaseTrainer):
         )
 
         self.model.eval()
+        self.model.apply(switch_clean)
 
         all_labels = []
         all_probs = []

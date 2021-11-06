@@ -5,7 +5,7 @@ import argparse
 import yaml
 import numpy as np
 import torch
-from pudb import set_trace
+# from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn import metrics
@@ -113,10 +113,6 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Start Training
         #######################################################################
-        last_train_mrs = np.zeros(20)
-        last_train_losses = np.zeros(20)
-        last_val_mrs = np.zeros(20)
-        last_val_losses = np.zeros(20)
         for epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == 'epoch':
@@ -130,55 +126,48 @@ class Trainer(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 self.model.apply(switch_clean)
                 val_mr, val_loss, val_recalls = self.evaluate(epoch)
-
-                last_train_mrs[epoch % 20] = train_mr
-                last_train_losses[epoch % 20] = train_loss
-                last_val_mrs[epoch % 20] = val_mr
-                last_val_losses[epoch % 20] = val_loss
-
                 self.logger.debug(
                     'Epoch[{epoch:>3d}/{total_epochs}] '
-                    'Trainset MR={train_mr:.2%} Loss={train_loss:.4f} || '
-                    'Valset MR={val_mr:.2%} Loss={val_loss:.4f}'.format(
+                    'Trainset Loss={train_loss:.4f} '
+                    'ADV={adv_loss:.4f} MR={adv_mr:.2%} '
+                    'CLN={clean_loss:.4f} MR={clean_mr:.2%}'
+                    '|| Valset Loss={val_loss:.4f} MR={val_mr:.2%}'.format(
                         epoch=epoch,
                         total_epochs=self.total_epochs,
-                        train_mr=train_mr,
-                        train_loss=train_loss,
+                        train_loss=train_loss['final'],
+                        adv_loss=train_loss['adv'],
+                        adv_mr=train_mr['adv'],
+                        clean_loss=train_loss['clean'],
+                        clean_mr=train_mr['clean'],
+                        val_loss=val_loss,
                         val_mr=val_mr,
-                        val_loss=val_loss
                     )
                 )
+
+                if len(val_recalls) <= 20 and epoch == self.total_epochs:
+                    self.logger.info("Class recalls:{val_recalls}\n\n")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(f'{self.exp_name}/LearningRate',
                                        self.optimizer.param_groups[0]['lr'],
                                        epoch)
                 self.writer.add_scalars(f'{self.exp_name}/Loss',
-                                        {'train_loss': train_loss,
+                                        {'train_loss': train_loss['final'],
+                                         'adv_loss': train_loss['adv'],
+                                         'clean_loss': train_loss['clean'],
                                          'val_loss': val_loss}, epoch)
                 self.writer.add_scalars(f'{self.exp_name}/Recall',
-                                        {'train_mr': train_mr,
+                                        {'train_adv_mr': train_mr['adv'],
+                                         'train_clean_mr': train_mr['clean'],
                                          'val_mr': val_mr}, epoch)
                 self.save_checkpoint(epoch, val_mr, val_recalls)
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
-                "\n===> Average metrics of the last 20 epochs: \n"
-                "[Trainset] Mean recall: {:.2%} Loss: {:.4f}\n"
-                "[Valset] Mean recall: {:.2%} Loss: {:.4f}\n".format(
-                    np.mean(last_train_mrs),
-                    np.mean(last_train_losses),
-                    np.mean(last_val_mrs),
-                    np.mean(last_val_losses),
-                )
-             )
-            if len(val_recalls) <= 20 or epoch == self.total_epochs:
-                self.logger.info("         Recalls: {val_recalls}\n")
-            self.logger.info(
                 f"===> Result directory: '{self.save_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************"
-            )
+             )
 
     def train_epoch(self, epoch):
         self.model.train()
@@ -271,6 +260,12 @@ class Trainer(BaseTrainer):
         if self.joint_training:
             train_clean_mr = metrics.balanced_accuracy_score(all_labels,
                                                              all_clean_preds)
+            train_mr = {'adv': train_adv_mr, 'clean': train_clean_mr}
+            train_loss = {
+                'final': final_loss_meter.avg,
+                'adv': adv_loss_meter.avg,
+                'clean': clean_loss_meter.avg
+            }
             postfix_str = 'LR:{:.1e} Loss:{:.1f} '\
                 'Adv:{:.1f} MR:{:.2%} | '\
                 'Cln:{:.1f} MR:{:.2%}'.format(
@@ -279,14 +274,16 @@ class Trainer(BaseTrainer):
                     adv_loss_meter.avg, train_adv_mr,
                     clean_loss_meter.avg, train_clean_mr)
         else:
+            train_mr = {'adv': train_adv_mr}
+            train_loss = {'final': final_loss_meter.avg}
             postfix_str = 'LR:{:.1e} AdvLoss:{:.2f} MR:{:.2%}'\
-                    ''.format(self.optimizer.param_groups[0]['lr'],
-                              final_loss_meter.avg,
-                              train_adv_mr)
+                ''.format(self.optimizer.param_groups[0]['lr'],
+                          final_loss_meter.avg,
+                          train_adv_mr)
         train_pbar.set_postfix_str(postfix_str)
         train_pbar.close()
 
-        return train_adv_mr, final_loss_meter.avg
+        return train_mr, train_loss
 
     def evaluate(self, epoch):
         self.model.eval()
