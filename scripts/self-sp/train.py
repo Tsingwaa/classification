@@ -139,9 +139,6 @@ class Trainer(BaseTrainer):
                     )
                 )
 
-                if len(val_recalls) <= 10 or epoch == self.total_epochs - 1:
-                    self.logger.info(f"\t\tRecalls: {val_recalls}")
-
                 # Save log by tensorboard
                 self.writer.add_scalar(f'{self.exp_name}/LearningRate',
                                        self.optimizer.param_groups[0]['lr'],
@@ -158,18 +155,21 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             self.logger.info(
                 "\n===> Average metrics of the last 20 epochs: \n"
-                "[Trainset] mean recall: {:.2%} loss: {:.4f}\n"
-                "[Valset] mean recall: {:.2%} loss: {:.4f}\n\n"
-                "===> Result directory: '{}'\n"
-                "*************************************************************"
-                "*****************************************************".format(
+                "[Trainset] Mean recall: {:.2%} Loss: {:.4f}\n"
+                "[Valset] Mean recall: {:.2%} Loss: {:.4f}\n".format(
                     np.mean(last_train_mrs),
                     np.mean(last_train_losses),
                     np.mean(last_val_mrs),
                     np.mean(last_val_losses),
-                    self.save_dir,
                 )
              )
+            if len(val_recalls) <= 20 or epoch == self.total_epochs:
+                self.logger.info("         Recalls: {val_recalls}\n")
+            self.logger.info(
+                f"===> Result directory: '{self.save_dir}'\n"
+                f"*********************************************************"
+                f"*********************************************************"
+            )
 
     def train_epoch(self, epoch):
         self.model.train()
