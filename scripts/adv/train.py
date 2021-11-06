@@ -5,7 +5,7 @@ import argparse
 import yaml
 import numpy as np
 import torch
-# from pudb import set_trace
+from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn import metrics
@@ -194,9 +194,8 @@ class Trainer(BaseTrainer):
             # Adversarial Training
             # Step 1: generate perturbed samples
             batch_adv_imgs = self.attacker.attack(batch_imgs, batch_labels)
-            # Step 2: train with perturbed imgs
-            self.model.apply(switch_adv)
 
+            # Step 2: train with perturbed imgs
             if not self.joint_training:
                 # Only adversarial training
                 self.model.apply(switch_adv)
@@ -208,9 +207,8 @@ class Trainer(BaseTrainer):
                 batch_mix_imgs = torch.cat((batch_imgs, batch_adv_imgs), 0)
                 self.model.apply(switch_mix)
                 batch_mix_probs = self.model(batch_mix_imgs)
+                # 将batch_mix_probs沿着0维，等分切为两份, 分别计算loss
                 batch_probs, batch_adv_probs = batch_mix_probs.chunk(2, 0)
-                # 将batch_mix_probs沿着0维，等分切为两份
-
                 batch_clean_loss = self.criterion(batch_probs, batch_labels)
                 batch_adv_loss = self.criterion(batch_adv_probs, batch_labels)
                 batch_final_loss = self.clean_weight * batch_clean_loss +\

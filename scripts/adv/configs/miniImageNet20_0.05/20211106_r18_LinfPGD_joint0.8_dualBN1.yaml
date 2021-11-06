@@ -1,5 +1,5 @@
 experiment:
-  name: "miniImageNet20_0.05_r18_LinfPGD_joint0.5_dualBN1"
+  name: "miniImageNet20_0.05_r18_LinfPGD_joint0.8_dualBN1"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -12,7 +12,7 @@ adv:
   name: "LinfPGD"
   param:
     joint_training: True
-    clean_weight: 0.5
+    clean_weight: 0.8
     # iterations: 7  # Default: 7
     # step: 0.0078  # Default: 2/255
     # epsilon: 0.0314  # Default: 8/255
