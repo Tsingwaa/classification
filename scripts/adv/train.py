@@ -145,7 +145,7 @@ class Trainer(BaseTrainer):
                 )
 
                 if len(val_recalls) <= 20 and epoch == self.total_epochs:
-                    self.logger.info("Class recalls:{val_recalls}\n\n")
+                    self.logger.info(f"Class recalls: {val_recalls}\n")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(f'{self.exp_name}/LearningRate',

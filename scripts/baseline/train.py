@@ -46,10 +46,10 @@ class Trainer(BaseTrainer):
         )
 
         if self.local_rank != -1:
-            print(f'global_rank {self.global_rank},'
-                  f'world_size {self.world_size},'
-                  f'local_rank {self.local_rank},'
-                  f'sampler "{self.train_sampler_name}"')
+            print(f"global_rank {self.global_rank},"
+                  f"world_size {self.world_size},"
+                  f"local_rank {self.local_rank},"
+                  f"sampler '{self.train_sampler_name}'")
 
         if self.local_rank in [-1, 0]:
             val_transform = self.init_transform(self.val_transform_config)
@@ -85,7 +85,7 @@ class Trainer(BaseTrainer):
             self.model, self.optimizer = amp.initialize(
                 self.model,
                 self.optimizer,
-                opt_level='O1'
+                opt_level="O1"
             )
             self.model = DistributedDataParallel(
                 self.model,
@@ -103,7 +103,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         for epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
-            if self.lr_scheduler_mode == 'epoch':
+            if self.lr_scheduler_mode == "epoch":
                 self.lr_scheduler.step()
 
             if self.local_rank != -1:
@@ -115,9 +115,9 @@ class Trainer(BaseTrainer):
                 val_mr, val_recalls, val_loss = self.evaluate(epoch)
 
                 self.logger.debug(
-                    'Epoch[{epoch:>3d}/{total_epochs}] '
-                    'Trainset Loss={train_loss:.4f} MR={train_mr:.2%} || '
-                    'Valset Loss={val_loss:.4f} MR={val_mr:.2%}'.format(
+                    "Epoch[{epoch:>3d}/{total_epochs}] "
+                    "Trainset Loss={train_loss:.4f} MR={train_mr:.2%} || "
+                    "Valset Loss={val_loss:.4f} MR={val_mr:.2%}".format(
                         epoch=epoch,
                         total_epochs=self.total_epochs,
                         train_loss=train_loss,
@@ -128,18 +128,18 @@ class Trainer(BaseTrainer):
                 )
 
                 if len(val_recalls) <= 20 and epoch == self.total_epochs:
-                    self.logger.info("Class recalls:{val_recalls}\n\n")
+                    self.logger.info(f"Class recalls: {val_recalls}\n")
 
                 # Save log by tensorboard
-                self.writer.add_scalar(f'{self.exp_name}/LearningRate',
-                                       self.optimizer.param_groups[0]['lr'],
+                self.writer.add_scalar(f"{self.exp_name}/LearningRate",
+                                       self.optimizer.param_groups[0]["lr"],
                                        epoch)
-                self.writer.add_scalars(f'{self.exp_name}/Loss',
-                                        {'train_loss': train_loss,
-                                         'val_loss': val_loss}, epoch)
-                self.writer.add_scalars(f'{self.exp_name}/Recall',
-                                        {'train_mr': train_mr,
-                                         'val_mr': val_mr}, epoch)
+                self.writer.add_scalars(f"{self.exp_name}/Loss",
+                                        {"train_loss": train_loss,
+                                         "val_loss": val_loss}, epoch)
+                self.writer.add_scalars(f"{self.exp_name}/Recall",
+                                        {"train_mr": train_mr,
+                                         "val_mr": val_mr}, epoch)
 
                 self.save_checkpoint(epoch, val_mr, val_recalls)
 
@@ -155,14 +155,14 @@ class Trainer(BaseTrainer):
 
         train_pbar = tqdm(
             total=len(self.trainloader),
-            desc='Train Epoch[{:>3d}/{}]'.format(epoch, self.total_epochs)
+            desc="Train Epoch[{:>3d}/{}]".format(epoch, self.total_epochs)
         )
 
         all_labels = []
         all_preds = []
         train_loss_meter = AccAverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(self.trainloader):
-            if self.lr_scheduler_mode == 'iteration':
+            if self.lr_scheduler_mode == "iteration":
                 self.lr_scheduler.step()
 
             self.optimizer.zero_grad()
@@ -187,16 +187,14 @@ class Trainer(BaseTrainer):
 
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
-                train_pbar.set_postfix_str(
-                    'LR:{:.1e} Loss:{:.4f}'.format(
-                        self.optimizer.param_groups[0]['lr'],
-                        train_loss_meter.avg,)
-                )
+                train_pbar.set_postfix_str("LR:{:.1e} Loss:{:.4f}".format(
+                        self.optimizer.param_groups[0]["lr"],
+                        train_loss_meter.avg,))
 
         train_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
 
-        train_pbar.set_postfix_str('LR:{:.1e} Loss:{:.2f} MR:{:.2%}'.format(
-                self.optimizer.param_groups[0]['lr'],
+        train_pbar.set_postfix_str("LR:{:.1e} Loss:{:.2f} MR:{:.2%}".format(
+                self.optimizer.param_groups[0]["lr"],
                 train_loss_meter.avg, train_mr))
         train_pbar.close()
 
@@ -206,7 +204,7 @@ class Trainer(BaseTrainer):
         self.model.eval()
 
         val_pbar = tqdm(total=len(self.valloader), ncols=0,
-                        desc='                 Val')
+                        desc="                 Val")
 
         all_labels = []
         all_preds = []
@@ -230,7 +228,7 @@ class Trainer(BaseTrainer):
         val_recalls = np.around(val_recalls, decimals=2).tolist()
 
         val_pbar.set_postfix_str(
-            'Loss:{:.2f} MR:{:.0%}'.format(val_loss_meter.avg, val_mr)
+            "Loss:{:.2f} MR:{:.0%}".format(val_loss_meter.avg, val_mr)
         )
         val_pbar.close()
 
@@ -239,9 +237,9 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--local_rank', type=int, help='Local Rank for\
-                        distributed training. if single-GPU, default: -1')
-    parser.add_argument('--config_path', type=str, help='path of config file')
+    parser.add_argument("--local_rank", type=int, help="Local Rank for\
+                        distributed training. if single-GPU, default: -1")
+    parser.add_argument("--config_path", type=str, help="path of config file")
     args = parser.parse_args()
     return args
 
@@ -255,14 +253,14 @@ def _set_seed(seed=0):
 
 
 def main(args):
-    warnings.filterwarnings('ignore')
+    warnings.filterwarnings("ignore")
     _set_seed()
-    with open(args.config_path, 'r') as f:
+    with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     trainer = Trainer(local_rank=args.local_rank, config=config)
     trainer.train()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parse_args()
     main(args)

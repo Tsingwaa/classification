@@ -38,58 +38,58 @@ class Validater(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
-        self.experiment_config = config['experiment']
-        self.exp_name = self.experiment_config['name']
-        self.user_root = os.environ['HOME']
-        self.resume = self.experiment_config['resume']
+        self.experiment_config = config["experiment"]
+        self.exp_name = self.experiment_config["name"]
+        self.user_root = os.environ["HOME"]
+        self.resume = self.experiment_config["resume"]
 
-        if '/' in self.experiment_config['resume_fpath']:
-            self.resume_fpath = self.experiment_config['resume_fpath']
+        if "/" in self.experiment_config["resume_fpath"]:
+            self.resume_fpath = self.experiment_config["resume_fpath"]
         else:
             self.resume_fpath = join(
-                self.user_root, 'Experiments', self.exp_name,
-                self.experiment_config['resume_fpath'])
+                self.user_root, "Experiments", self.exp_name,
+                self.experiment_config["resume_fpath"])
 
         self.checkpoint, resume_log = self.resume_checkpoint()
-        self.test_epoch = self.checkpoint['epoch']
+        self.test_epoch = self.checkpoint["epoch"]
 
-        self.save_dir = join(self.user_root, 'Experiments', self.exp_name)
+        self.save_dir = join(self.user_root, "Experiments", self.exp_name)
         os.makedirs(self.save_dir, exist_ok=True)
 
-        if 'best' in self.resume_fpath:
-            self.log_fname = f'val_best_epoch{self.test_epoch}.log'
+        if "best" in self.resume_fpath:
+            self.log_fname = f"val_best_epoch{self.test_epoch}.log"
         else:
-            self.log_fname = f'val_epoch{self.test_epoch}.log'
+            self.log_fname = f"val_epoch{self.test_epoch}.log"
         self.log_fpath = join(self.save_dir, self.log_fname)
         self.logger = self.init_logger(self.log_fpath)
         self.logger.info(resume_log)
 
-        exp_init_log = '===> Evaluate experiment "{}" @epoch{}\n'\
-            'Log filepath: "{}"\n'.format(
+        exp_init_log = "===> Evaluate experiment '{}' @epoch{}\n"\
+            "Log filepath: '{}'\n".format(
                 self.exp_name, self.test_epoch, self.log_fpath,)
         self.logger.info(exp_init_log)
 
         #######################################################################
         # Dataset setting
         #######################################################################
-        self.val_transform_config = config['val_transform']
-        self.valset_config = config['val_dataset']
+        self.val_transform_config = config["val_transform"]
+        self.valset_config = config["val_dataset"]
 
         #######################################################################
         # Dataloader setting
         #######################################################################
-        self.valloader_config = config['valloader']
-        self.valloader_name = self.valloader_config['name']
-        self.valloader_param = self.valloader_config['param']
-        self.val_batch_size = self.valloader_param['batch_size']
-        self.val_num_workers = self.valloader_param['num_workers']
+        self.valloader_config = config["valloader"]
+        self.valloader_name = self.valloader_config["name"]
+        self.valloader_param = self.valloader_config["param"]
+        self.val_batch_size = self.valloader_param["batch_size"]
+        self.val_num_workers = self.valloader_param["num_workers"]
 
         #######################################################################
         # Network setting
         #######################################################################
-        self.network_config = config['network']
-        self.network_name = self.network_config['name']
-        self.network_param = self.network_config['param']
+        self.network_config = config["network"]
+        self.network_name = self.network_config["name"]
+        self.network_param = self.network_config["param"]
 
     def evaluate(self):
         #######################################################################
@@ -116,7 +116,7 @@ class Validater(BaseTrainer):
         #######################################################################
         val_pbar = tqdm(
             total=len(self.valloader),
-            desc='Evaluate'
+            desc="Evaluate"
         )
 
         self.model.eval()
@@ -140,11 +140,11 @@ class Validater(BaseTrainer):
 
         val_acc = metrics.accuracy_score(all_labels, all_preds)
         val_mr = metrics.recall_score(all_labels, all_preds,
-                                      average='macro')
+                                      average="macro")
         val_ap = metrics.precision_score(all_labels, all_preds,
-                                         average='macro')
+                                         average="macro")
         val_pbar.set_postfix_str(
-            'Acc:{:.2%} MR:{:.2%} AP:{:.2%}'.format(val_acc, val_mr, val_ap)
+            "Acc:{:.2%} MR:{:.2%} AP:{:.2%}".format(val_acc, val_mr, val_ap)
         )
         val_pbar.close()
 
@@ -157,7 +157,7 @@ class Validater(BaseTrainer):
 
         cm_df = get_cm_with_labels(all_labels, all_preds, valset.classes)
         self.logger.info(
-            '===> Confusion Matrix:\n' + cm_df.to_string() + '\n'
+            "===> Confusion Matrix:\n" + cm_df.to_string() + "\n"
         )
 
         # save true_list and pred_list
@@ -174,9 +174,7 @@ class Validater(BaseTrainer):
             np.array(all_probs)
         )
 
-        save_log = f"Results are saved at '{self.save_dir}'.\n"\
-            f"===> Ended Evaluation of experiment '{self.exp_name}'"\
-            f" @epoch{self.test_epoch}.\n"\
+        save_log = f"===> Results are saved at '{self.save_dir}'.\n"\
             f"*********************************************************"\
             f"*********************************************************\n\n"
         self.logger.info(save_log)
@@ -184,21 +182,21 @@ class Validater(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--local_rank', type=int, help='Local Rank for\
-                        distributed training. if single-GPU, default: -1')
+    parser.add_argument("--local_rank", type=int, help="Local Rank for\
+                        distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str)
     args = parser.parse_args()
     return args
 
 
 def main(args):
-    warnings.filterwarnings('ignore')
+    warnings.filterwarnings("ignore")
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     validater = Validater(local_rank=args.local_rank, config=config)
     validater.evaluate()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parse_args()
     main(args)

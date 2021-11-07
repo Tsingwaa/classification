@@ -1,9 +1,9 @@
 experiment:
-  name: "miniImageNet20_0.05_r18_LinfPGD_joint0.8_dualBN1"
+  name: "miniImageNet20_0.05_r34_LinfPGD_joint0.8_dualBN"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: True
+  resume: False
   resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
@@ -70,7 +70,7 @@ valloader:
     num_workers: 6
 
 network:
-  name: "NormResNet18"
+  name: "NormResNet34"
   param:
     num_classes: 20
     mean: [0.3567, 0.4279, 0.4439]
