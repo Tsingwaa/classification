@@ -314,13 +314,32 @@ class NormResNet(nn.Module):
 
 
 @Networks.register_module('NormResNet18')
-class NormDualBNResNet18(NormResNet):
-    def __init__(self, num_classes=1000, block=BasicBlock, layers=[2, 2, 2, 2],
-                 mean=None, std=None, dual_BN=False, **kwargs):
+class NormResNet18(NormResNet):
+    def __init__(self, num_classes=1000, dual_BN=False,
+                 mean=None, std=None, **kwargs):
         norm_layer = MixBatchNorm2d if dual_BN else None
-        super(NormDualBNResNet18, self).__init__(
-            block=block, num_classes=num_classes, layers=layers,
-            mean=mean, std=std, norm_layer=norm_layer,
+        super(NormResNet18, self).__init__(
+            block=BasicBlock,
+            num_classes=num_classes,
+            layers=[2, 2, 2, 2],
+            mean=mean,
+            std=std,
+            norm_layer=norm_layer,
+        )
+
+
+@Networks.register_module('NormResNet34')
+class NormResNet34(NormResNet):
+    def __init__(self, num_classes=1000, dual_BN=False,
+                 mean=None, std=None, **kwargs):
+        norm_layer = MixBatchNorm2d if dual_BN else None
+        super(NormResNet34, self).__init__(
+            block=BasicBlock,
+            num_classes=num_classes,
+            layers=[3, 4, 6, 3],
+            mean=mean,
+            std=std,
+            norm_layer=norm_layer,
         )
 
 
