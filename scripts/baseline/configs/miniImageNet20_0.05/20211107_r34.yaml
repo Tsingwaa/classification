@@ -73,7 +73,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.1
-    weight_decay: 1.0e-3
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 

@@ -82,17 +82,13 @@ class Trainer(BaseTrainer):
         # Initialize DistributedDataParallel
         #######################################################################
         if self.local_rank != -1:
-            self.model, self.optimizer = amp.initialize(
-                self.model,
-                self.optimizer,
-                opt_level="O1"
-            )
-            self.model = DistributedDataParallel(
-                self.model,
-                device_ids=[self.local_rank],
-                output_device=self.local_rank,
-                find_unused_parameters=True
-            )
+            self.model, self.optimizer = amp.initialize(self.model,
+                                                        self.optimizer,
+                                                        opt_level="O1")
+            self.model = DistributedDataParallel(self.model,
+                                                 device_ids=[self.local_rank],
+                                                 output_device=self.local_rank,
+                                                 find_unused_parameters=True)
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
@@ -228,8 +224,7 @@ class Trainer(BaseTrainer):
         val_recalls = np.around(val_recalls, decimals=2).tolist()
 
         val_pbar.set_postfix_str(
-            "Loss:{:.2f} MR:{:.0%}".format(val_loss_meter.avg, val_mr)
-        )
+            "Loss:{:.2f} MR:{:.0%}".format(val_loss_meter.avg, val_mr))
         val_pbar.close()
 
         return val_mr, val_recalls, val_loss_meter.avg
