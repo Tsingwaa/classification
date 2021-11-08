@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn.functional import cross_entropy
+from pudb import set_trace
 from model.module.builder import Modules
 from utils import switch_adv
 
@@ -108,6 +109,56 @@ class LinfPGD(nn.Module):
             self.model.train()
 
         return x + perturbation
+
+
+@Modules.register_module('AdaptLinfPGD')
+class AdaptLinfPGD(LinfPGD):
+    def project(self, perturbation, use_target, target):
+        if use_target:
+            batch_size = target.shape[0]
+            adapt_ratio = (target + 1) / 20
+            epsilon = self.epsilon * adapt_ratio
+            epsilon = epsilon.view(batch_size, 1, 1, 1)
+            perturbation_min = torch.min(perturbation, epsilon)
+            ret_eps = torch.max(perturbation_min, -epsilon)
+        else:
+            epsilon = self.epsilon
+            ret_eps = torch.clamp(perturbation, -epsilon, epsilon)
+
+        return ret_eps
+
+    def compute_perturbation(self, adv_x, x, use_target=False, target=None):
+        # Project the perturbation to Lp ball
+        perturbation = self.project(adv_x - x, use_target=use_target,
+                                    target=target)
+        # Clamp the adversarial image to a legal 'image'
+        perturbation = torch.clamp(x + perturbation,
+                                   self.clip_min,
+                                   self.clip_max) - x
+
+        return perturbation
+
+    def onestep(self, x, perturbation, target):
+        # Running one step for
+        adv_x = x + perturbation
+        adv_x.requires_grad = True
+
+        self.model.apply(switch_adv)
+        atk_loss = self.criterion(self.model, adv_x, target)
+
+        self.model.zero_grad()
+        atk_loss.backward()
+        grad = adv_x.grad
+        # Essential: delete the computation graph to save GPU ram
+        adv_x.requires_grad = False
+
+        if self.targeted:
+            adv_x = adv_x.detach() - self.step * torch.sign(grad)
+        else:
+            adv_x = adv_x.detach() + self.step * torch.sign(grad)
+        perturbation = self.compute_perturbation(adv_x, x, use_target=True,
+                                                 target=target)
+        return perturbation
 
 
 @Modules.register_module('L2PGD')
