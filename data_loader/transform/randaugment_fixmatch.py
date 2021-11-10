@@ -185,36 +185,39 @@ def my_augment_pool():
 
 
 class RandAugmentPC(object):
-    def __init__(self, n, m):
+    def __init__(self, n=2, m=10):
         assert n >= 1
         assert 1 <= m <= 10
         self.n = n
         self.m = m
-        self.augment_pool = my_augment_pool()
+        self.augment_pool = my_augment_pool()  # Stronger
 
-    def __call__(self, img):
+    def __call__(self, img, ):
+        img_size = img.size()
         ops = random.choices(self.augment_pool, k=self.n)
         for op, max_v, bias in ops:
             prob = np.random.uniform(0.2, 0.8)
             if random.random() + prob >= 1:
+                # fixed v
                 img = op(img, v=self.m, max_v=max_v, bias=bias)
-        img = CutoutAbs(img, int(32*0.5))
+        img = CutoutAbs(img, int(img_size * 0.5))
         return img
 
 
 class RandAugmentMC(object):
-    def __init__(self, n, m):
+    def __init__(self, n=2, m=10):
         assert n >= 1
         assert 1 <= m <= 10
         self.n = n
         self.m = m
-        self.augment_pool = fixmatch_augment_pool()
+        self.augment_pool = fixmatch_augment_pool()  # Weaker
 
     def __call__(self, img):
+        img_size = img.size
         ops = random.choices(self.augment_pool, k=self.n)
         for op, max_v, bias in ops:
-            v = np.random.randint(1, self.m)
+            v = np.random.randint(1, self.m)  # Random v
             if random.random() < 0.5:
                 img = op(img, v=v, max_v=max_v, bias=bias)
-        img = CutoutAbs(img, int(32*0.5))
+        img = CutoutAbs(img, int(img_size * 0.5))
         return img

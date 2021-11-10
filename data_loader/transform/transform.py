@@ -1,6 +1,6 @@
 import torchvision.transforms as transforms
 # from .randaugment import RandAugment
-from .randaugment_fixmatch import RandAugmentMC
+from .randaugment_fixmatch import RandAugmentMC, RandAugmentPC
 from .randaugment import RandAugment
 
 IN_MEAN = [0.485, 0.456, 0.406]
@@ -150,6 +150,7 @@ class RandTransform:
         self.resize = resize
         self.n = kwargs.get('rand_n', 2)
         self.m = kwargs.get('rand_m', 10)
+        self.strong = kwargs.get('strong', False)
 
     def __call__(self, x, percent=None, m=None, n=None,
                  mean=IN_MEAN, std=IN_STD,):
@@ -162,20 +163,16 @@ class RandTransform:
 
         if self.phase == 'train':
             ret_transform = transforms.Compose([
-                transforms.RandomCrop(self.resize, padding=4),
-                RandAugment(n, m),
-                # transforms.Resize(size=(int(self.resize[0] / 0.875),
-                #                         int(self.resize[1] / 0.875))),
                 transforms.RandomHorizontalFlip(),
+                transforms.RandomResizedCrop(self.resize),
+                RandAugmentPC(n, m) if self.strong else RandAugmentMC(n, m),
                 transforms.ToTensor(),
-                transforms.Normalize(mean, std),
-            ])
+                transforms.Normalize(mean, std)])
         else:
             ret_transform = transforms.Compose([
-                transforms.Resize(self.resize),
+                transforms.Resize(int(self.resize[0] / 0.875)),
                 transforms.ToTensor(),
-                transforms.Normalize(mean, std)
-            ])
+                transforms.Normalize(mean, std)])
 
         return ret_transform(x)
 
