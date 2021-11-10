@@ -285,11 +285,8 @@ class Trainer(BaseTrainer):
     def evaluate(self, epoch):
         self.model.eval()
 
-        val_pbar = tqdm(
-            total=len(self.valloader),
-            ncols=0,
-            desc='                 Val'
-        )
+        val_pbar = tqdm(total=len(self.valloader), ncols=0,
+                        desc='                 Val')
 
         all_labels = []
         all_preds = []
