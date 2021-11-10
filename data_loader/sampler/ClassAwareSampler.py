@@ -133,6 +133,16 @@ class BalancedSampler(Sampler):
         # Initialize pointer as the first one (index = 0)
         self.bucket_pointers = [0 for _ in range(self.num_buckets)]
         self.retain_epoch_size = retain_epoch_size
+        self.max_bucket_size = max([len(bucket) for bucket in self.buckets])
+        # if not self.retain_epoch_size:
+        #     # oversample
+        #     for label, bucket in enumerate(self.buckets):
+        #         num_add = self.max_bucket_size - len(bucket)
+        #         if num_add == 0:
+        #             continue
+        #         else:
+        #             idx_add = random.sample(bucket, num_add)
+        #             self.buckets[label].extend(idx_add)
 
     def __iter__(self):
         count = self.__len__()
@@ -162,6 +172,4 @@ class BalancedSampler(Sampler):
         else:
             # Ensures every instance has the chance to be visited in an epoch
             # oversample each class size to max class size.
-            return max(
-                [len(bucket) for bucket in self.buckets]
-            ) * self.num_buckets
+            return self.max_bucket_size * self.num_buckets
