@@ -34,7 +34,7 @@ class BaseTransform:
                 transforms.Resize(int(self.resize[1] / 0.875)),
                 transforms.CenterCrop(self.resize),
                 transforms.ToTensor(),
-                # transforms.Normalize(mean, std)
+                transforms.Normalize(mean, std)
             ])
         return ret_transform(x)
 
