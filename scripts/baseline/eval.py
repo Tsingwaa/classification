@@ -6,7 +6,6 @@ import argparse
 import torch
 import yaml
 import numpy as np
-# import pandas as pd
 # from pudb import set_trace
 from os.path import join
 from torch.utils.data import DataLoader
@@ -47,8 +46,7 @@ class Validater(BaseTrainer):
         else:
             self.resume_fpath = join(
                 self.user_root, 'Experiments', self.exp_name,
-                self.experiment_config['resume_fpath']
-            )
+                self.experiment_config['resume_fpath'])
 
         self.checkpoint, resume_log = self.resume_checkpoint()
         self.test_epoch = self.checkpoint['epoch']
@@ -117,10 +115,7 @@ class Validater(BaseTrainer):
         #######################################################################
         # Start evaluating
         #######################################################################
-        val_pbar = tqdm(
-            total=len(self.valloader),
-            desc='Evaluate'
-        )
+        val_pbar = tqdm(total=len(self.valloader), desc='Evaluate')
 
         self.model.eval()
 
@@ -140,14 +135,8 @@ class Validater(BaseTrainer):
 
                 val_pbar.update()
 
-        val_acc = metrics.accuracy_score(all_labels, all_preds)
-        val_mr = metrics.recall_score(all_labels, all_preds,
-                                      average='macro')
-        val_ap = metrics.precision_score(all_labels, all_preds,
-                                         average='macro')
-        val_pbar.set_postfix_str(
-            'Acc:{:.2%} MR:{:.2%} AP:{:.2%}'.format(val_acc, val_mr, val_ap)
-        )
+        val_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
+        val_pbar.set_postfix_str('MR:{:.2%}'.format(val_mr))
         val_pbar.close()
 
         classification_report = metrics.classification_report(

@@ -13,6 +13,7 @@ adv:
   param:
     joint_training: True
     clean_weight: 0.8
+    test_adv: True
     # iterations: 7  # Default: 7
     # step: 0.0078  # Default: 2/255
     # epsilon: 0.0314  # Default: 8/255

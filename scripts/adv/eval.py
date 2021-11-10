@@ -91,6 +91,11 @@ class Validater(BaseTrainer):
         self.network_name = self.network_config["name"]
         self.network_param = self.network_config["param"]
 
+        if 'adv' in config:
+            adv_config = config['adv']
+            self.adv_name = adv_config['name']
+            self.adv_param = adv_config['param']
+
     def evaluate(self):
         #######################################################################
         # Initialize Dataset and Dataloader
@@ -112,6 +117,13 @@ class Validater(BaseTrainer):
         self.model = self.init_model()
 
         #######################################################################
+        # Initialize Adversarial Training
+        #######################################################################
+        self.adv_param.update({"model": self.model})
+        self.attacker = self.init_module(module_name=self.adv_name,
+                                         module_param=self.adv_param)
+
+        #######################################################################
         # Start evaluating
         #######################################################################
         val_pbar = tqdm(
@@ -120,7 +132,6 @@ class Validater(BaseTrainer):
         )
 
         self.model.eval()
-        self.model.apply(switch_clean)
 
         all_labels = []
         all_probs = []
@@ -128,7 +139,10 @@ class Validater(BaseTrainer):
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
                 batch_imgs = batch_imgs.cuda()
+                if self.adv_param['test_adv']:
+                    batch_imgs = self.attacker.attack(batch_imgs, batch_labels)
                 batch_labels = batch_labels.cuda()
+                self.model.apply(switch_clean)
                 batch_probs = self.model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]
 

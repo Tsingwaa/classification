@@ -1,5 +1,5 @@
 experiment:
-  name: "miniImageNet20_0.05_r34_LinfPGD_joint0.8_dualBN_adapt_epsilon"
+  name: "miniImageNet20_0.05_r18_LinfPGD_joint0.8_dualBN_adapt_epsilon"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
