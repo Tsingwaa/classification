@@ -187,8 +187,8 @@ class Trainer(BaseTrainer):
             batch_feat_map = self.model(batch_imgs, output_type='feat_map')
             # truncate gradient and add a new projector to keep learning with
             # classifier.
-            batch_feat_map1 = self.model.projector(batch_feat_map.detach())
-            batch_feat_vec = self.model.avgpool(batch_feat_map1)
+            # batch_feat_map1 = self.model.projector(batch_feat_map.detach())
+            batch_feat_vec = self.model.avgpool(batch_feat_map.detach())
             batch_feat_vec = torch.flatten(batch_feat_vec, 1)
             batch_prob = self.model.fc(batch_feat_vec)
 
