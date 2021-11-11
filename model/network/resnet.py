@@ -160,13 +160,14 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000, use_ssp=False,
+    def __init__(self, block, layers, num_classes=1000, ssp_classes=4,
                  zero_init_residual=False, groups=1, width_per_group=64,
                  replace_stride_with_dilation=None, norm_layer=None):
         super(ResNet, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
+        self.ssp_classes = ssp_classes
 
         self.inplanes = 64
         self.dilation = 1
@@ -198,10 +199,12 @@ class ResNet(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
+        # add a projector for normal supervised training
+        self.projector = BasicBlock(512 * block.expansion,
+                                    512 * block.expansion)
         # add an output head for self-supervision, rotation respectively.
-        if use_ssp:
-            self.use_ssp = use_ssp
-            self.ssp_fc = nn.Linear(512 * block.expansion, 4)
+        if isinstance(self.ssp_classes, int):
+            self.ssp_fc = nn.Linear(512 * block.expansion, self.ssp_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -250,7 +253,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, ssp=False):
+    def forward(self, x, output_type='normal'):
         # See note [TorchScript super()]
         x = self.conv1(x)
         x = self.bn1(x)
@@ -260,68 +263,75 @@ class ResNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        x = self.layer4(x)
+        feat_map = self.layer4(x)
 
-        x = self.avgpool(x)
-        feat = torch.flatten(x, 1)
-        if ssp:
-            output = self.ssp_fc(feat)
-        else:
-            output = self.fc(feat)
+        feat_vec = self.avgpool(feat_map)
+        feat_vec = torch.flatten(feat_vec, 1)
 
-        return output
+        if output_type == 'ssp':
+            if isinstance(self.ssp_classes, int):
+                return self.ssp_fc(feat_vec)
+            else:
+                print('Not implemented ssp fc layer!')
+                raise NotImplementedError
+        elif output_type == 'feat_map':
+            return feat_map
+        elif output_type == 'feat_vec':
+            return feat_vec
+        else:  # Default outputs normal
+            return self.fc(feat_vec)
 
 
 @Networks.register_module('ResNet18')
 class ResNet18(ResNet):
-    def __init__(self, num_classes, use_ssp, **kwargs):
+    def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet18, self).__init__(
             block=BasicBlock,
             layers=[2, 2, 2, 2],
             num_classes=num_classes,
-            use_ssp=use_ssp,
+            ssp_classes=ssp_classes
         )
 
 
 @Networks.register_module('ResNet34')
 class ResNet34(ResNet):
-    def __init__(self, num_classes, use_ssp, **kwargs):
+    def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet34, self).__init__(
             block=BasicBlock,
             layers=[3, 4, 6, 3],
             num_classes=num_classes,
-            use_ssp=use_ssp,
+            ssp_classes=ssp_classes
         )
 
 
 @Networks.register_module('ResNet50')
 class ResNet50(ResNet):
-    def __init__(self, num_classes, use_ssp, **kwargs):
+    def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet50, self).__init__(
             block=Bottleneck,
             layers=[3, 4, 6, 3],
             num_classes=num_classes,
-            use_ssp=use_ssp,
+            ssp_classes=ssp_classes
         )
 
 
 @Networks.register_module('ResNet101')
 class ResNet101(ResNet):
-    def __init__(self, num_classes, use_ssp, **kwargs):
+    def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet101, self).__init__(
             block=Bottleneck,
             layers=[3, 4, 23, 3],
             num_classes=num_classes,
-            use_ssp=use_ssp,
+            ssp_classes=ssp_classes,
         )
 
 
 @Networks.register_module('ResNet152')
 class ResNet152(ResNet):
-    def __init__(self, num_classes, use_ssp, **kwargs):
+    def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet152, self).__init__(
             block=Bottleneck,
             layers=[3, 8, 36, 3],
             num_classes=num_classes,
-            use_ssp=use_ssp,
+            ssp_classes=ssp_classes
         )
