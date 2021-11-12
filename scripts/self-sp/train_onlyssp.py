@@ -184,12 +184,13 @@ class Trainer(BaseTrainer):
             batch_labels = batch_labels.cuda()
 
             # Step 2: train with rotated imgs
-            batch_feat_map = self.model(batch_imgs, output_type='feat_map')
+            batch_feat_vec = self.model(batch_imgs, output_type='feat_vec')
+            # batch_feat_map = self.model(batch_imgs, output_type='feat_map')
             # truncate gradient and add a new projector to keep learning with
             # classifier.
             # batch_feat_map1 = self.model.projector(batch_feat_map.detach())
-            batch_feat_vec = self.model.avgpool(batch_feat_map.detach())
-            batch_feat_vec = torch.flatten(batch_feat_vec, 1)
+            # batch_feat_vec = self.model.avgpool(batch_feat_map1.detach())
+            batch_feat_vec = torch.flatten(batch_feat_vec.detach(), 1)
             batch_prob = self.model.fc(batch_feat_vec)
 
             batch_selfsp_prob = self.model(batch_selfsp_imgs,
