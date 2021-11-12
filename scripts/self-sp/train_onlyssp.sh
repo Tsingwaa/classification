@@ -17,4 +17,4 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_path \
 #         'configs/miniImageNet20_0.05/20211102_r18_prog.yaml'
 CUDA_VISIBLE_DEVICES=0 python3 train_onlyssp.py --local_rank -1 --config_path \
-        'configs/miniIN20_0.05/20211111_r18_onlyssp.yaml'
+        'configs/miniIN20_0.05/20211111_r18_onlyssp_noproj.yaml'
