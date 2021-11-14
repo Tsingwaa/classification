@@ -104,25 +104,25 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Start Training
         #######################################################################
-        for epoch in range(self.start_epoch, self.total_epochs + 1):
+        for cur_epoch in range(self.start_epoch, self.num_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == 'epoch':
                 self.lr_scheduler.step()
 
             if self.local_rank != -1:  # 多卡同步sampler生成的索引块
-                train_sampler.set_epoch(epoch)
+                train_sampler.set_epoch(cur_epoch)
 
-            train_mr, train_loss = self.train_epoch(epoch)
+            train_mr, train_loss = self.train_epoch(cur_epoch)
 
             if self.local_rank in [-1, 0]:
-                val_mr, val_recalls, val_loss = self.evaluate(epoch)
+                val_mr, val_recalls, val_loss = self.evaluate(cur_epoch)
 
                 self.logger.debug(
                     'Epoch[{epoch:>3d}/{total_epochs}] '
                     'Trainset Loss={train_loss:.4f} MR={train_mr:.2%} || '
                     'Valset Loss={val_loss:.4f} MR={val_mr:.2%}'.format(
-                        epoch=epoch,
-                        total_epochs=self.total_epochs,
+                        epoch=cur_epoch,
+                        total_epochs=self.num_epochs,
                         train_loss=train_loss,
                         train_mr=train_mr,
                         val_loss=val_loss,
@@ -130,21 +130,21 @@ class Trainer(BaseTrainer):
                     )
                 )
 
-                if len(val_recalls) <= 20 and epoch == self.total_epochs:
+                if len(val_recalls) <= 20 and cur_epoch == self.num_epochs:
                     self.logger.info(f"Class recalls:{val_recalls}\n\n")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(f'{self.exp_name}/LearningRate',
                                        self.optimizer.param_groups[0]['lr'],
-                                       epoch)
+                                       cur_epoch)
                 self.writer.add_scalars(f'{self.exp_name}/Loss',
                                         {'train_loss': train_loss,
-                                         'val_loss': val_loss}, epoch)
+                                         'val_loss': val_loss}, cur_epoch)
                 self.writer.add_scalars(f'{self.exp_name}/Recall',
                                         {'train_mr': train_mr,
-                                         'val_mr': val_mr}, epoch)
+                                         'val_mr': val_mr}, cur_epoch)
 
-                self.save_checkpoint(epoch, val_mr, val_recalls)
+                self.save_checkpoint(cur_epoch, val_mr, val_recalls)
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
@@ -153,12 +153,12 @@ class Trainer(BaseTrainer):
                 f"*********************************************************"
             )
 
-    def train_epoch(self, epoch):
+    def train_epoch(self, cur_epoch):
         self.model.train()
 
         train_pbar = tqdm(
             total=len(self.trainloader),
-            desc='Train Epoch[{:>3d}/{}]'.format(epoch, self.total_epochs)
+            desc='Train Epoch[{:>3d}/{}]'.format(cur_epoch, self.num_epochs)
         )
 
         all_labels = []
@@ -189,7 +189,7 @@ class Trainer(BaseTrainer):
 
             # Add progressive training
             # Startly, mainly use ssp; Finally, use supervision progressively.
-            sp_weight = epoch / self.total_epochs
+            sp_weight = cur_epoch / self.num_epochs
             total_loss = sp_weight * sp_loss + (1 - sp_weight) * selfsp_loss
             # total_loss = sp_loss + selfsp_loss
             if self.local_rank != -1:

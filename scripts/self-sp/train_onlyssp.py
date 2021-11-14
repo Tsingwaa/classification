@@ -102,26 +102,26 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Start Training
         #######################################################################
-        for epoch in range(self.start_epoch, self.total_epochs + 1):
+        for cur_epoch in range(self.start_epoch, self.num_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == 'epoch':
                 self.lr_scheduler.step()
 
             if self.local_rank != -1:  # 多卡同步sampler生成的索引块
-                train_sampler.set_epoch(epoch)
+                train_sampler.set_epoch(cur_epoch)
 
-            train_mr, train_loss = self.train_epoch(epoch)
+            train_mr, train_loss = self.train_epoch(cur_epoch)
 
             if self.local_rank in [-1, 0]:
-                val_mr, val_recalls, val_loss = self.evaluate(epoch)
+                val_mr, val_recalls, val_loss = self.evaluate(cur_epoch)
 
                 self.logger.debug(
                     'Epoch[{epoch:>3d}/{total_epochs}] '
                     'Trainset Loss={train_loss:.4f} SP={sp_loss:.4f} '
                     'SSP={ssp_loss:.4f} MR={train_mr:.2%} || '
                     'Valset Loss={val_loss:.4f} MR={val_mr:.2%}'.format(
-                        epoch=epoch,
-                        total_epochs=self.total_epochs,
+                        epoch=cur_epoch,
+                        total_epochs=self.num_epochs,
                         train_loss=train_loss['total'],
                         sp_loss=train_loss['sp'],
                         ssp_loss=train_loss['ssp'],
@@ -131,23 +131,23 @@ class Trainer(BaseTrainer):
                     )
                 )
 
-                if len(val_recalls) <= 20 and epoch == self.total_epochs:
+                if len(val_recalls) <= 20 and cur_epoch == self.num_epochs:
                     self.logger.info(f"Class recalls:{val_recalls}\n\n")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(f'{self.exp_name}/LearningRate',
                                        self.optimizer.param_groups[0]['lr'],
-                                       epoch)
+                                       cur_epoch)
                 self.writer.add_scalars(f'{self.exp_name}/Loss',
                                         {'train_loss': train_loss['total'],
                                          'sp_loss': train_loss['sp'],
                                          'ssp_loss': train_loss['ssp'],
-                                         'val_loss': val_loss}, epoch)
+                                         'val_loss': val_loss}, cur_epoch)
                 self.writer.add_scalars(f'{self.exp_name}/Recall',
                                         {'train_mr': train_mr,
-                                         'val_mr': val_mr}, epoch)
+                                         'val_mr': val_mr}, cur_epoch)
 
-                self.save_checkpoint(epoch, val_mr, val_recalls)
+                self.save_checkpoint(cur_epoch, val_mr, val_recalls)
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
@@ -156,12 +156,12 @@ class Trainer(BaseTrainer):
                 f"*********************************************************"
             )
 
-    def train_epoch(self, epoch):
+    def train_epoch(self, cur_epoch):
         self.model.train()
 
         train_pbar = tqdm(
             total=len(self.trainloader),
-            desc='Train Epoch[{:>3d}/{}]'.format(epoch, self.total_epochs)
+            desc='Train Epoch[{:>3d}/{}]'.format(cur_epoch, self.num_epochs)
         )
 
         all_labels = []
@@ -186,8 +186,8 @@ class Trainer(BaseTrainer):
             # Step 2: train with rotated imgs
             batch_feat_vec = self.model(batch_imgs, output_type='feat_vec')
             # batch_feat_map = self.model(batch_imgs, output_type='feat_map')
-            # truncate gradient and add AverageMeter new projector to keep learning with
-            # classifier.
+            # truncate gradient and add AverageMeter new projector to keep
+            # learning with classifier.
             # batch_feat_map1 = self.model.projector(batch_feat_map.detach())
             # batch_feat_vec = self.model.avgpool(batch_feat_map1.detach())
             batch_feat_vec = torch.flatten(batch_feat_vec.detach(), 1)
@@ -202,7 +202,7 @@ class Trainer(BaseTrainer):
 
             if self.sp_weight_scheduler == 'progressive':
                 # Startly, mainly use ssp; then use supervision progressively.
-                sp_weight = epoch / self.total_epochs
+                sp_weight = cur_epoch / self.num_epochs
             else:
                 sp_weight = 0.5
             total_loss = sp_weight * sp_loss + (1 - sp_weight) * selfsp_loss
@@ -253,7 +253,7 @@ class Trainer(BaseTrainer):
 
         return train_mr, train_loss_dict
 
-    def evaluate(self, epoch):
+    def evaluate(self, cur_epoch):
         self.model.eval()
 
         val_pbar = tqdm(
