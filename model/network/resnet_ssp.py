@@ -199,6 +199,17 @@ class ResNet(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
+        # add a projector for normal supervised training
+        # self.projector = BasicBlock(512 * block.expansion,
+        #                             512 * block.expansion)
+        # add an output head for self-supervision, rotation respectively.
+        if isinstance(self.ssp_classes, int):
+            self.inplanes = 256
+            self.ssp_layer4 = self._make_layer(
+                block, 512, layers[3], stride=2,
+                dilate=replace_stride_with_dilation[2])
+            self.ssp_fc = nn.Linear(512 * block.expansion, self.ssp_classes)
+
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out',
@@ -246,7 +257,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x, output_type='sp_logits'):
         # See note [TorchScript super()]
         x = self.conv1(x)
         x = self.bn1(x)
@@ -255,56 +266,77 @@ class ResNet(nn.Module):
 
         x = self.layer1(x)
         x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        featmap3 = self.layer3(x)
+        # feat_map = self.layer4(x)
 
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1)
-        x = self.fc(x)
+        # feat_vec = self.avgpool(feat_map)
+        # feat_vec = torch.flatten(feat_vec, 1)
 
-        return x
+        if 'ssp' in output_type:
+            ssp_featmap4 = self.ssp_layer4(featmap3)
+            ssp_featvec = self.avgpool(ssp_featmap4)
+            ssp_featvec = torch.flatten(ssp_featvec, 1)
+            if 'feat' in output_type:
+                return ssp_featvec
+            else:
+                return self.ssp_fc(ssp_featvec)
+        elif 'sp' in output_type:
+            sp_featmap4 = self.layer4(featmap3)
+            sp_featvec = self.avgpool(sp_featmap4)
+            sp_featvec = torch.flatten(sp_featvec, 1)
+            if 'feat' in output_type:
+                return sp_featvec
+            else:  # Default outputs logits
+                return self.fc(sp_featvec)
+        else:
+            return featmap3
 
 
-@Networks.register_module('ResNet18')
+@Networks.register_module('ResNet18_ssp')
 class ResNet18(ResNet):
     def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet18, self).__init__(
             block=BasicBlock,
             layers=[2, 2, 2, 2],
-            num_classes=num_classes,)
+            num_classes=num_classes,
+            ssp_classes=ssp_classes)
 
 
-@Networks.register_module('ResNet34')
+@Networks.register_module('ResNet34_ssp')
 class ResNet34(ResNet):
     def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet34, self).__init__(
             block=BasicBlock,
             layers=[3, 4, 6, 3],
-            num_classes=num_classes,)
+            num_classes=num_classes,
+            ssp_classes=ssp_classes)
 
 
-@Networks.register_module('ResNet50')
+@Networks.register_module('ResNet50_ssp')
 class ResNet50(ResNet):
     def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet50, self).__init__(
             block=Bottleneck,
             layers=[3, 4, 6, 3],
-            num_classes=num_classes,)
+            num_classes=num_classes,
+            ssp_classes=ssp_classes)
 
 
-@Networks.register_module('ResNet101')
+@Networks.register_module('ResNet101_ssp')
 class ResNet101(ResNet):
     def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet101, self).__init__(
             block=Bottleneck,
             layers=[3, 4, 23, 3],
-            num_classes=num_classes,)
+            num_classes=num_classes,
+            ssp_classes=ssp_classes)
 
 
-@Networks.register_module('ResNet152')
+@Networks.register_module('ResNet152_ssp')
 class ResNet152(ResNet):
     def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet152, self).__init__(
             block=Bottleneck,
             layers=[3, 8, 36, 3],
-            num_classes=num_classes,)
+            num_classes=num_classes,
+            ssp_classes=ssp_classes)
