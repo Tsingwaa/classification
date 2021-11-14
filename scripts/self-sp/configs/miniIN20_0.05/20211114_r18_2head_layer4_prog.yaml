@@ -1,9 +1,9 @@
 experiment:
-  name: "miniIN20_0.05_r18_2head_layer4"
+  name: "miniIN20_0.05_r18_2head_layer4_prog"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: True
+  resume: False
   resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.

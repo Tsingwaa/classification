@@ -208,7 +208,7 @@ class Trainer(BaseTrainer):
 
             if self.sp_weight_scheduler == 'progressive':
                 # Startly, mainly use ssp; then use supervision progressively.
-                sp_weight = epoch / self.total_epochs
+                sp_weight = (epoch + 5.) / (self.total_epochs + 10.)
             else:
                 sp_weight = 0.5
             total_loss = sp_weight * sp_loss + (1 - sp_weight) * ssp_loss
