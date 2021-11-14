@@ -1,10 +1,10 @@
 experiment:
-  name: "miniIN20_0.05_r18_onlyssp_noproj_fc_prog"
+  name: "miniIN20_0.05_r18_2head_fc"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
   resume: False
-  resume_fpath: "ResNet18_best.pth.tar"
+  resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -53,7 +53,7 @@ trainloader:
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 128
+    batch_size: 64
     num_workers: 6
 
 network:
@@ -61,7 +61,8 @@ network:
   param:
     num_classes: 20
     ssp_classes: 4
-    sp_weight_scheduler: 'progressive'
+    sp_weight_scheduler: 'None'
+    truncate: 'fc'
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
@@ -97,7 +98,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [60, 100, 140, 170, 190]
+    milestones: [60, 100, 140, 160, 180]
     gamma: 0.1
 
     # CosineAnnealingWarmRestarts

@@ -3,8 +3,8 @@ experiment:
   start_epoch: 1
   total_epochs: 1000
   log_fname: "train.log"
-  resume: False
-  resume_fpath: "ResNet18_best.pth.tar"
+  resume: True
+  resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
