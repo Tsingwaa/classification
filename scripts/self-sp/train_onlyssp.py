@@ -15,7 +15,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AccAverageMeter, rotation
+from utils import AverageMeter, rotation
 
 
 class DataLoaderX(DataLoader):
@@ -166,9 +166,9 @@ class Trainer(BaseTrainer):
 
         all_labels = []
         all_preds = []
-        train_loss_meter = AccAverageMeter()
-        sp_loss_meter = AccAverageMeter()
-        ssp_loss_meter = AccAverageMeter()
+        train_loss_meter = AverageMeter()
+        sp_loss_meter = AverageMeter()
+        ssp_loss_meter = AverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(self.trainloader):
             if self.lr_scheduler_mode == 'iteration':
                 self.lr_scheduler.step()
@@ -186,7 +186,7 @@ class Trainer(BaseTrainer):
             # Step 2: train with rotated imgs
             batch_feat_vec = self.model(batch_imgs, output_type='feat_vec')
             # batch_feat_map = self.model(batch_imgs, output_type='feat_map')
-            # truncate gradient and add a new projector to keep learning with
+            # truncate gradient and add AverageMeter new projector to keep learning with
             # classifier.
             # batch_feat_map1 = self.model.projector(batch_feat_map.detach())
             # batch_feat_vec = self.model.avgpool(batch_feat_map1.detach())
@@ -264,7 +264,7 @@ class Trainer(BaseTrainer):
 
         all_labels = []
         all_preds = []
-        val_loss_meter = AccAverageMeter()
+        val_loss_meter = AverageMeter()
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
                 batch_imgs = batch_imgs.cuda()

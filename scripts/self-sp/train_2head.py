@@ -15,7 +15,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AccAverageMeter, rotation
+from utils import AverageMeter, rotation, get_weight
 
 
 class DataLoaderX(DataLoader):
@@ -26,7 +26,7 @@ class DataLoaderX(DataLoader):
 class Trainer(BaseTrainer):
     def __init__(self, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
-        self.sp_weight_scheduler = self.network_param['sp_weight_scheduler']
+        self.weight_scheduler = self.network_param['weight_scheduler']
         self.truncate = self.network_param.get('truncate', 'None')
 
     def train(self):
@@ -157,19 +157,19 @@ class Trainer(BaseTrainer):
                 f"*********************************************************"
             )
 
-    def train_epoch(self, epoch):
+    def train_epoch(self, cur_epoch):
         self.model.train()
 
         train_pbar = tqdm(
             total=len(self.trainloader),
-            desc='Train Epoch[{:>3d}/{}]'.format(epoch, self.total_epochs)
+            desc='Train Epoch[{:>3d}/{}]'.format(cur_epoch, self.total_epochs)
         )
 
         all_labels = []
         all_preds = []
-        train_loss_meter = AccAverageMeter()
-        sp_loss_meter = AccAverageMeter()
-        ssp_loss_meter = AccAverageMeter()
+        train_loss_meter = AverageMeter()
+        sp_loss_meter = AverageMeter()
+        ssp_loss_meter = AverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(self.trainloader):
             if self.lr_scheduler_mode == 'iteration':
                 self.lr_scheduler.step()
@@ -205,13 +205,9 @@ class Trainer(BaseTrainer):
 
             sp_loss = self.criterion(batch_prob, batch_labels)
             ssp_loss = self.criterion(batch_ssp_prob, batch_ssp_labels)
-
-            if self.sp_weight_scheduler == 'progressive':
-                # Startly, mainly use ssp; then use supervision progressively.
-                sp_weight = epoch / self.total_epochs
-            else:
-                sp_weight = 0.5
-            total_loss = sp_weight * sp_loss + (1 - sp_weight) * ssp_loss
+            ssp_weight = get_weight(cur_epoch, self.total_epoch,
+                                    weight_scheduler=self.weight_scheduler)
+            total_loss = (1 - ssp_weight) * sp_loss + ssp_weight * ssp_loss
 
             if self.local_rank != -1:
                 with amp.scale_loss(total_loss, self.optimizer) as scaled_loss:
@@ -270,7 +266,7 @@ class Trainer(BaseTrainer):
 
         all_labels = []
         all_preds = []
-        val_loss_meter = AccAverageMeter()
+        val_loss_meter = AverageMeter()
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
                 batch_imgs = batch_imgs.cuda()

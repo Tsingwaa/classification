@@ -15,7 +15,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AccAverageMeter
+from utils import AverageMeter
 
 
 class DataLoaderX(DataLoader):
@@ -156,7 +156,7 @@ class Trainer(BaseTrainer):
 
         all_labels = []
         all_preds = []
-        train_loss_meter = AccAverageMeter()
+        train_loss_meter = AverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(self.trainloader):
             if self.lr_scheduler_mode == "iteration":
                 self.lr_scheduler.step()
@@ -204,7 +204,7 @@ class Trainer(BaseTrainer):
 
         all_labels = []
         all_preds = []
-        val_loss_meter = AccAverageMeter()
+        val_loss_meter = AverageMeter()
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
                 batch_imgs = batch_imgs.cuda()
