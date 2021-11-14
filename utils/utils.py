@@ -2,6 +2,7 @@
 Created: Nov 11,2019 - Yuchong Gu
 Revised: Dec 03,2019 - Yuchong Gu
 """
+import math
 import torch
 import random
 import numpy as np
@@ -10,35 +11,14 @@ import torch.nn.functional as F
 
 def count_model_params(net):
     # Compute the total amount of parameters with gradient.
+    total_params = 0.
     for x in filter(lambda p: p.requires_grad, net.parameters()):
         total_params += np.prod(x.data.numpy().shape)
 
     return total_params
 
 
-##################################
-# Metric
-##################################
-class Metric(object):
-    pass
-
-
-class AverageMeter(Metric):
-    def __init__(self, name='loss'):
-        self.name = name
-        self.reset()
-
-    def reset(self):
-        self.scores = 0.
-        self.total_num = 0.
-
-    def __call__(self, batch_score, sample_num=1):
-        self.scores += batch_score
-        self.total_num += sample_num
-        return self.scores / self.total_num
-
-
-class TopKAccuracyMetric(Metric):
+class TopKAccuracyMetric:
     def __init__(self, topk=(1,)):
         self.name = 'topk_accuracy'
         self.topk = topk
@@ -63,132 +43,7 @@ class TopKAccuracyMetric(Metric):
         return self.corrects * 100. / self.num_samples
 
 
-##################################
-# Callback
-##################################
-class Callback(object):
-    def __init__(self):
-        pass
-
-    def on_epoch_begin(self):
-        pass
-
-    def on_epoch_end(self, *args):
-        pass
-
-
-class ModelCheckpoint(Callback):
-    def __init__(self, savepath, monitor='val_topk_accuracy', mode='max'):
-        self.savepath = savepath
-        self.monitor = monitor
-        self.mode = mode
-        self.reset()
-        super(ModelCheckpoint, self).__init__()
-
-    def reset(self):
-        if self.mode == 'max':
-            self.best_score = float('-inf')
-        else:
-            self.best_score = float('inf')
-
-    def set_best_score(self, score):
-        if isinstance(score, np.ndarray):
-            self.best_score = score[0]
-        else:
-            self.best_score = score
-
-    def on_epoch_begin(self):
-        pass
-
-    def on_epoch_end(self, logs, net, **kwargs):
-        current_score = logs[self.monitor]
-        if isinstance(current_score, np.ndarray):
-            current_score = current_score[0]
-
-        if (self.mode == 'max' and current_score > self.best_score) or \
-                (self.mode == 'min' and current_score < self.best_score):
-            self.best_score = current_score
-
-            if isinstance(net, torch.nn.DataParallel):
-                state_dict = net.module.state_dict()
-            else:
-                state_dict = net.state_dict()
-
-            for key in state_dict.keys():
-                state_dict[key] = state_dict[key].cpu()
-
-            if 'feature_center' in kwargs:
-                feature_center = kwargs['feature_center']
-                feature_center = feature_center.cpu()
-
-                torch.save({
-                    'logs': logs,
-                    'state_dict': state_dict,
-                    'feature_center': feature_center}, self.savepath)
-            else:
-                torch.save({
-                    'logs': logs,
-                    'state_dict': state_dict}, self.savepath)
-
-
-##################################
-# augment function
-##################################
-def batch_augment(images, attention_map, mode='crop', theta=0.5, padding_ratio=0.1):
-    batches, _, imgH, imgW = images.size()
-
-    if mode == 'crop':
-        crop_images = []
-        for batch_index in range(batches):
-            atten_map = attention_map[batch_index:batch_index + 1]
-            if isinstance(theta, tuple):
-                theta_c = random.uniform(*theta) * atten_map.max()
-            else:
-                theta_c = theta * atten_map.max()
-
-            crop_mask = F.upsample_bilinear(
-                atten_map, size=(imgH, imgW)) >= theta_c
-            nonzero_indices = torch.nonzero(crop_mask[0, 0, ...])
-            height_min = max(int(nonzero_indices[:, 0].min().item() -
-                                 padding_ratio * imgH), 0)
-            height_max = min(int(nonzero_indices[:, 0].max().item() +
-                                 padding_ratio * imgH), imgH)
-            width_min = max(int(nonzero_indices[:, 1].min().item() -
-                                padding_ratio * imgW), 0)
-            width_max = min(int(nonzero_indices[:, 1].max().item() +
-                                padding_ratio * imgW), imgW)
-
-            crop_images.append(
-                F.upsample_bilinear(images[batch_index:batch_index + 1,
-                                           :,
-                                           height_min:height_max,
-                                           width_min:width_max],
-                                    size=(imgH, imgW)))
-
-        crop_images = torch.cat(crop_images, dim=0)
-        return crop_images
-
-    elif mode == 'drop':
-        drop_masks = []
-        for batch_index in range(batches):
-            atten_map = attention_map[batch_index:batch_index + 1]
-            if isinstance(theta, tuple):
-                theta_d = random.uniform(*theta) * atten_map.max()
-            else:
-                theta_d = theta * atten_map.max()
-
-            drop_masks.append(F.upsample_bilinear(
-                atten_map, size=(imgH, imgW)) < theta_d)
-        drop_masks = torch.cat(drop_masks, dim=0)
-        drop_images = images * drop_masks.float()
-        return drop_images
-
-    else:
-        raise ValueError('Expected mode in [\'crop\', \'drop\'], but received\
-                         unsupported augmentation method %s' % mode)
-
-
-class AccAverageMeter(object):
+class AverageMeter(object):
     """Computes and stores the average and current value"""
 
     def __init__(self):
@@ -245,3 +100,24 @@ def rotation(inputs):
         image[i, :, :, :] = torch.rot90(inputs[i, :, :, :], target[i], [1, 2])
 
     return image, target
+
+
+def get_weight(cur_epoch, total_epoch, weight_scheduler, **kwargs):
+    """Return a decaying weight according to epoch"""
+
+    if weight_scheduler == 'parabolic_incr':  # lower convex 0->1
+        weight = (cur_epoch / total_epoch) ** 2.
+    elif weight_scheduler == 'parabolic_decay':  # upper convex 1->0
+        weight = 1. - (cur_epoch / total_epoch) ** 2.
+    elif weight_scheduler == 'cosine_decay':  # upper then lower convex 1->0
+        weight = math.cos((cur_epoch / total_epoch) * math.pi / 2.)
+    elif weight_scheduler == 'linear_decay':  # linear 1->0
+        weight = 1. - cur_epoch / total_epoch
+    elif weight_scheduler == 'step_decay':  # step
+        weight = 1. if cur_epoch <= kwargs['step_epoch'] else 0
+    elif weight_scheduler == 'beta_distribution':
+        weight = np.random.beta(kwargs['alpha'], kwargs['alpha'])
+    else:  # Fixed
+        weight = kwargs['weight']
+
+    return weight
