@@ -57,7 +57,7 @@ valloader:
     num_workers: 6
 
 network:
-  name: "ResNet18"
+  name: "ResNet18_ssp"
   param:
     num_classes: 20
     ssp_classes: 4
