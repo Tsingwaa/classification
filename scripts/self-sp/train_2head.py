@@ -203,10 +203,10 @@ class Trainer(BaseTrainer):
             batch_ssp_prob = self.model(batch_ssp_imgs,
                                         output_type='ssp_logits')
 
-            sp_loss = self.criterion(batch_prob, batch_labels)
-            ssp_loss = self.criterion(batch_ssp_prob, batch_ssp_labels)
             ssp_weight = get_weight(cur_epoch, self.total_epoch,
                                     weight_scheduler=self.weight_scheduler)
+            sp_loss = self.criterion(batch_prob, batch_labels)
+            ssp_loss = self.criterion(batch_ssp_prob, batch_ssp_labels)
             total_loss = (1 - ssp_weight) * sp_loss + ssp_weight * ssp_loss
 
             if self.local_rank != -1:
