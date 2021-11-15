@@ -179,10 +179,10 @@ class Trainer(BaseTrainer):
             # Step 1: generate rotated samples and labels
             batch_ssp_imgs, batch_ssp_labels = rotation(batch_imgs)
 
-            batch_ssp_imgs = batch_ssp_imgs.cuda()
-            batch_ssp_labels = batch_ssp_labels.cuda()
-            batch_imgs = batch_imgs.cuda()
-            batch_labels = batch_labels.cuda()
+            batch_ssp_imgs = batch_ssp_imgs.cuda(non_blocking=True)
+            batch_ssp_labels = batch_ssp_labels.cuda(non_blocking=True)
+            batch_imgs = batch_imgs.cuda(non_blocking=True)
+            batch_labels = batch_labels.cuda(non_blocking=True)
 
             # Step 2: train with rotated imgs
             if self.truncate == 'fc':
@@ -269,8 +269,8 @@ class Trainer(BaseTrainer):
         val_loss_meter = AverageMeter()
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
-                batch_imgs = batch_imgs.cuda()
-                batch_labels = batch_labels.cuda()
+                batch_imgs = batch_imgs.cuda(non_blocking=True)
+                batch_labels = batch_labels.cuda(non_blocking=True)
                 batch_probs = self.model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]
                 avg_loss = self.criterion(batch_probs, batch_labels)
@@ -307,6 +307,7 @@ def _set_seed(seed=0):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = True
 
 
 def main(args):

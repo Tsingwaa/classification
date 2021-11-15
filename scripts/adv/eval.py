@@ -138,10 +138,10 @@ class Validater(BaseTrainer):
         all_preds = []
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
-                batch_imgs = batch_imgs.cuda()
+                batch_imgs = batch_imgs.cuda(non_blocking=True)
                 if self.adv_param['test_adv']:
                     batch_imgs = self.attacker.attack(batch_imgs, batch_labels)
-                batch_labels = batch_labels.cuda()
+                batch_labels = batch_labels.cuda(non_blocking=True)
                 self.model.apply(switch_clean)
                 batch_probs = self.model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]

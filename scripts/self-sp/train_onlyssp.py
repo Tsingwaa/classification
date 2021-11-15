@@ -178,10 +178,10 @@ class Trainer(BaseTrainer):
             # Step 1: generate rotated samples and labels
             batch_selfsp_imgs, batch_selfsp_labels = rotation(batch_imgs)
 
-            batch_selfsp_imgs = batch_selfsp_imgs.cuda()
-            batch_selfsp_labels = batch_selfsp_labels.cuda()
-            batch_imgs = batch_imgs.cuda()
-            batch_labels = batch_labels.cuda()
+            batch_selfsp_imgs = batch_selfsp_imgs.cuda(non_blocking=True)
+            batch_selfsp_labels = batch_selfsp_labels.cuda(non_blocking=True)
+            batch_imgs = batch_imgs.cuda(non_blocking=True)
+            batch_labels = batch_labels.cuda(non_blocking=True)
 
             # Step 2: train with rotated imgs
             batch_feat_vec = self.model(batch_imgs, output_type='feat_vec')
@@ -267,8 +267,8 @@ class Trainer(BaseTrainer):
         val_loss_meter = AverageMeter()
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
-                batch_imgs = batch_imgs.cuda()
-                batch_labels = batch_labels.cuda()
+                batch_imgs = batch_imgs.cuda(non_blocking=True)
+                batch_labels = batch_labels.cuda(non_blocking=True)
                 batch_probs = self.model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]
                 avg_loss = self.criterion(batch_probs, batch_labels)

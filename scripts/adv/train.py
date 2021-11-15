@@ -189,7 +189,8 @@ class Trainer(BaseTrainer):
                 self.lr_scheduler.step()
 
             self.optimizer.zero_grad()
-            batch_imgs, batch_labels = batch_imgs.cuda(), batch_labels.cuda()
+            batch_imgs = batch_imgs.cuda(non_blocking=True)
+            batch_labels = batch_labels.cuda(non_blocking=True)
 
             # Adversarial Training
             # Step 1: generate perturbed samples
@@ -293,8 +294,8 @@ class Trainer(BaseTrainer):
         val_loss_meter = AverageMeter()
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
-                batch_imgs = batch_imgs.cuda()
-                batch_labels = batch_labels.cuda()
+                batch_imgs = batch_imgs.cuda(non_blocking=True)
+                batch_labels = batch_labels.cuda(non_blocking=True)
                 batch_probs = self.model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]
                 avg_loss = self.criterion(batch_probs, batch_labels)
