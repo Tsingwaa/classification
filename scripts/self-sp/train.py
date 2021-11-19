@@ -15,7 +15,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AverageMeter, rotation
+from utils import AverageMeter, rotation, get_weight
 
 
 class DataLoaderX(DataLoader):
@@ -29,12 +29,40 @@ class Trainer(BaseTrainer):
         # adv_config = config['adv']
         # self.adv_name = adv_config['name']
         # self.adv_param = adv_config['param']
+        self.weight_scheduler = self.network_param['weight_scheduler']
+        # TODO
+        self.base_transform_config = config['base_transform']
+        self.rand_transform_config = config['rand_transform']
 
     def train(self):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
         # set_trace()
+        base_transform = self.init_transform(self.base_transform_config)
+        rand_transform = self.init_transform(self.rand_transform_config)
+        ssp_trainset = self.init_dataset(self.transet_config, base_transform)
+        trainset = self.init_dataset(self.trainset_config, rand_transform)
+        train_sampler = self.init_sampler(trainset)
+        self.ssp_loader = DataLoaderX(
+            ssp_trainset,
+            batch_size=self.train_batch_size,
+            shuffle=True,
+            num_workers=self.train_num_workers,
+            pin_memory=True,
+            drop_last=True,
+        )
+        self.trainloader = DataLoaderX(
+            trainset,
+            batch_size=self.train_batch_size,
+            shuffle=(train_sampler is None),
+            num_workers=self.train_num_workers,
+            pin_memory=True,
+            drop_last=True,
+            sampler=train_sampler,
+        )
+
+        """
         train_transform = self.init_transform(self.train_transform_config)
         trainset = self.init_dataset(self.trainset_config, train_transform)
         train_sampler = self.init_sampler(trainset)
@@ -48,7 +76,7 @@ class Trainer(BaseTrainer):
             drop_last=True,
             sampler=train_sampler
         )
-
+        """
         if self.local_rank != -1:
             print(f'global_rank {self.global_rank}/{self.world_size},'
                   f'local_rank {self.local_rank},'
@@ -164,33 +192,34 @@ class Trainer(BaseTrainer):
         all_labels = []
         all_preds = []
         train_loss_meter = AverageMeter()
-        for i, (batch_imgs, batch_labels) in enumerate(self.trainloader):
+        for (batch_imgs, batch_labels), (batch_ssp_imgs, _) \
+                in zip(self.trainloader, self.ssp_loader):
             if self.lr_scheduler_mode == 'iteration':
                 self.lr_scheduler.step()
 
             self.optimizer.zero_grad()
             # Self supervised learning
             # Step 1: generate rotated samples and labels
-            batch_selfsp_imgs, batch_selfsp_labels = rotation(batch_imgs)
-
-            batch_selfsp_imgs = batch_selfsp_imgs.cuda(non_blocking=True)
-            batch_selfsp_labels = batch_selfsp_labels.cuda(non_blocking=True)
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
 
-            # Step 2: train with rotated imgs
-            batch_prob = self.model(batch_imgs)
-            batch_selfsp_prob = self.model(batch_selfsp_imgs, ssp=True)
+            batch_ssp_imgs, batch_ssp_labels = rotation(batch_ssp_imgs)
+            batch_ssp_imgs = batch_ssp_imgs.cuda(non_blocking=True)
+            batch_ssp_labels = batch_ssp_labels.cuda(non_blocking=True)
 
-            sp_loss = self.criterion(batch_prob,
-                                     batch_labels)
-            selfsp_loss = self.criterion(batch_selfsp_prob,
-                                         batch_selfsp_labels)
+            # Step 2: train with rotated imgs
+            batch_probs = self.model(batch_imgs)
+            batch_ssp_probs = self.model(batch_ssp_imgs, ssp=True)
+
+            sp_loss = self.criterion(batch_probs, batch_labels)
+            ssp_loss = self.criterion(batch_ssp_probs, batch_ssp_labels)
 
             # Add progressive training
             # Startly, mainly use ssp; Finally, use supervision progressively.
-            sp_weight = cur_epoch / self.num_epochs
-            total_loss = sp_weight * sp_loss + (1 - sp_weight) * selfsp_loss
+            sp_weight = get_weight(cur_epoch, self.total_epochs,
+                                   self.weight_scheduler,
+                                   weight=self.network_param['weight'])
+            total_loss = sp_weight * sp_loss + (1 - sp_weight) * ssp_loss
             # total_loss = sp_loss + selfsp_loss
             if self.local_rank != -1:
                 with amp.scale_loss(total_loss, self.optimizer) as scaled_loss:
@@ -201,7 +230,7 @@ class Trainer(BaseTrainer):
                 total_loss.backward()
                 self.optimizer.step()
 
-            batch_pred = batch_prob.max(1)[1]
+            batch_pred = batch_probs.max(1)[1]
             train_loss_meter.update(total_loss.item(), 1)
 
             all_labels.extend(batch_labels.cpu().numpy().tolist())
