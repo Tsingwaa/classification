@@ -163,7 +163,7 @@ class RandTransform:
 
         if self.phase == 'train':
             ret_transform = transforms.Compose([
-                transforms.RandomHorizontalFlip(),
+                # transforms.RandomHorizontalFlip(),
                 transforms.RandomResizedCrop(self.resize),
                 RandAugmentPC(n, m) if self.strong else RandAugmentMC(n, m),
                 transforms.ToTensor(),
@@ -171,6 +171,7 @@ class RandTransform:
         else:
             ret_transform = transforms.Compose([
                 transforms.Resize(int(self.resize[0] / 0.875)),
+                transforms.CenterCrop(self.resize),
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std)])
 
