@@ -6,7 +6,7 @@ Customized by Kaihua Tang
 import torch
 import numpy as np
 import imghdr
-from pudb import set_trace
+# from pudb import set_trace
 from os.path import join
 from PIL import Image
 # from torchvision import transforms
@@ -38,7 +38,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
 
     # set_trace()
     def __init__(self, data_root, phase, img_lst_fpath=None, transform=None,
-                 imb_type='exp', imb_factor=0.1, seed=0, **kwargs):
+                 imb_type='exp', steps=2, imb_factor=0.1, seed=0, **kwargs):
         self.img_paths = []
         self.targets = []
         self.transform = transform
@@ -64,7 +64,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
             np.random.seed(seed)
             # generate imbalance num_samples list
             img_num_list = self.get_img_num_per_cls(
-                self.cls_num, imb_type, imb_factor
+                self.cls_num, imb_type, imb_factor, steps=steps
             )
             # regenerate self.img_paths and self.targets
             self.gen_imbalanced_data(img_num_list)
@@ -74,24 +74,25 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         label2ctg = self.get_label2ctg()
         self.classes = [label2ctg[i] for i in range(self.cls_num)]
 
-    def get_img_num_per_cls(self, cls_num, imb_type, imb_factor):
+    def get_img_num_per_cls(self, cls_num, imb_type, imb_factor, steps):
         """Generate imbalanced num samples by 'exp' or 'step'.
         - imb_type: 'exp' or 'step'
         - imb_factor: (default: 0.1) the largest / the smallest
+        - steps: if imb_type is 'step', how many steps.
         """
         img_max = len(self.img_paths) / cls_num
         img_num_per_cls = []
         if imb_type == 'exp':  # exponential moving
             for cls_idx in range(cls_num):
-                num = img_max * (
-                    imb_factor ** (cls_idx / (cls_num - 1.0))
-                )
-                img_num_per_cls.append(int(num))
+                img_num = img_max * imb_factor ** (cls_idx / (cls_num - 1))
+                img_num_per_cls.append(int(img_num))
         elif imb_type == 'step':  # two different num_samples
-            for cls_idx in range(cls_num // 2):
-                img_num_per_cls.append(int(img_max))
-            for cls_idx in range(cls_num // 2):
-                img_num_per_cls.append(int(img_max * imb_factor))
+            assert cls_num % steps == 0
+            classes_per_step = cls_num // steps
+            for cls_idx in range(cls_num):
+                step = cls_idx // classes_per_step
+                img_num = img_max * imb_factor ** (step / (steps - 1))
+                img_num_per_cls.append(int(img_num))
         else:
             img_num_per_cls.extend([int(img_max)] * cls_num)
 
