@@ -30,28 +30,15 @@ class Trainer(BaseTrainer):
         # self.adv_name = adv_config['name']
         # self.adv_param = adv_config['param']
         self.weight_scheduler = self.network_param['weight_scheduler']
-        # TODO
-        self.base_transform_config = config['base_transform']
-        self.rand_transform_config = config['rand_transform']
 
     def train(self):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
         # set_trace()
-        base_transform = self.init_transform(self.base_transform_config)
-        rand_transform = self.init_transform(self.rand_transform_config)
-        ssp_trainset = self.init_dataset(self.transet_config, base_transform)
-        trainset = self.init_dataset(self.trainset_config, rand_transform)
+        train_transform = self.init_transform(self.train_transform_config)
+        trainset = self.init_dataset(self.trainset_config, train_transform)
         train_sampler = self.init_sampler(trainset)
-        self.ssp_loader = DataLoaderX(
-            ssp_trainset,
-            batch_size=self.train_batch_size,
-            shuffle=True,
-            num_workers=self.train_num_workers,
-            pin_memory=True,
-            drop_last=True,
-        )
         self.trainloader = DataLoaderX(
             trainset,
             batch_size=self.train_batch_size,
@@ -192,8 +179,7 @@ class Trainer(BaseTrainer):
         all_labels = []
         all_preds = []
         train_loss_meter = AverageMeter()
-        for (batch_imgs, batch_labels), (batch_ssp_imgs, _) \
-                in zip(self.trainloader, self.ssp_loader):
+        for batch_imgs, batch_labels in self.trainloader:
             if self.lr_scheduler_mode == 'iteration':
                 self.lr_scheduler.step()
 
@@ -203,7 +189,7 @@ class Trainer(BaseTrainer):
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
 
-            batch_ssp_imgs, batch_ssp_labels = rotation(batch_ssp_imgs)
+            batch_ssp_imgs, batch_ssp_labels = rotation(batch_imgs)
             batch_ssp_imgs = batch_ssp_imgs.cuda(non_blocking=True)
             batch_ssp_labels = batch_ssp_labels.cuda(non_blocking=True)
 
