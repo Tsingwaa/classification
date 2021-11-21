@@ -15,7 +15,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AverageMeter
+from utils import AverageMeter, get_RW_weight
 
 
 class DataLoaderX(DataLoader):
@@ -71,6 +71,10 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
+        if self.loss_param['reweight']:
+            self.loss_param['weight'] = get_RW_weight(trainset.img_num,
+                                                      self.loss_param['q'])
+
         self.loss = self.init_loss()
 
         #######################################################################

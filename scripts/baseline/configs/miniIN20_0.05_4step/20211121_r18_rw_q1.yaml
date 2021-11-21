@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_4step_r18"
+  name: "miniIN20_0.05_4step_r18_rw_q1"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -49,13 +49,13 @@ trainloader:
   param:
     sampler: "None"
     batch_size: 64
-    num_workers: 8
+    num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 64
-    num_workers: 8
+    batch_size: 256
+    num_workers: 6
 
 network:
   name: "ResNet18"
@@ -68,8 +68,9 @@ network:
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight: None
+    reweight: True
     label_smoothing: 0.
+    q: 1
 
 optimizer:
   name: "SGD"
