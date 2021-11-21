@@ -160,14 +160,13 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000, ssp_classes=4,
+    def __init__(self, block, layers, num_classes=1000,
                  zero_init_residual=False, groups=1, width_per_group=64,
                  replace_stride_with_dilation=None, norm_layer=None):
         super(ResNet, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
-        self.ssp_classes = ssp_classes
 
         self.inplanes = 64
         self.dilation = 1
@@ -267,7 +266,7 @@ class ResNet(nn.Module):
 
 @Networks.register_module('ResNet18')
 class ResNet18(ResNet):
-    def __init__(self, num_classes, ssp_classes, **kwargs):
+    def __init__(self, num_classes, **kwargs):
         super(ResNet18, self).__init__(
             block=BasicBlock,
             layers=[2, 2, 2, 2],
@@ -276,7 +275,7 @@ class ResNet18(ResNet):
 
 @Networks.register_module('ResNet34')
 class ResNet34(ResNet):
-    def __init__(self, num_classes, ssp_classes, **kwargs):
+    def __init__(self, num_classes, **kwargs):
         super(ResNet34, self).__init__(
             block=BasicBlock,
             layers=[3, 4, 6, 3],
@@ -285,7 +284,7 @@ class ResNet34(ResNet):
 
 @Networks.register_module('ResNet50')
 class ResNet50(ResNet):
-    def __init__(self, num_classes, ssp_classes, **kwargs):
+    def __init__(self, num_classes, **kwargs):
         super(ResNet50, self).__init__(
             block=Bottleneck,
             layers=[3, 4, 6, 3],
@@ -294,7 +293,7 @@ class ResNet50(ResNet):
 
 @Networks.register_module('ResNet101')
 class ResNet101(ResNet):
-    def __init__(self, num_classes, ssp_classes, **kwargs):
+    def __init__(self, num_classes, **kwargs):
         super(ResNet101, self).__init__(
             block=Bottleneck,
             layers=[3, 4, 23, 3],
@@ -303,7 +302,7 @@ class ResNet101(ResNet):
 
 @Networks.register_module('ResNet152')
 class ResNet152(ResNet):
-    def __init__(self, num_classes, ssp_classes, **kwargs):
+    def __init__(self, num_classes, **kwargs):
         super(ResNet152, self).__init__(
             block=Bottleneck,
             layers=[3, 8, 36, 3],
