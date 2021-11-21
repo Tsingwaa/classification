@@ -199,6 +199,9 @@ class BaseTrainer:
             dataset_init_log = f'===> Initialized {dataset_param["phase"]}'\
                 f' {dataset_name}(size={len(dataset)},'\
                 f' classes={dataset.cls_num}).'
+            if dataset_param['phase'] == 'train':
+                dataset_init_log += f'\nimg_num={dataset.img_num}'
+
             self.logger.info(dataset_init_log)
 
         return dataset
@@ -343,9 +346,15 @@ class BaseTrainer:
     def init_loss(self, loss_name=None, **kwargs):
         if loss_name is None:
             loss_name = self.loss_name
-        loss_param = self.loss_param if kwargs is None else kwargs
+        loss_param = self.loss_param
+
         loss = build_loss(loss_name, **loss_param)
         loss_init_log = f'===> Initialized {loss_name}'
+        if loss_param['reweight']:
+            display_weight = loss_param['weight'].numpy().round(1)
+            loss_init_log += f'with reweighting(q={loss_param["q"]})'\
+                f'\nWeight:{display_weight}'
+
         if self.local_rank in [-1, 0]:
             self.logger.info(loss_init_log)
         return loss
