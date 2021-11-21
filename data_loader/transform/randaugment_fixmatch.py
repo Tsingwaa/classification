@@ -5,6 +5,7 @@
 import logging
 import random
 
+# from pudb import set_trace
 import numpy as np
 import PIL
 import PIL.ImageOps
@@ -193,6 +194,7 @@ class RandAugmentPC(object):
         self.augment_pool = my_augment_pool()  # Stronger
 
     def __call__(self, img, ):
+        # set_trace()
         img_size = img.size()
         ops = random.choices(self.augment_pool, k=self.n)
         for op, max_v, bias in ops:
@@ -213,6 +215,7 @@ class RandAugmentMC(object):
         self.augment_pool = fixmatch_augment_pool()  # Weaker
 
     def __call__(self, img):
+        print(type(img))
         img_size = img.size
         ops = random.choices(self.augment_pool, k=self.n)
         for op, max_v, bias in ops:

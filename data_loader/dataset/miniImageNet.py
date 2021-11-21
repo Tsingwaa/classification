@@ -6,9 +6,9 @@ Customized by Kaihua Tang
 import torch
 import numpy as np
 import imghdr
-# from pudb import set_trace
+from pudb import set_trace
 from os.path import join
-from PIL import Image, TiffImagePlugin
+from PIL import Image
 # from torchvision import transforms
 from torchvision.datasets import ImageFolder
 from data_loader.dataset.builder import Datasets
@@ -124,7 +124,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         img = self._check_channel(img)  # 对单通道灰度图复制为三通道
 
         if self.transform is not None:
-            img = self.transform(img)
+            img = self.transform(img, mean=self.mean, std=self.std)
 
         return img, label
 

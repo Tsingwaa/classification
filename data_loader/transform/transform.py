@@ -2,6 +2,7 @@ import torchvision.transforms as transforms
 # from .randaugment import RandAugment
 from .randaugment_fixmatch import RandAugmentMC, RandAugmentPC
 from .randaugment import RandAugment
+from pudb import set_trace
 
 IN_MEAN = [0.485, 0.456, 0.406]
 IN_STD = [0.229, 0.224, 0.225]
@@ -18,7 +19,7 @@ class BaseTransform:
                 transforms.Resize(int(self.resize[1] / 0.875)),
                 transforms.RandomCrop(self.resize),
                 # transforms.RandomHorizontalFlip(0.5),
-                transforms.RandomRotation(25),
+                # transforms.RandomRotation(25),
                 # transforms.ColorJitter(
                 #     brightness=0.4,
                 #     saturation=0.4,
@@ -159,7 +160,7 @@ class RandTransform:
         if n is None:
             n = self.n
         if percent is not None:
-            m = int(percent * m * 1.0)
+            m = int(percent * m)
 
         if self.phase == 'train':
             ret_transform = transforms.Compose([
