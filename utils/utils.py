@@ -4,9 +4,9 @@ Revised: Dec 03,2019 - Yuchong Gu
 """
 import math
 import torch
-import random
+# import random
 import numpy as np
-import torch.nn.functional as F
+# import torch.nn.functional as F
 
 
 def count_model_params(net):
@@ -119,5 +119,25 @@ def get_weight(cur_epoch, total_epoch, weight_scheduler, **kwargs):
         weight = np.random.beta(kwargs['alpha'], kwargs['alpha'])
     else:  # Fixed
         weight = kwargs['weight']
+
+    return weight
+
+
+def get_RW_weight(num_imgs_per_class, q=1):
+    """class_weight: w_j = avg_imgs / n_j^q
+    Args:
+        num_imgs_per_class(List): imgs of each class
+        q(float): 1, 2, 1/2. (Default: q=1)
+    Return:
+        weight(Tensor): 1-D torch.Tensor
+    """
+
+    import torch
+    if not isinstance(num_imgs_per_class, torch.Tensor):
+        num_imgs_per_class = torch.Tensor(num_imgs_per_class)
+
+    num_imgs = sum(num_imgs_per_class)
+    num_classes = len(num_imgs_per_class)
+    weight = num_imgs / (num_classes * num_imgs_per_class ** q)
 
     return weight
