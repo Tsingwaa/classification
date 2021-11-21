@@ -97,7 +97,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Start Training
         #######################################################################
-        for cur_epoch in range(self.start_epoch, self.num_epochs + 1):
+        for cur_epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == "epoch":
                 self.lr_scheduler.step()
@@ -115,7 +115,7 @@ class Trainer(BaseTrainer):
                     "Trainset Loss={train_loss:.4f} MR={train_mr:.2%} || "
                     "Valset Loss={val_loss:.4f} MR={val_mr:.2%}".format(
                         epoch=cur_epoch,
-                        total_epochs=self.num_epochs,
+                        total_epochs=self.total_epochs,
                         train_loss=train_loss,
                         train_mr=train_mr,
                         val_loss=val_loss,
@@ -123,7 +123,7 @@ class Trainer(BaseTrainer):
                     )
                 )
 
-                if len(val_recalls) <= 20 and cur_epoch == self.num_epochs:
+                if len(val_recalls) <= 20 and cur_epoch == self.total_epochs:
                     self.logger.info(f"Class recalls: {val_recalls}\n")
 
                 # Save log by tensorboard
@@ -151,7 +151,7 @@ class Trainer(BaseTrainer):
 
         train_pbar = tqdm(
             total=len(self.trainloader),
-            desc="Train Epoch[{:>3d}/{}]".format(cur_epoch, self.num_epochs)
+            desc="Train Epoch[{:>3d}/{}]".format(cur_epoch, self.total_epochs)
         )
 
         all_labels = []
