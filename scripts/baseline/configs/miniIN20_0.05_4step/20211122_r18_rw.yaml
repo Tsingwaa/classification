@@ -1,22 +1,20 @@
 experiment:
-  name: "miniIN20_0.05_4step_r18"
+  name: "miniIN20_0.05_4step_r18_rw"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: True
+  resume: False
   resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 train_transform:
-  script_path: "data_loader.transform.transform"
   name: "BaseTransform"
   param:
     phase: "train"
     resize: [224, 224]
 
 val_transform:
-  script_path: "data_loader.transform.transform"
   name: "BaseTransform"
   param:
     phase: "val"
@@ -49,33 +47,32 @@ trainloader:
   param:
     sampler: "None"
     batch_size: 64
-    num_workers: 8
+    num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 64
-    num_workers: 8
+    batch_size: 128
+    num_workers: 6
 
 network:
   name: "ResNet18"
   param:
     num_classes: 20
-    use_ssp: False
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight: None
+    weight_type: 'class_weight'
     label_smoothing: 0.
 
 optimizer:
   name: "SGD"
   param:
     lr: 0.1
-    weight_decay: 1.0e-3
+    weight_decay: 1.0e-4
     momentum: 0.9
     nesterov: True
 

@@ -15,7 +15,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AverageMeter, rotation, get_weight
+from utils import AverageMeter, rotation, get_weight_scheduler
 
 
 class DataLoaderX(DataLoader):
@@ -216,7 +216,7 @@ class Trainer(BaseTrainer):
 
             # Add progressive training
             # Startly, mainly use ssp; Finally, use supervision progressively.
-            sp_weight = get_weight(cur_epoch, self.total_epochs,
+            sp_weight = get_weight_scheduler(cur_epoch, self.total_epochs,
                                    self.weight_scheduler,
                                    weight=self.network_param['weight'])
             total_loss = sp_weight * sp_loss + (1 - sp_weight) * ssp_loss

@@ -15,7 +15,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AverageMeter, rotation, get_weight
+from utils import AverageMeter, rotation, get_weight_scheduler
 
 
 class DataLoaderX(DataLoader):
@@ -203,7 +203,7 @@ class Trainer(BaseTrainer):
             batch_ssp_prob = self.model(batch_ssp_imgs,
                                         output_type='ssp_logits')
 
-            ssp_weight = get_weight(cur_epoch, self.total_epochs,
+            ssp_weight = get_weight_scheduler(cur_epoch, self.total_epochs,
                                     weight_scheduler=self.weight_scheduler)
             sp_loss = self.criterion(batch_prob, batch_labels)
             ssp_loss = self.criterion(batch_ssp_prob, batch_ssp_labels)
