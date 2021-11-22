@@ -9,15 +9,15 @@ import numpy as np
 import torch
 # from pudb import set_trace
 from torch.utils.tensorboard import SummaryWriter
-from importlib import import_module
 from torch import distributed as dist
 from torch.utils.data.distributed import DistributedSampler
 # ############## Custom package ##############
-from model.loss.builder import build_loss
-from model.network.builder import build_network
-from model.module.builder import build_module
 from data_loader.dataset.builder import build_dataset
 from data_loader.sampler.builder import build_sampler
+from data_loader.transform.builder import build_transform
+from model.loss.builder import build_loss
+from model.module.builder import build_module
+from model.network.builder import build_network
 from utils import GradualWarmupScheduler
 
 
@@ -154,16 +154,12 @@ class BaseTrainer:
             if self.lr_scheduler_name != "CyclicLR" else 'iterations'
 
     def init_transform(self, transform_config=None):
-        script_path = transform_config['script_path']
         transform_name = transform_config['name']
         transform_param = transform_config['param']
-        module = import_module(script_path)
-        transform = getattr(module, transform_name)(**transform_param)
-
+        transform = build_transform(transform_name, **transform_param)
         if self.local_rank in [-1, 0]:
-            transform_init_log = f'===> Initialized '\
-                f'{transform_param["phase"]}'\
-                f' {transform_name} from {script_path}'
+            transform_init_log = f'===> Initialized {transform_name} '\
+                f'for {transform_param["phase"]} dataset. '
             self.logger.info(transform_init_log)
         return transform
 
@@ -185,7 +181,6 @@ class BaseTrainer:
         return sampler
 
     def init_dataset(self, dataset_config=None, transform=None):
-        # set_trace()
         dataset_name = dataset_config['name']
         dataset_param = dataset_config['param']
         dataset_param['data_root'] = join(
@@ -350,13 +345,12 @@ class BaseTrainer:
 
         loss = build_loss(loss_name, **loss_param)
         loss_init_log = f'===> Initialized {loss_name}'
-        if loss_param['reweight']:
+        if loss_param['weight_type']:
             display_weight = loss_param['weight'].numpy().round(1)
-            loss_init_log += f'with reweighting(q={loss_param["q"]})'\
-                f'\nWeight:{display_weight}'
-
+            loss_init_log += f'\nWeight={display_weight}'
         if self.local_rank in [-1, 0]:
             self.logger.info(loss_init_log)
+
         return loss
 
     def _reduce_loss(self, tensor):
