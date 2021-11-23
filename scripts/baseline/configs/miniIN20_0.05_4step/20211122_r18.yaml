@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_4step_r18"
+  name: "miniIN20_0.05_4step_r18_wd5"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -73,7 +73,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.1
-    weight_decay: 1.0e-4
+    weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True
 
