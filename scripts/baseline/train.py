@@ -100,6 +100,9 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Start Training
         #######################################################################
+        best_mr = 0.
+        best_epoch = 1
+        best_recalls = []
         for cur_epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == "epoch":
@@ -130,21 +133,28 @@ class Trainer(BaseTrainer):
                     self.logger.info(f"Class recalls: {val_recalls}\n")
 
                 # Save log by tensorboard
-                self.writer.add_scalar(f"{self.exp_name}/LearningRate",
+                self.writer.add_scalar(f"{self.exp_name}/LR",
                                        self.optimizer.param_groups[0]["lr"],
                                        cur_epoch)
                 self.writer.add_scalars(f"{self.exp_name}/Loss",
                                         {"train_loss": train_loss,
-                                         "val_loss": val_loss}, cur_epoch)
+                                         "val_loss": val_loss},
+                                        cur_epoch)
                 self.writer.add_scalars(f"{self.exp_name}/Recall",
                                         {"train_mr": train_mr,
-                                         "val_mr": val_mr}, cur_epoch)
-
-                self.save_checkpoint(cur_epoch, val_mr, val_recalls)
+                                         "val_mr": val_mr},
+                                        cur_epoch)
+                is_best = val_mr > best_mr
+                if is_best:
+                    best_epoch = cur_epoch
+                    best_recalls = val_recalls
+                self.save_checkpoint(cur_epoch, is_best, val_mr, val_recalls)
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
-                f"===> Result directory: '{self.save_dir}'\n"
+                f"===> Best mean recall: {best_mr} (epoch{best_epoch})\n"
+                f"Class recalls: {best_recalls}\n"
+                f"===> Save directory: '{self.save_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************"
             )
