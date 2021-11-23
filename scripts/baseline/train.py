@@ -71,8 +71,9 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.loss_param['weight'] = get_class_weight(
-            trainset.img_num, self.loss_param['weight_type'])
+        if self.loss_name == 'CrossEntropyLoss':
+            self.loss_param['weight'] = get_class_weight(
+                trainset.img_num, self.loss_param['weight_type'])
         self.loss = self.init_loss()
 
         #######################################################################
