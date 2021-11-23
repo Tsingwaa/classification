@@ -371,18 +371,21 @@ class BaseTrainer:
             'Class recalls:{}'.format(resume_fpath, mr, recalls)
         return checkpoint, resume_log
 
-    def save_checkpoint(self, epoch, mr=None, ap=None, recalls=[]):
-        if epoch > 100 and epoch % self.save_period == 0:
+    def save_checkpoint(self, epoch, is_best=False, mr=None, ap=None,
+                        recalls=[]):
+        if epoch > 100 and ((not epoch % self.save_period) or is_best):
             checkpoint = {'model': self.model.state_dict()
                           if self.local_rank == -1 else
                           self.model.module.state_dict(),
                           'optimizer': self.optimizer.state_dict(),
                           'lr_scheduler': self.lr_scheduler.state_dict(),
+                          'best': is_best,
                           'epoch': epoch,
                           'mr': mr,
                           'recalls': recalls, }
-            last_fpath = join(self.save_dir, 'last.pth.tar')
-            torch.save(checkpoint, last_fpath)
+            _save_name = 'best.pth.tar' if is_best else 'last.pth.tar'
+            _save_path = join(self.save_dir, _save_name)
+            torch.save(checkpoint, _save_path)
 
     def init_logger(self, log_fpath):
         logger = logging.getLogger()
