@@ -164,8 +164,10 @@ class Trainer(BaseTrainer):
 
                 is_best = val_mr > best_mr
                 if is_best:
+                    best_mr = val_mr
                     best_epoch = cur_epoch
                     best_recalls = val_recalls
+                    self.logger.info(f"Best recalls now: {best_recalls}\n")
                 self.save_checkpoint(cur_epoch, is_best, val_mr, val_recalls)
 
         if self.local_rank in [-1, 0]:
@@ -211,9 +213,10 @@ class Trainer(BaseTrainer):
 
             # Add progressive training
             # Startly, mainly use ssp; Finally, use supervision progressively.
-            sp_weight = get_weight_scheduler(cur_epoch, self.total_epochs,
-                                   self.weight_scheduler,
-                                   weight=self.network_param['weight'])
+            sp_weight = get_weight_scheduler(
+                cur_epoch, self.total_epochs,
+                self.weight_scheduler,
+                weight=self.network_param['weight'])
             total_loss = sp_weight * sp_loss + (1 - sp_weight) * ssp_loss
             # total_loss = sp_loss + selfsp_loss
             if self.local_rank != -1:

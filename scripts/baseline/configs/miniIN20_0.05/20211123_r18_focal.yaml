@@ -65,8 +65,8 @@ network:
 loss:
   name: "FocalLoss"
   param:
-    # weight_type: ''
-    # label_smoothing: 0.
+    weight_type: ''
+    label_smoothing: 0.
     alpha: 0.25
     gamma: 2
 

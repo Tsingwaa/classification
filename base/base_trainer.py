@@ -344,10 +344,14 @@ class BaseTrainer:
         loss_param = self.loss_param
 
         loss = build_loss(loss_name, **loss_param)
-        loss_init_log = f'===> Initialized {loss_name}'
+        loss_init_log = f'===> Initialized {loss_name} '
         if loss_param['weight_type']:
             display_weight = loss_param['weight'].numpy().round(1)
-            loss_init_log += f'\nWeight={display_weight}'
+            loss_init_log += f'with \nclass weight={display_weight}'
+        if loss_name == 'FocalLoss':
+            loss_init_log += f'with alpha={loss_param["alpha"]} '\
+                f'gamma={loss_param["gamma"]}'
+
         if self.local_rank in [-1, 0]:
             self.logger.info(loss_init_log)
 

@@ -4,7 +4,7 @@ experiment:
   total_epochs: 200
   log_fname: "train.log"
   resume: False
-  resume_fpath: "last.pth.tar"
+  resume_fpath: "best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
