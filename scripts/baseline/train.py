@@ -149,8 +149,7 @@ class Trainer(BaseTrainer):
                     best_mr = val_mr
                     best_epoch = cur_epoch
                     best_recalls = val_recalls
-                    if cur_epoch > 100:
-                        self.logger.info(f"Best recalls now: {best_recalls}")
+                    self.logger.info(f"==> Best recalls now: {best_recalls}")
                 self.save_checkpoint(cur_epoch, is_best, val_mr, val_recalls)
 
         if self.local_rank in [-1, 0]:
