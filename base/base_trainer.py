@@ -377,7 +377,7 @@ class BaseTrainer:
 
     def save_checkpoint(self, epoch, is_best=False, mr=None, ap=None,
                         recalls=[]):
-        if epoch > 100 and ((not epoch % self.save_period) or is_best):
+        if (not epoch % self.save_period) or is_best:
             checkpoint = {'model': self.model.state_dict()
                           if self.local_rank == -1 else
                           self.model.module.state_dict(),

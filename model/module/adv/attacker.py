@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn.functional import cross_entropy
-from pudb import set_trace
+# from pudb import set_trace
 from model.module.builder import Modules
 from utils import switch_adv
 
@@ -113,6 +113,8 @@ class LinfPGD(nn.Module):
 
 @Modules.register_module('AdaptLinfPGD')
 class AdaptLinfPGD(LinfPGD):
+    """以最小类epsilon=7/255为基准, 逐类线性减小, 最大类为7/255 * 1/20"""
+
     def project(self, perturbation, use_target, target):
         if use_target:
             batch_size = target.shape[0]
@@ -159,6 +161,25 @@ class AdaptLinfPGD(LinfPGD):
         perturbation = self.compute_perturbation(adv_x, x, use_target=True,
                                                  target=target)
         return perturbation
+
+
+@Modules.register_module('AdaptLinfPGD2')
+class AdaptLinfPGD2(AdaptLinfPGD):
+    """以最大类epsilon=7/255为基准, 逐类线性增大, 最小类为14/255"""
+
+    def project(self, perturbation, use_target, target):
+        if use_target:
+            batch_size = target.shape[0]
+            adapt_ratio = target / 19
+            epsilon = self.epsilon * (1 + adapt_ratio)
+            epsilon = epsilon.view(batch_size, 1, 1, 1)
+            perturbation_min = torch.min(perturbation, epsilon)
+            ret_eps = torch.max(perturbation_min, -epsilon)
+        else:
+            epsilon = self.epsilon
+            ret_eps = torch.clamp(perturbation, -epsilon, epsilon)
+
+        return ret_eps
 
 
 @Modules.register_module('L2PGD')
