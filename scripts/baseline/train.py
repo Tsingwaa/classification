@@ -154,7 +154,7 @@ class Trainer(BaseTrainer):
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
-                f"===> Best mean recall: {best_mr} (@epoch{best_epoch})\n"
+                f"===> Best mean recall: {best_mr:.2%} (@epoch{best_epoch})\n"
                 f"Class recalls: {best_recalls}\n"
                 f"===> Save directory: '{self.save_dir}'\n"
                 f"*********************************************************"

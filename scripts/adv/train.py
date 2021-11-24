@@ -116,7 +116,7 @@ class Trainer(BaseTrainer):
         best_mr = 0.
         best_epoch = 1
         best_recalls = []
-        for cur_epoch in range(self.start_epoch, self.num_epochs + 1):
+        for cur_epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == 'epoch':
                 self.lr_scheduler.step()
@@ -136,7 +136,7 @@ class Trainer(BaseTrainer):
                     'CLN={clean_loss:.4f} MR={clean_mr:.2%}'
                     '|| Valset Loss={val_loss:.4f} MR={val_mr:.2%}'.format(
                         epoch=cur_epoch,
-                        total_epochs=self.num_epochs,
+                        total_epochs=self.total_epochs,
                         train_loss=train_loss['final'],
                         adv_loss=train_loss['adv'],
                         adv_mr=train_mr['adv'],
@@ -147,7 +147,7 @@ class Trainer(BaseTrainer):
                     )
                 )
 
-                if len(val_recalls) <= 20 and cur_epoch == self.num_epochs:
+                if len(val_recalls) <= 20 and cur_epoch == self.total_epochs:
                     self.logger.info(f"Class recalls: {val_recalls}\n")
 
                 # Save log by tensorboard
@@ -173,7 +173,7 @@ class Trainer(BaseTrainer):
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
-                f"===> Best mean recall: {best_mr} (epoch{best_epoch})\n"
+                f"===> Best mean recall: {best_mr:.2%} (epoch{best_epoch})\n"
                 f"Class recalls: {best_recalls}\n"
                 f"===> Save directory: '{self.save_dir}'\n"
                 f"*********************************************************"
@@ -185,7 +185,7 @@ class Trainer(BaseTrainer):
 
         train_pbar = tqdm(
             total=len(self.trainloader),
-            desc='Train Epoch[{:>3d}/{}]'.format(cur_epoch, self.num_epochs)
+            desc='Train Epoch[{:>3d}/{}]'.format(cur_epoch, self.total_epochs)
         )
 
         all_labels = []
