@@ -71,7 +71,8 @@ class BaseTrainer:
             os.makedirs(self.save_dir, exist_ok=True)
             os.makedirs(self.tb_dir, exist_ok=True)
 
-            self.writer = SummaryWriter(self.tb_dir)
+            self.writer = SummaryWriter(log_dir=self.tb_dir,
+                                        comment=self.exp_name)
 
             # Set logger to save .log file and output to screen.
             if self.local_rank in [-1, 0]:
@@ -345,12 +346,11 @@ class BaseTrainer:
 
         loss = build_loss(loss_name, **loss_param)
         loss_init_log = f'===> Initialized {loss_name} '
+        if loss_name == 'FocalLoss':
+            loss_init_log += f'with gamma={loss_param["gamma"]}'
         if loss_param['weight_type']:
             display_weight = loss_param['weight'].numpy().round(1)
-            loss_init_log += f'with \nclass weight={display_weight}'
-        if loss_name == 'FocalLoss':
-            loss_init_log += f'with alpha={loss_param["alpha"]} '\
-                f'gamma={loss_param["gamma"]}'
+            loss_init_log += f'\nclass weight={display_weight}'
 
         if self.local_rank in [-1, 0]:
             self.logger.info(loss_init_log)
@@ -376,7 +376,7 @@ class BaseTrainer:
         return checkpoint, resume_log
 
     def save_checkpoint(self, epoch, is_best=False, mr=None, ap=None,
-                        recalls=[]):
+                        recalls=[], group_recalls=[]):
         if (not epoch % self.save_period) or is_best:
             checkpoint = {'model': self.model.state_dict()
                           if self.local_rank == -1 else
@@ -386,7 +386,8 @@ class BaseTrainer:
                           'best': is_best,
                           'epoch': epoch,
                           'mr': mr,
-                          'recalls': recalls, }
+                          'recalls': recalls,
+                          'group_recalls': group_recalls}
             _save_name = 'best.pth.tar' if is_best else 'last.pth.tar'
             _save_path = join(self.save_dir, _save_name)
             torch.save(checkpoint, _save_path)
@@ -396,7 +397,7 @@ class BaseTrainer:
         logger.setLevel(logging.DEBUG)
 
         # Save log to file
-        file_handler = logging.FileHandler(log_fpath)
+        file_handler = logging.FileHandler(log_fpath, mode='a')
         file_handler.setLevel(logging.DEBUG)
         file_handler_formatter = logging.Formatter(
             '%(asctime)s: %(levelname)s:'
