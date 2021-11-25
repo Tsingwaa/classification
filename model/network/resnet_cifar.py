@@ -108,8 +108,8 @@ class BasicBlock(nn.Module):
 
 
 class ResNet_CIFAR(nn.Module):
-
-    def __init__(self, block, num_blocks, num_classes=10, use_norm=False):
+    def __init__(self, block, num_blocks, num_classes=10, use_norm=False,
+                 **kwargs):
         super(ResNet_CIFAR, self).__init__()
         self.in_planes = 16
 
@@ -152,8 +152,7 @@ class ResNet20_CIFAR(ResNet_CIFAR):
         super(ResNet20_CIFAR, self).__init__(
             block=BasicBlock,
             num_classes=num_classes,
-            num_blocks=num_blocks
-        )
+            num_blocks=num_blocks, **kwargs)
 
 
 @Networks.register_module("ResNet32_CIFAR")
@@ -163,8 +162,7 @@ class ResNet32_CIFAR(ResNet_CIFAR):
         super(ResNet32_CIFAR, self).__init__(
             block=BasicBlock,
             num_classes=num_classes,
-            num_blocks=num_blocks
-        )
+            num_blocks=num_blocks, **kwargs)
 
 
 @Networks.register_module("ResNet44_CIFAR")
@@ -174,8 +172,7 @@ class ResNet44_CIFAR(ResNet_CIFAR):
         super(ResNet44_CIFAR, self).__init__(
             block=BasicBlock,
             num_classes=num_classes,
-            num_blocks=num_blocks
-        )
+            num_blocks=num_blocks, **kwargs)
 
 
 @Networks.register_module("ResNet56_CIFAR")
@@ -185,8 +182,7 @@ class ResNet56_CIFAR(ResNet_CIFAR):
         super(ResNet56_CIFAR, self).__init__(
             block=BasicBlock,
             num_classes=num_classes,
-            num_blocks=num_blocks
-        )
+            num_blocks=num_blocks, **kwargs)
 
 
 @Networks.register_module("ResNet110_CIFAR")
@@ -196,8 +192,7 @@ class ResNet110_CIFAR(ResNet_CIFAR):
         super(ResNet110_CIFAR, self).__init__(
             block=BasicBlock,
             num_classes=num_classes,
-            num_blocks=num_blocks
-        )
+            num_blocks=num_blocks, **kwargs)
 
 
 def test(net):

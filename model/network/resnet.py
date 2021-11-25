@@ -159,10 +159,10 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-
     def __init__(self, block, layers, num_classes=1000,
                  zero_init_residual=False, groups=1, width_per_group=64,
-                 replace_stride_with_dilation=None, norm_layer=None):
+                 replace_stride_with_dilation=None, norm_layer=None,
+                 **kwargs):
         super(ResNet, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
@@ -270,7 +270,7 @@ class ResNet18(ResNet):
         super(ResNet18, self).__init__(
             block=BasicBlock,
             layers=[2, 2, 2, 2],
-            num_classes=num_classes,)
+            num_classes=num_classes, **kwargs)
 
 
 @Networks.register_module('ResNet34')
@@ -279,7 +279,7 @@ class ResNet34(ResNet):
         super(ResNet34, self).__init__(
             block=BasicBlock,
             layers=[3, 4, 6, 3],
-            num_classes=num_classes,)
+            num_classes=num_classes, **kwargs)
 
 
 @Networks.register_module('ResNet50')
@@ -288,7 +288,7 @@ class ResNet50(ResNet):
         super(ResNet50, self).__init__(
             block=Bottleneck,
             layers=[3, 4, 6, 3],
-            num_classes=num_classes,)
+            num_classes=num_classes, **kwargs)
 
 
 @Networks.register_module('ResNet101')
@@ -297,7 +297,7 @@ class ResNet101(ResNet):
         super(ResNet101, self).__init__(
             block=Bottleneck,
             layers=[3, 4, 23, 3],
-            num_classes=num_classes,)
+            num_classes=num_classes, **kwargs)
 
 
 @Networks.register_module('ResNet152')
@@ -306,4 +306,4 @@ class ResNet152(ResNet):
         super(ResNet152, self).__init__(
             block=Bottleneck,
             layers=[3, 8, 36, 3],
-            num_classes=num_classes,)
+            num_classes=num_classes, **kwargs)
