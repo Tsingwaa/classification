@@ -147,6 +147,11 @@ class Trainer(BaseTrainer):
                                         {"train_mr": train_mr,
                                          "val_mr": val_mr},
                                         cur_epoch)
+                self.writer.add_scalars(f"{self.exp_name}/GroupRecall",
+                                        {"head_mr": group_recalls[0],
+                                         "mid_mr": group_recalls[1],
+                                         "tail_mr": group_recalls[2]},
+                                        cur_epoch)
                 is_best = val_mr > best_mr
                 if is_best:
                     best_mr = val_mr
