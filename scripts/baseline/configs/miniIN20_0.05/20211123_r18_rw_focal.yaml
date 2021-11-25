@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_r18_focal"
+  name: "miniIN20_0.05_r18_rw_focal"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -65,7 +65,7 @@ network:
 loss:
   name: "FocalLoss"
   param:
-    weight_type: ''
+    weight_type: 'class_weight'
     label_smoothing: 0.
     gamma: 2
 

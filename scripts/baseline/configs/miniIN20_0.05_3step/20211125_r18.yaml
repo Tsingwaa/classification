@@ -29,7 +29,6 @@ train_dataset:
     # map_fpath: "None"
     imb_type: 'step'
     imb_factor: 0.05
-    steps: 3
     seed: 0
     # download: False
 

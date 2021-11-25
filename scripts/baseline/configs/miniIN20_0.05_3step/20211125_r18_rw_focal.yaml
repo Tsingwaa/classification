@@ -1,10 +1,10 @@
 experiment:
-  name: "miniIN20_0.05_r18_focal"
+  name: "miniIN20_0.05_3step_r18_rw_focal"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
   resume: False
-  resume_fpath: "last.pth.tar"
+  resume_fpath: "best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -27,7 +27,7 @@ train_dataset:
     phase: "train"
     img_lst_fpath: "train20.txt"
     # map_fpath: "None"
-    imb_type: 'exp'
+    imb_type: 'step'
     imb_factor: 0.05
     seed: 0
     # download: False
@@ -65,7 +65,7 @@ network:
 loss:
   name: "FocalLoss"
   param:
-    weight_type: ''
+    weight_type: 'class_weight'
     label_smoothing: 0.
     gamma: 2
 

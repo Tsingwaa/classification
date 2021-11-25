@@ -1,4 +1,5 @@
 """trainer script """
+import math
 import random
 import warnings
 import argparse
@@ -71,7 +72,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        if self.loss_name == 'CrossEntropyLoss':
+        if self.loss_name in ['CrossEntropyLoss', 'FocalLoss']:
             self.loss_param['weight'] = get_class_weight(
                 trainset.img_num, self.loss_param['weight_type'])
         self.loss = self.init_loss()
@@ -103,6 +104,7 @@ class Trainer(BaseTrainer):
         best_mr = 0.
         best_epoch = 1
         best_recalls = []
+        best_group_recalls = []
         for cur_epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == "epoch":
@@ -114,7 +116,8 @@ class Trainer(BaseTrainer):
             train_mr, train_loss = self.train_epoch(cur_epoch)
 
             if self.local_rank in [-1, 0]:
-                val_mr, val_recalls, val_loss = self.evaluate(cur_epoch)
+                val_mr, val_recalls, group_recalls, val_loss =\
+                        self.evaluate(cur_epoch)
 
                 self.logger.debug(
                     "Epoch[{epoch:>3d}/{total_epochs}] "
@@ -149,13 +152,16 @@ class Trainer(BaseTrainer):
                     best_mr = val_mr
                     best_epoch = cur_epoch
                     best_recalls = val_recalls
-                    self.logger.info(f"==> Best recalls now: {best_recalls}")
-                self.save_checkpoint(cur_epoch, is_best, val_mr, val_recalls)
+                    best_group_recalls = group_recalls
+                    self.logger.debug(f"==> Best recalls now: {best_recalls}")
+                self.save_checkpoint(cur_epoch, is_best, val_mr, val_recalls,
+                                     group_recalls)
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
                 f"===> Best mean recall: {best_mr:.2%} (@epoch{best_epoch})\n"
                 f"Class recalls: {best_recalls}\n"
+                f"Group recalls: {best_group_recalls}"
                 f"===> Save directory: '{self.save_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************"
@@ -240,11 +246,26 @@ class Trainer(BaseTrainer):
         val_recalls = metrics.recall_score(all_labels, all_preds, average=None)
         val_recalls = np.around(val_recalls, decimals=2).tolist()
 
+        # seperate all classes into 3 groups: Head, Mid, Tail
+        num_classes = self.network_param['num_classes']
+        head_classes = math.floor(num_classes / 3)
+        tail_classes = head_classes
+        group_recalls = [
+            np.around(np.mean(val_recalls[:head_classes]), decimals=2),
+            np.around(np.mean(
+                val_recalls[head_classes:num_classes-tail_classes]),
+                decimals=2),
+            np.around(np.mean(val_recalls[num_classes-tail_classes:]),
+                      decimals=2),
+        ]
         val_pbar.set_postfix_str(
-            "Loss:{:.2f} MR:{:.0%}".format(val_loss_meter.avg, val_mr))
+            f"Loss:{val_loss_meter.avg:.2f} MR:{val_mr:.0%} "
+            f"Head:{group_recalls[0]:.0%} "
+            f"Mid:{group_recalls[1]:.0%} "
+            f"Tail:{group_recalls[2]:.0%}")
         val_pbar.close()
 
-        return val_mr, val_recalls, val_loss_meter.avg
+        return val_mr, val_recalls, group_recalls, val_loss_meter.avg
 
 
 def parse_args():

@@ -1,4 +1,5 @@
 """trainer script """
+import math
 import random
 import warnings
 import argparse
@@ -40,6 +41,9 @@ class Trainer(BaseTrainer):
         train_transform = self.init_transform(self.train_transform_config)
         trainset = self.init_dataset(self.trainset_config, train_transform)
         train_sampler = self.init_sampler(trainset)
+
+        if trainset.cls_num == 20:
+            cls_group = [7, 14]
 
         self.trainloader = DataLoaderX(
             trainset,
@@ -146,6 +150,12 @@ class Trainer(BaseTrainer):
                         val_mr=val_mr,
                     )
                 )
+
+                group_recalls = [
+                    np.around(np.mean(val_recalls[:7]), decimals=2),
+                    np.around(np.mean(val_recalls[7:14]), decimals=2),
+                    np.around(np.mean(val_recalls[14:]), decimals=2),
+                ]
 
                 if len(val_recalls) <= 20 and cur_epoch == self.total_epochs:
                     self.logger.info(f"Class recalls: {val_recalls}\n")
@@ -321,9 +331,23 @@ class Trainer(BaseTrainer):
         val_recalls = metrics.recall_score(all_labels, all_preds, average=None)
         val_recalls = np.around(val_recalls, decimals=2).tolist()
 
+        # seperate all classes into 3 groups: Head, Mid, Tail
+        num_classes = self.network_param['num_classes']
+        head_classes = math.floor(num_classes / 3)
+        tail_classes = head_classes
+        group_recalls = [
+            np.around(np.mean(val_recalls[:head_classes]), decimals=2),
+            np.around(np.mean(
+                val_recalls[head_classes:num_classes-tail_classes]),
+                decimals=2),
+            np.around(np.mean(val_recalls[num_classes-tail_classes:]),
+                      decimals=2),
+        ]
         val_pbar.set_postfix_str(
-            'Loss:{:.2f} MR:{:.2%}'.format(val_loss_meter.avg, val_mr)
-        )
+            f"Loss:{val_loss_meter.avg:.2f} MR:{val_mr:.0%} "
+            f"Head:{group_recalls[0]:.0%} "
+            f"Mid:{group_recalls[1]:.0%} "
+            f"Tail:{group_recalls[2]:.0%}")
         val_pbar.close()
 
         return val_mr, val_loss_meter.avg, val_recalls
