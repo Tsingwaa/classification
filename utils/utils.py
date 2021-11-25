@@ -135,12 +135,13 @@ def get_class_weight(num_imgs_per_class, weight_type):
 
     import torch
     if not isinstance(num_imgs_per_class, torch.Tensor):
-        num_imgs_per_class = torch.Tensor(num_imgs_per_class)
+        num_imgs_per_class = torch.FloatTensor(num_imgs_per_class)
 
     if weight_type == 'class_weight':
-        num_imgs = sum(num_imgs_per_class)
+        num_imgs = torch.sum(num_imgs_per_class)
         num_classes = len(num_imgs_per_class)
         weight = num_imgs / (num_classes * num_imgs_per_class)
+        weight /= torch.sum(weight)  # Normalize to range (0, 1)
     else:
         weight = None
 

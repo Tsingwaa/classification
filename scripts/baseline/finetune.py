@@ -1,4 +1,5 @@
 """finetune script """
+import math
 import random
 import warnings
 import argparse
@@ -26,8 +27,9 @@ class DataLoaderX(DataLoader):
 class FineTuner(BaseTrainer):
     def __init__(self, local_rank=None, config=None):
         super(FineTuner, self).__init__(local_rank, config)
+        self.freeze = self.network_param['freeze']
 
-    def train(self):
+    def finetune(self):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
@@ -67,11 +69,12 @@ class FineTuner(BaseTrainer):
         # Initialize Network
         #######################################################################
         self.model = self.init_model()
+        self.freeze_model(self.model, unfreeze_keys=['fc'])
 
         #######################################################################
         # Initialize Loss
         #######################################################################
-        if self.loss_name == 'CrossEntropyLoss':
+        if self.loss_name in ['CrossEntropyLoss', 'FocalLoss']:
             self.loss_param['weight'] = get_class_weight(
                 trainset.img_num, self.loss_param['weight_type'])
         self.loss = self.init_loss()
@@ -103,6 +106,7 @@ class FineTuner(BaseTrainer):
         best_mr = 0.
         best_epoch = 1
         best_recalls = []
+        best_group_recalls = []
         for cur_epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == "epoch":
@@ -114,7 +118,8 @@ class FineTuner(BaseTrainer):
             train_mr, train_loss = self.train_epoch(cur_epoch)
 
             if self.local_rank in [-1, 0]:
-                val_mr, val_recalls, val_loss = self.evaluate(cur_epoch)
+                val_mr, val_recalls, group_recalls, val_loss =\
+                        self.evaluate(cur_epoch)
 
                 self.logger.debug(
                     "Epoch[{epoch:>3d}/{total_epochs}] "
@@ -144,18 +149,26 @@ class FineTuner(BaseTrainer):
                                         {"train_mr": train_mr,
                                          "val_mr": val_mr},
                                         cur_epoch)
+                self.writer.add_scalars(f"{self.exp_name}/GroupRecall",
+                                        {"head_mr": group_recalls[0],
+                                         "mid_mr": group_recalls[1],
+                                         "tail_mr": group_recalls[2]},
+                                        cur_epoch)
                 is_best = val_mr > best_mr
                 if is_best:
                     best_mr = val_mr
                     best_epoch = cur_epoch
                     best_recalls = val_recalls
-                    self.logger.info(f"==> Best recalls now: {best_recalls}")
-                self.save_checkpoint(cur_epoch, is_best, val_mr, val_recalls)
+                    best_group_recalls = group_recalls
+                    self.logger.debug(f"==> Best recalls now: {best_recalls}")
+                self.save_checkpoint(cur_epoch, is_best, val_mr, val_recalls,
+                                     group_recalls)
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
                 f"===> Best mean recall: {best_mr:.2%} (@epoch{best_epoch})\n"
                 f"Class recalls: {best_recalls}\n"
+                f"Group recalls: {best_group_recalls}"
                 f"===> Save directory: '{self.save_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************"
@@ -240,11 +253,26 @@ class FineTuner(BaseTrainer):
         val_recalls = metrics.recall_score(all_labels, all_preds, average=None)
         val_recalls = np.around(val_recalls, decimals=2).tolist()
 
+        # seperate all classes into 3 groups: Head, Mid, Tail
+        num_classes = self.network_param['num_classes']
+        head_classes = math.floor(num_classes / 3)
+        tail_classes = head_classes
+        group_recalls = [
+            np.around(np.mean(val_recalls[:head_classes]), decimals=2),
+            np.around(np.mean(
+                val_recalls[head_classes:num_classes-tail_classes]),
+                decimals=2),
+            np.around(np.mean(val_recalls[num_classes-tail_classes:]),
+                      decimals=2),
+        ]
         val_pbar.set_postfix_str(
-            "Loss:{:.2f} MR:{:.0%}".format(val_loss_meter.avg, val_mr))
+            f"Loss:{val_loss_meter.avg:.2f} MR:{val_mr:.0%} "
+            f"Head:{group_recalls[0]:.0%} "
+            f"Mid:{group_recalls[1]:.0%} "
+            f"Tail:{group_recalls[2]:.0%}")
         val_pbar.close()
 
-        return val_mr, val_recalls, val_loss_meter.avg
+        return val_mr, val_recalls, group_recalls, val_loss_meter.avg
 
 
 def parse_args():
@@ -269,8 +297,8 @@ def main(args):
     _set_seed()
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    trainer = FineTuner(local_rank=args.local_rank, config=config)
-    trainer.train()
+    finetuner = FineTuner(local_rank=args.local_rank, config=config)
+    finetuner.finetune()
 
 
 if __name__ == "__main__":

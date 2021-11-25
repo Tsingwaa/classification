@@ -218,7 +218,7 @@ class BaseTrainer:
         try:
             optimizer = getattr(torch.optim, self.optimizer_name)(
                 self.model.parameters(), **self.optimizer_param)
-            if self.resume:
+            if self.resume and 'optimizer' in self.checkpoint:
                 optimizer.load_state_dict(self.checkpoint['optimizer'])
             if self.optimizer_name == 'SGD':
                 optimizer_init_log = f'===> Initialized {self.optimizer_name}'\
@@ -313,18 +313,18 @@ class BaseTrainer:
         elif pretrained:
             pretrained_fpath = network_param['pretrained_fpath']
             state_dict = torch.load(pretrained_fpath, map_location='cpu')
-            if any('ResNet18', 'ResNet34', 'ResNet50', 'ResNet101') in\
-               network_name:
+            if any(name in network_name for name in ['ResNet18', 'ResNet34',
+                                                     'ResNet50', 'ResNet101']):
                 state_dict = {k: v for k, v in state_dict.items() if
                               'fc' not in k}
 
             model.load_state_dict(state_dict, strict=False)
-            model_init_log = '===> Initialized pretrained {} from "{}". Total'\
-                'parameters: {:.2f}m'.format(
-                    network_name, pretrained_fpath, total_params)
+            model_init_log = f'===> Initialized pretrained {network_name}'\
+                f'from "{pretrained_fpath}". Total parameters:'\
+                f' {total_params:.2f}m'
         else:
-            model_init_log = '===> Initialized {}. Total parameters:'\
-                    ' {:.2f}m'.format(network_name, total_params)
+            model_init_log = f'===> Initialized {network_name}.'\
+                    f' Total parameters: {total_params:.2f}m'
         if self.local_rank in [-1, 0]:
             self.logger.info(model_init_log)
 
@@ -415,6 +415,16 @@ class BaseTrainer:
         logger.addHandler(stream_handler)
 
         return logger
+
+    def freeze_model(self, model, unfreeze_keys=['fc']):
+        """Freeze model parameters except some given keys
+        Default: leave fc unfreezed
+        """
+        for named_key, var in model.named_parameters():
+            if any(key in named_key for key in unfreeze_keys):
+                var.requires_grad = True
+            else:
+                var.requires_grad = False
 
     def train(self):
         pass
