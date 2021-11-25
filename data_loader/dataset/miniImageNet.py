@@ -39,7 +39,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
 
     # set_trace()
     def __init__(self, data_root, phase, img_lst_fpath=None, transform=None,
-                 imb_type='exp', steps=2, imb_factor=0.1, seed=0, **kwargs):
+                 imb_type='exp', imb_factor=0.1, seed=0, **kwargs):
         self.img_paths = []
         self.targets = []
         self.transform = transform
@@ -65,7 +65,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
             np.random.seed(seed)
             # generate imbalance num_samples list
             img_num_list = self.get_img_num_per_cls(
-                self.cls_num, imb_type, imb_factor, steps=steps
+                self.cls_num, imb_type, imb_factor
             )
             # regenerate self.img_paths and self.targets
             self.gen_imbalanced_data(img_num_list)
@@ -75,7 +75,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         label2ctg = self.get_label2ctg()
         self.classes = [label2ctg[i] for i in range(self.cls_num)]
 
-    def get_img_num_per_cls(self, cls_num, imb_type, imb_factor, steps):
+    def get_img_num_per_cls(self, cls_num, imb_type, imb_factor):
         """Generate imbalanced num samples by 'exp' or 'step'.
         - imb_type: 'exp' or 'step'
         - imb_factor: (default: 0.1) the largest / the smallest
@@ -88,11 +88,17 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
                 img_num = img_max * imb_factor ** (cls_idx / (cls_num - 1))
                 img_num_per_cls.append(int(img_num))
         elif imb_type == 'step':  # two different num_samples
-            classes_per_step = math.ceil(cls_num / steps)  # 最后一步少类别
+            head_classes = math.floor(cls_num / 3)  # head=tail
+            tail_classes = head_classes
             # 3step, 20classes： 7-7-6
             for cls_idx in range(cls_num):
-                step = cls_idx // classes_per_step
-                img_num = img_max * imb_factor ** (step / (steps - 1))
+                if cls_idx < head_classes:
+                    step = 0
+                elif head_classes <= cls_idx < cls_num - tail_classes:
+                    step = 1
+                else:
+                    step = 2
+                img_num = img_max * imb_factor ** (step / 2)
                 img_num_per_cls.append(int(img_num))
         else:
             img_num_per_cls.extend([int(img_max)] * cls_num)
