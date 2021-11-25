@@ -116,19 +116,23 @@ class Trainer(BaseTrainer):
             train_mr, train_loss = self.train_epoch(cur_epoch)
 
             if self.local_rank in [-1, 0]:
-                val_mr, val_recalls, group_recalls, val_loss =\
+                val_mr, val_loss, val_recalls, group_recalls =\
                         self.evaluate(cur_epoch)
 
                 self.logger.debug(
                     "Epoch[{epoch:>3d}/{total_epochs}] "
                     "Trainset Loss={train_loss:.4f} MR={train_mr:.2%} || "
-                    "Valset Loss={val_loss:.4f} MR={val_mr:.2%}".format(
+                    "Valset Loss={val_loss:.4f} MR={val_mr:.2%}"
+                    "Head={head:.2%} Mid={mid:.2%} Tail={tail:.2%}".format(
                         epoch=cur_epoch,
                         total_epochs=self.total_epochs,
                         train_loss=train_loss,
                         train_mr=train_mr,
                         val_loss=val_loss,
                         val_mr=val_mr,
+                        head=group_recalls[0],
+                        mid=group_recalls[1],
+                        tail=group_recalls[2],
                     )
                 )
 
@@ -166,7 +170,7 @@ class Trainer(BaseTrainer):
             self.logger.info(
                 f"===> Best mean recall: {best_mr:.2%} (@epoch{best_epoch})\n"
                 f"Class recalls: {best_recalls}\n"
-                f"Group recalls: {best_group_recalls}"
+                f"Group recalls: {best_group_recalls}\n"
                 f"===> Save directory: '{self.save_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************"
@@ -270,7 +274,7 @@ class Trainer(BaseTrainer):
             f"Tail:{group_recalls[2]:.0%}")
         val_pbar.close()
 
-        return val_mr, val_recalls, group_recalls, val_loss_meter.avg
+        return val_mr, val_loss_meter.avg, val_recalls, group_recalls
 
 
 def parse_args():

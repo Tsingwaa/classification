@@ -7,8 +7,8 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 
 # Single-GPU Training
 CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_path \
-        'configs/miniIN20_0.05/20211124_r18_LinfPGD_joint0.5_dualBN.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_path \
-#         'configs/miniIN20_0.05/20211124_r18_LinfPGD_joint0.5_dualBN_adapt.yaml'
-# CUDA_VISIBLE_DEVICES=1 python3 train.py --local_rank -1 --config_path \
-#         'configs/miniIN20_0.05/20211124_r18_LinfPGD_joint0.5_dualBN_adapt2.yaml'
+        'configs/miniIN20_0.05_3step/20211125_r18_LinfPGD_joint0.5_dualBN.yaml'
+CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_path \
+        'configs/miniIN20_0.05_3step/20211125_r18_LinfPGD_joint0.5_dualBN_adapt2.yaml'
+CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_path \
+        'configs/miniIN20_0.05_3step/20211125_r18_LinfPGD_joint0.5_dualBN_adapt.yaml'

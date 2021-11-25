@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_3step_r18_rw1"
+  name: "miniIN20_0.05_3step_r34"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -55,16 +55,17 @@ valloader:
     num_workers: 6
 
 network:
-  name: "ResNet18"
+  name: "ResNet34"
   param:
     num_classes: 20
+    # use_ssp: False
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: 'class_weight'
+    weight_type: ''
     label_smoothing: 0.
 
 optimizer:
