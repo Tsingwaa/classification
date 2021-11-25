@@ -3,6 +3,7 @@ Customized by Kaihua Tang
 """
 
 # import os
+import math
 import torch
 import numpy as np
 import imghdr
@@ -87,8 +88,8 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
                 img_num = img_max * imb_factor ** (cls_idx / (cls_num - 1))
                 img_num_per_cls.append(int(img_num))
         elif imb_type == 'step':  # two different num_samples
-            assert cls_num % steps == 0
-            classes_per_step = cls_num // steps
+            classes_per_step = math.ceil(cls_num / steps)  # 最后一步少类别
+            # 3step, 20classes： 7-7-6
             for cls_idx in range(cls_num):
                 step = cls_idx // classes_per_step
                 img_num = img_max * imb_factor ** (step / (steps - 1))
