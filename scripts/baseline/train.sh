@@ -5,7 +5,7 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 #     train.py --config_path "configs/miniImageNet/20211024_resnet18.yaml"
 
 # Single-GPU Training
-CUDA_VISIBLE_DEVICES=1 python3 train.py --local_rank -1 --config_path 'configs/miniIN20_0.05_3step/20211125_r18_rw.yaml'
-CUDA_VISIBLE_DEVICES=1 python3 train.py --local_rank -1 --config_path 'configs/miniIN20_0.05_3step/20211125_r18.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_path 'configs/miniIN20_0.05_3step/20211125_r18_rw_focal.yaml'
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_path 'configs/miniIN20_0.05_3step/20211125_r18_focal.yaml'
+# CUDA_VISIBLE_DEVICES=1 python3 train.py --local_rank -1 --config_path 'configs/miniIN20_0.05_3step/20211125_r18_rw.yaml'
+# CUDA_VISIBLE_DEVICES=1 python3 train.py --local_rank -1 --config_path 'configs/miniIN20_0.05_3step/20211125_r18.yaml'
+CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_path 'configs/miniIN20_0.05/20211123_r18_rw_focal.yaml'
+CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1 --config_path 'configs/miniIN20_0.05/20211123_r18_focal.yaml'
