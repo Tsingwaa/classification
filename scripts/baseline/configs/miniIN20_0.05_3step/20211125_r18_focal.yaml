@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_4step_r18"
+  name: "miniIN20_0.05_3step_r18_focal"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -29,7 +29,7 @@ train_dataset:
     # map_fpath: "None"
     imb_type: 'step'
     imb_factor: 0.05
-    steps: 4
+    steps: 3
     seed: 0
     # download: False
 
@@ -64,10 +64,12 @@ network:
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
 loss:
-  name: "CrossEntropyLoss"
+  name: "FocalLoss"
   param:
     weight_type: ''
     label_smoothing: 0.
+    alpha: 0.25
+    gamma: 2
 
 optimizer:
   name: "SGD"
