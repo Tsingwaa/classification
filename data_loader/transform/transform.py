@@ -56,7 +56,7 @@ class RandTransform:
         if n is None:
             n = self.n
         if percent is not None:
-            m = int(percent * m)
+            m = int(((1 + percent) / 2 * m))
 
         if self.phase == 'train':
             ret_transform = transforms.Compose([
