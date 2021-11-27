@@ -118,6 +118,12 @@ class Trainer(BaseTrainer):
         best_epoch = 1
         best_recalls = []
         best_group_recalls = []
+        # TODO: add last 20 epochs metrics to measure whether the method works
+        last_mr = 0.
+        last_20_mr = []
+        last_20_head_mr = []
+        last_20_mid_mr = []
+        last_20_tail_mr = []
         for cur_epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == 'epoch':
