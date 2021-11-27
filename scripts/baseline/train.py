@@ -103,8 +103,11 @@ class Trainer(BaseTrainer):
         #######################################################################
         best_mr = 0.
         best_epoch = 1
-        best_recalls = []
         best_group_recalls = []
+        last_20_mr = []
+        last_20_head_mr = []
+        last_20_mid_mr = []
+        last_20_tail_mr = []
         for cur_epoch in range(self.start_epoch, self.total_epochs + 1):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == "epoch":
@@ -116,8 +119,13 @@ class Trainer(BaseTrainer):
             train_mr, train_loss = self.train_epoch(cur_epoch)
 
             if self.local_rank in [-1, 0]:
-                val_mr, val_loss, val_recalls, group_recalls =\
-                        self.evaluate(cur_epoch)
+                val_mr, val_loss, group_recalls = self.evaluate(cur_epoch)
+
+                if self.total_epochs - cur_epoch <= 20:
+                    last_20_mr.append(val_mr)
+                    last_20_head_mr.append(group_recalls[0])
+                    last_20_mid_mr.append(group_recalls[1])
+                    last_20_tail_mr.append(group_recalls[2])
 
                 self.logger.debug(
                     "Epoch[{epoch:>3d}/{total_epochs}] "
@@ -136,8 +144,8 @@ class Trainer(BaseTrainer):
                     )
                 )
 
-                if len(val_recalls) <= 20 and cur_epoch == self.total_epochs:
-                    self.logger.info(f"Class recalls: {val_recalls}\n")
+                # if len(val_recalls) <= 20 and cur_epoch == self.total_epochs:
+                #     self.logger.info(f"Class recalls: {val_recalls}\n")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(f"{self.exp_name}/LR",
@@ -160,17 +168,22 @@ class Trainer(BaseTrainer):
                 if is_best:
                     best_mr = val_mr
                     best_epoch = cur_epoch
-                    best_recalls = val_recalls
                     best_group_recalls = group_recalls
-                    self.logger.debug(f"==> Best recalls now: {best_recalls}")
-                self.save_checkpoint(cur_epoch, is_best, val_mr, val_recalls,
-                                     group_recalls)
+                self.save_checkpoint(cur_epoch, is_best, val_mr, group_recalls)
+
+        final_mr = np.around(np.mean(last_20_mr), decimals=4)
+        final_head_mr = np.around(np.mean(last_20_head_mr), decimals=4)
+        final_mid_mr = np.around(np.mean(last_20_mid_mr), decimals=4)
+        final_tail_mr = np.around(np.mean(last_20_tail_mr), decimals=4)
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
-                f"===> Best mean recall: {best_mr:.2%} (@epoch{best_epoch})\n"
-                f"Class recalls: {best_recalls}\n"
+                f"===> Best mean recall: {best_mr:.2%} (epoch{best_epoch})\n"
                 f"Group recalls: {best_group_recalls}\n"
+                f"===> Final average mean recall of last 20 epochs:"
+                f" {final_mr:.2%}\n"
+                f"Average Group mean recalls: [{final_head_mr:.2%}, "
+                f"{final_mid_mr:.2%}, {final_tail_mr:.2%}]\n\n"
                 f"===> Save directory: '{self.save_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************"
@@ -253,28 +266,31 @@ class Trainer(BaseTrainer):
 
         val_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
         val_recalls = metrics.recall_score(all_labels, all_preds, average=None)
-        val_recalls = np.around(val_recalls, decimals=2).tolist()
+        # val_recalls = np.around(val_recalls, decimals=4).tolist()
 
         # seperate all classes into 3 groups: Head, Mid, Tail
         num_classes = self.network_param['num_classes']
         head_classes = math.floor(num_classes / 3)
         tail_classes = head_classes
         group_recalls = [
-            np.around(np.mean(val_recalls[:head_classes]), decimals=2),
-            np.around(np.mean(
-                val_recalls[head_classes:num_classes-tail_classes]),
-                decimals=2),
-            np.around(np.mean(val_recalls[num_classes-tail_classes:]),
-                      decimals=2),
+            np.around(
+                np.mean(val_recalls[:head_classes]),
+                decimals=4),
+            np.around(
+                np.mean(val_recalls[head_classes:num_classes-tail_classes]),
+                decimals=4),
+            np.around(
+                np.mean(val_recalls[num_classes-tail_classes:]),
+                decimals=4),
         ]
         val_pbar.set_postfix_str(
-            f"Loss:{val_loss_meter.avg:.2f} MR:{val_mr:.0%} "
+            f"Loss:{val_loss_meter.avg:.2f} MR:{val_mr:.2%} "
             f"Head:{group_recalls[0]:.0%} "
             f"Mid:{group_recalls[1]:.0%} "
             f"Tail:{group_recalls[2]:.0%}")
         val_pbar.close()
 
-        return val_mr, val_loss_meter.avg, val_recalls, group_recalls
+        return val_mr, val_loss_meter.avg, group_recalls
 
 
 def parse_args():

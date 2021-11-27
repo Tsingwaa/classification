@@ -1,10 +1,10 @@
 experiment:
-  name: "miniIN20_0.05_r18"
+  name: "miniIN20_0.05_r18_balsample"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
   resume: False
-  resume_fpath: "best.pth.tar"
+  resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -44,14 +44,15 @@ val_dataset:
 trainloader:
   name: "Dataloader"
   param:
-    sampler: "None"
+    sampler: "BalanceSampler"
+    retain_epoch_size: True
     batch_size: 64
     num_workers: 6
 
 valloader:
   name: "Dataloader"
   param:
-    batch_size: 128
+    batch_size: 64
     num_workers: 6
 
 network:

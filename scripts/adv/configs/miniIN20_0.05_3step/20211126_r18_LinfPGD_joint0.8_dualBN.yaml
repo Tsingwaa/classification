@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_3step_r18_LinfPGD_joint0.8_dualBN"
+  name: "miniIN20_0.05_3step_r18_LinfPGD_joint0.8"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"

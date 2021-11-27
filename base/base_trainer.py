@@ -376,7 +376,7 @@ class BaseTrainer:
         return checkpoint, resume_log
 
     def save_checkpoint(self, epoch, is_best=False, mr=None, ap=None,
-                        recalls=[], group_recalls=[]):
+                        group_recalls=[]):
         if (not epoch % self.save_period) or is_best:
             checkpoint = {'model': self.model.state_dict()
                           if self.local_rank == -1 else
@@ -386,7 +386,6 @@ class BaseTrainer:
                           'best': is_best,
                           'epoch': epoch,
                           'mr': mr,
-                          'recalls': recalls,
                           'group_recalls': group_recalls}
             _save_name = 'best.pth.tar' if is_best else 'last.pth.tar'
             _save_path = join(self.save_dir, _save_name)
