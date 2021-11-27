@@ -1,10 +1,10 @@
 experiment:
-  name: "miniIN20_0.05_r18_rw1"
+  name: "miniIN20_0.05_r18"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
   resume: False
-  resume_fpath: "best.pth.tar"
+  resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -65,7 +65,7 @@ network:
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: 'class_weight'
+    weight_type: ''
     label_smoothing: 0.
 
 optimizer:

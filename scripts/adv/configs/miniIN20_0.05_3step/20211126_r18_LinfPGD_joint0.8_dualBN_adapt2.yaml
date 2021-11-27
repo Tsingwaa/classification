@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_3step_r18_LinfPGD_joint0.8_dualBN_adapt2"
+  name: "miniIN20_0.05_3step_r18_LinfPGD_joint0.8_adapt2"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -75,7 +75,7 @@ network:
     mean: [0.3567, 0.4279, 0.4439]
     std: [0.2761, 0.2584, 0.2705]
     dual_BN: True
-    use_ssp: False
+    # use_ssp: False
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 

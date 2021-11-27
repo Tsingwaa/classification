@@ -1,10 +1,10 @@
 experiment:
-  name: "miniIN20_0.05_3step_r18_LinfPGD_joint0.8_dualBN_adapt"
+  name: "miniIN20_0.05_3step_r18_LinfPGD_joint0.8_adapt"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
   resume: False
-  resume_fpath: "best.pth.tar"
+  resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -75,7 +75,6 @@ network:
     mean: [0.3567, 0.4279, 0.4439]
     std: [0.2761, 0.2584, 0.2705]
     dual_BN: True
-    use_ssp: False
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
