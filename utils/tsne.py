@@ -1,38 +1,15 @@
-#
-#  tsne_torch.py
-#
 # Implementation of t-SNE in pytorch. The implementation was tested on pytorch
 # > 1.0, and it requires Numpy to read files. In order to plot the results,
 # a working installation of matplotlib is required.
 #
-# The example can be run by executing: `python tsne_torch.py`
+# The example can be run by executing: `python tsne.py`
 #
 #  Created by Xiao Li on 23-03-2020.
 #  Copyright (c) 2020. All rights reserved.
 
 import numpy as np
 import matplotlib.pyplot as pyplot
-import argparse
 import torch
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--xfile", type=str, default="mnist2500_X.txt",
-                    help="file name of feature stored")
-parser.add_argument("--yfile", type=str, default="mnist2500_labels.txt",
-                    help="file name of label stored")
-parser.add_argument("--cuda", type=int, default=1,
-                    help="if use cuda accelarate")
-
-args = parser.parse_args()
-print("get choice from args:", args)
-xfile = args.xfile
-yfile = args.yfile
-
-if args.cuda:
-    print("set use cuda")
-    torch.set_default_tensor_type(torch.cuda.DoubleTensor)
-else:
-    torch.set_default_tensor_type(torch.DoubleTensor)
 
 
 def Hbeta(D, beta=1.0):
@@ -204,13 +181,16 @@ def tsne(X, no_dims=2, initial_dims=50, perplexity=30.0):
     return Y
 
 
-if __name__ == "__main__":
-    print("Run Y = tsne.tsne(X, no_dims, perplexity) to perform t-SNE"
-          " on your dataset.")
+def main(X_fpath, y_fpath, use_cuda=True):
+    """chonj"""
+    if use_cuda:
+        print("Use CUDA to accelerate.")
+        torch.set_default_tensor_type(torch.cuda.DoubleTensor)
+    else:
+        torch.set_default_tensor_type(torch.DoubleTensor)
 
-    X = np.loadtxt(xfile)
-    X = torch.Tensor(X)
-    labels = np.loadtxt(yfile).tolist()
+    X = torch.from_numpy(np.loadtxt(X_fpath))
+    labels = np.loadtxt(y_fpath).tolist()
 
     # confirm that x file get same number point than label file
     # otherwise may cause error in scatter
@@ -220,7 +200,7 @@ if __name__ == "__main__":
     with torch.no_grad():
         Y = tsne(X, 2, 50, 20.0)
 
-    if args.cuda:
+    if use_cuda:
         Y = Y.cpu().numpy()
 
     # You may write result in two files
@@ -230,6 +210,14 @@ if __name__ == "__main__":
     # for i in range(Y.shape[0]):
     #     Y1.write(str(Y[i,0])+"\n")
     #     Y2.write(str(Y[i,1])+"\n")
-
     pyplot.scatter(Y[:, 0], Y[:, 1], 20, labels)
     pyplot.show()
+
+
+if __name__ == "__main__":
+    print("Run Y = tsne.tsne(X, no_dims, perplexity) to perform t-SNE"
+          " on your dataset.")
+    X_fpath = ''
+    y_fpath = ''
+
+    main(X_fpath, y_fpath, use_cuda=True)
