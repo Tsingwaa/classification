@@ -348,7 +348,7 @@ class BaseTrainer:
         loss_init_log = f'===> Initialized {loss_name} '
         if loss_name == 'FocalLoss':
             loss_init_log += f'with gamma={loss_param["gamma"]}'
-        if loss_param['weight_type']:
+        if loss_param['weight'] is not None:
             display_weight = loss_param['weight'].numpy().round(2)
             loss_init_log += f'\nclass weight={display_weight}'
 
@@ -374,8 +374,8 @@ class BaseTrainer:
             num_cls = len(imgs_per_cls)
             weight = num_img / (num_cls * imgs_per_cls)
             weight /= torch.sum(weight)
-        elif weight_type == 'CB_weight':
-            beta = kwargs['beta']
+        elif weight_type == 'CB':
+            beta = self.loss_param['beta']
             weight = (1 - beta) / (1.0 - torch.pow(beta, imgs_per_cls))
             weight /= torch.sum(weight)
         else:
