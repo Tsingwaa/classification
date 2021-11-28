@@ -3,7 +3,7 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 # Distributed Training
 CUDA_VISIBLE_DEVICES=2,3,4,5 python3 -W ignore -m torch.distributed.launch\
     --nproc_per_node=4 --master_addr 127.0.0.111 --master_port 30000 \
-    train.py --config_path "configs/miniIN20_0.05/20211128_r18.yaml"
+    train.py --config_path "configs/miniIN20_0.05/r18_h.yaml"
 
 # Single-GPU Training
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --local_rank -1\

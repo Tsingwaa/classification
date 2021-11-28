@@ -192,10 +192,11 @@ class Trainer(BaseTrainer):
     def train_epoch(self, cur_epoch):
         self.model.train()
 
-        train_pbar = tqdm(
-            total=len(self.trainloader),
-            desc="Train Epoch[{:>3d}/{}]".format(cur_epoch, self.total_epochs)
-        )
+        if self.local_rank in [-1, 0]:
+            train_pbar = tqdm(
+                total=len(self.trainloader),
+                desc="Train Epoch[{:>3d}/{}]".format(cur_epoch, self.total_epochs)
+            )
 
         all_labels = []
         all_preds = []
@@ -234,18 +235,20 @@ class Trainer(BaseTrainer):
 
         train_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
 
-        train_pbar.set_postfix_str("LR:{:.1e} Loss:{:.2f} MR:{:.2%}".format(
-                self.optimizer.param_groups[0]["lr"],
-                train_loss_meter.avg, train_mr))
-        train_pbar.close()
+        if self.local_rank in [-1, 0]:
+            train_pbar.set_postfix_str("LR:{:.1e} Loss:{:.2f} MR:{:.2%}".format(
+                    self.optimizer.param_groups[0]["lr"],
+                    train_loss_meter.avg, train_mr))
+            train_pbar.close()
 
         return train_mr, train_loss_meter.avg
 
     def evaluate(self, cur_epoch):
         self.model.eval()
 
-        val_pbar = tqdm(total=len(self.valloader), ncols=0,
-                        desc="                 Val")
+        if self.local_rank in [-1, 0]:
+            val_pbar = tqdm(total=len(self.valloader), ncols=0,
+                            desc="                 Val")
 
         all_labels = []
         all_preds = []
@@ -283,12 +286,13 @@ class Trainer(BaseTrainer):
                 np.mean(val_recalls[num_classes-tail_classes:]),
                 decimals=4),
         ]
-        val_pbar.set_postfix_str(
-            f"Loss:{val_loss_meter.avg:.2f} MR:{val_mr:.2%} "
-            f"Head:{group_recalls[0]:.0%} "
-            f"Mid:{group_recalls[1]:.0%} "
-            f"Tail:{group_recalls[2]:.0%}")
-        val_pbar.close()
+        if self.local_rank in [-1, 0]:
+            val_pbar.set_postfix_str(
+                f"Loss:{val_loss_meter.avg:.2f} MR:{val_mr:.2%} "
+                f"Head:{group_recalls[0]:.0%} "
+                f"Mid:{group_recalls[1]:.0%} "
+                f"Tail:{group_recalls[2]:.0%}")
+            val_pbar.close()
 
         return val_mr, val_loss_meter.avg, group_recalls
 
