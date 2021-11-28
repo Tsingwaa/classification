@@ -357,6 +357,32 @@ class BaseTrainer:
 
         return loss
 
+    def compute_class_weight(self, imgs_per_cls, **kwargs):
+        """
+        Args:
+            imgs_per_class(List): imgs of each class
+            weight_type(Str): select which type of weight
+        Return:
+            weight(Tensor): 1-D torch.Tensor
+        """
+        weight_type = self.loss_param['weight_type']
+        if not isinstance(imgs_per_cls, torch.Tensor):
+            imgs_per_cls = torch.FloatTensor(imgs_per_cls)
+
+        if weight_type == 'class_weight':
+            num_img = torch.sum(imgs_per_cls)
+            num_cls = len(imgs_per_cls)
+            weight = num_img / (num_cls * imgs_per_cls)
+            weight /= torch.sum(weight)
+        elif weight_type == 'CB_weight':
+            beta = kwargs['beta']
+            weight = (1 - beta) / (1.0 - torch.pow(beta, imgs_per_cls))
+            weight /= torch.sum(weight)
+        else:
+            weight = None
+
+        self.loss_param.update({'weight': weight})
+
     def _reduce_loss(self, tensor):
         with torch.no_grad():
             dist.reduce(tensor, dst=0)
