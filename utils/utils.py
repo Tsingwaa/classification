@@ -121,28 +121,3 @@ def get_weight_scheduler(cur_epoch, total_epoch, weight_scheduler, **kwargs):
         weight = kwargs['weight']
 
     return weight
-
-
-def get_class_weight(num_imgs_per_class, weight_type):
-    """class_weight: w_j = num_imgs / (num_classes * n_j ** q)
-
-    Args:
-        num_imgs_per_class(List): imgs of each class
-        weight_type(Str): select which type of weight
-    Return:
-        weight(Tensor): 1-D torch.Tensor
-    """
-
-    import torch
-    if not isinstance(num_imgs_per_class, torch.Tensor):
-        num_imgs_per_class = torch.FloatTensor(num_imgs_per_class)
-
-    if weight_type == 'class_weight':
-        num_imgs = torch.sum(num_imgs_per_class)
-        num_classes = len(num_imgs_per_class)
-        weight = num_imgs / (num_classes * num_imgs_per_class)
-        weight /= torch.sum(weight)  # Normalize to range (0, 1)
-    else:
-        weight = None
-
-    return weight

@@ -16,7 +16,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AverageMeter, get_class_weight
+from utils import AverageMeter
 
 
 class DataLoaderX(DataLoader):
@@ -72,10 +72,8 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        if self.loss_name in ['CrossEntropyLoss', 'FocalLoss']:
-            self.loss_param['weight'] = get_class_weight(
-                trainset.img_num, self.loss_param['weight_type'])
-        self.loss = self.init_loss()
+        self.compute_class_weight(trainset.img_num)
+        self.criterion = self.init_loss()
 
         #######################################################################
         # Initialize Optimizer
@@ -195,7 +193,8 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(self.trainloader),
-                desc="Train Epoch[{:>3d}/{}]".format(cur_epoch, self.total_epochs)
+                desc="Train Epoch[{:>3d}/{}]".format(
+                    cur_epoch, self.total_epochs)
             )
 
         all_labels = []
@@ -211,7 +210,7 @@ class Trainer(BaseTrainer):
 
             batch_prob = self.model(batch_imgs)
 
-            avg_loss = self.loss(batch_prob, batch_labels)
+            avg_loss = self.criterion(batch_prob, batch_labels)
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()
@@ -259,7 +258,7 @@ class Trainer(BaseTrainer):
                 batch_labels = batch_labels.cuda(non_blocking=True)
                 batch_probs = self.model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]
-                avg_loss = self.loss(batch_probs, batch_labels)
+                avg_loss = self.criterion(batch_probs, batch_labels)
                 val_loss_meter.update(avg_loss.item(), 1)
 
                 all_labels.extend(batch_labels.cpu().numpy().tolist())
