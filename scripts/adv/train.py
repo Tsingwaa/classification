@@ -198,8 +198,8 @@ class Trainer(BaseTrainer):
 
         if self.local_rank in [-1, 0]:
             self.logger.info(
-                f"===> Best mean recall: {best_mr:.2%} (epoch{best_epoch})\n"
-                f"Group recalls: {best_group_recalls}\n"
+                f"\n===> Best mean recall: {best_mr:.2%} (epoch{best_epoch})\n"
+                f"Group recalls: {best_group_recalls}\n\n"
                 f"===> Final average mean recall of last 20 epochs:"
                 f" {final_mr:.2%}\n"
                 f"Average Group mean recalls: [{final_head_mr:.2%}, "
