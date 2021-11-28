@@ -1,18 +1,19 @@
 experiment:
-  name: "miniImageNet20_0.05_r18_LinfPGD_joint0.5_dualBN1"
+  name: "miniIN20_0.05_r18_LinfPGD_joint0.5_adapt2"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: True
+  resume: False
   resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 adv:
-  name: "LinfPGD"
+  name: "AdaptLinfPGD2"
   param:
     joint_training: True
     clean_weight: 0.5
+    test_adv: False
     # iterations: 7  # Default: 7
     # step: 0.0078  # Default: 2/255
     # epsilon: 0.0314  # Default: 8/255
@@ -22,14 +23,12 @@ adv:
     # clip_max: 1.  # Default: 0.
 
 train_transform:
-  script_path: "data_loader.transform.transform"
   name: "AdvTransform"
   param:
     phase: "train"
     resize: [224, 224]
 
 val_transform:
-  script_path: "data_loader.transform.transform"
   name: "AdvTransform"
   param:
     phase: "val"
@@ -83,13 +82,14 @@ network:
 loss:
   name: "CrossEntropyLoss"
   param:
-    a: 0.1
+    weight_type: ''
+    label_smoothing: 0.
 
 optimizer:
   name: "SGD"
   param:
     lr: 0.1
-    weight_decay: 5.0e-4
+    weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True
 
@@ -112,7 +112,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [60, 100, 140, 170, 190]
+    milestones: [60, 100, 140, 170, 180]
     gamma: 0.1
 
     # CosineAnnealingWarmRestarts

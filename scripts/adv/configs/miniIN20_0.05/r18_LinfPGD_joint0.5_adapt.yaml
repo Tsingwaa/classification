@@ -1,15 +1,15 @@
 experiment:
-  name: "miniIN20_0.05_3step_r18_LinfPGD_joint0.5_adapt2"
+  name: "miniIN20_0.05_r18_LinfPGD_joint0.5_adapt"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
   resume: False
-  resume_fpath: "last.pth.tar"
+  resume_fpath: "best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 adv:
-  name: "AdaptLinfPGD2"
+  name: "AdaptLinfPGD"
   param:
     joint_training: True
     clean_weight: 0.5

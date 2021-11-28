@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_r18_LinfPGD_joint0.5_dualBN_adapt"
+  name: "miniIN20_0.05_3step_r18_LinfPGD_joint0.5_adapt2"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -9,7 +9,7 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 adv:
-  name: "AdaptLinfPGD"
+  name: "AdaptLinfPGD2"
   param:
     joint_training: True
     clean_weight: 0.5
@@ -41,7 +41,7 @@ train_dataset:
     phase: "train"
     img_lst_fpath: "train20.txt"
     # map_fpath: "None"
-    imb_type: 'exp'
+    imb_type: 'step'
     imb_factor: 0.05
     rand_seed: 0
     # download: False
