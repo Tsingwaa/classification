@@ -376,7 +376,7 @@ class BaseTrainer:
             weight /= torch.sum(weight)
         elif weight_type == 'CB':
             beta = self.loss_param['beta']
-            weight = (1 - beta) / (1.0 - torch.pow(beta, imgs_per_cls))
+            weight = (1.0 - beta) / (1.0 - torch.pow(beta, imgs_per_cls))
             weight /= torch.sum(weight)
         else:
             weight = None

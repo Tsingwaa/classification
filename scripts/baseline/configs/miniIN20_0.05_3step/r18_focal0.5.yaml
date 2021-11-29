@@ -1,10 +1,10 @@
 experiment:
-  name: "miniIN20_0.05_3step_r18_CB0.999_focal"
+  name: "miniIN20_0.05_3step_r18_focal0.5"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
   resume: False
-  resume_fpath: "last.pth.tar"
+  resume_fpath: "best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -65,10 +65,9 @@ network:
 loss:
   name: "FocalLoss"
   param:
-    weight_type: 'CB'
-    gamma: 2
-    beta: 0.999
+    weight_type: ''
     label_smoothing: 0.
+    gamma: 0.5
 
 optimizer:
   name: "SGD"

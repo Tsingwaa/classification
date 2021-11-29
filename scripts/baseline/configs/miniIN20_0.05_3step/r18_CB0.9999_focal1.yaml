@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_3step_r18_CB0.99_focal"
+  name: "miniIN20_0.05_3step_r18_CB0.9999_focal1"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -66,8 +66,8 @@ loss:
   name: "FocalLoss"
   param:
     weight_type: 'CB'
-    gamma: 2
-    beta: 0.99
+    gamma: 1
+    beta: 0.9999
     label_smoothing: 0.
 
 optimizer:
