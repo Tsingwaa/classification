@@ -348,7 +348,7 @@ class BaseTrainer:
         loss_init_log = f'===> Initialized {loss_name} '
         if loss_name == 'FocalLoss':
             loss_init_log += f'with gamma={loss_param["gamma"]}'
-        if loss_param['weight'] is not None:
+        if loss_param['weight_type'] != '':
             display_weight = loss_param['weight'].numpy().round(2)
             loss_init_log += f'\nclass weight={display_weight}'
 
