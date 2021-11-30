@@ -1,7 +1,7 @@
 """TRAINING
 """
 import os
-import h5df
+import h5py
 import warnings
 import argparse
 import torch
@@ -121,7 +121,7 @@ class Extractor(BaseTrainer):
         pbar.close()
 
         # save feature and labels
-        file = h5df.File(self.feat_fpath, 'w')
+        file = h5py.File(self.feat_fpath, 'w')
         file['features'] = all_feats
         file['labels'] = all_labels
 

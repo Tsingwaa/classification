@@ -395,7 +395,7 @@ class BaseTrainer:
         checkpoint = torch.load(resume_fpath, map_location='cpu')
         self.start_epoch = checkpoint['epoch']
         mr = checkpoint['mr']
-        recalls = checkpoint['recalls']
+        recalls = checkpoint['group_recalls']
         resume_log = '\n===> Resume checkpoint from "{}".\n'\
             'Mean recall:{:.2%}\n'\
             'Class recalls:{}'.format(resume_fpath, mr, recalls)

@@ -44,8 +44,8 @@ val_dataset:
 trainloader:
   name: "Dataloader"
   param:
-    sampler: "DistributedSampler"
-    batch_size: 128
+    sampler: "None"
+    batch_size: 64
     num_workers: 6
 
 valloader:
