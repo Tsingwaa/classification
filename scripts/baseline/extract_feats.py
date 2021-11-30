@@ -21,10 +21,9 @@ class DataLoaderX(DataLoader):
 
 
 class Extractor(BaseTrainer):
-    def __init__(self, local_rank, config, extract_phase='train'):
+    def __init__(self, local_rank, config):
         """Extractor to extract feature"""
 
-        self.extract_phase = extract_phase
         #######################################################################
         # Device setting
         #######################################################################
@@ -40,6 +39,7 @@ class Extractor(BaseTrainer):
         self.exp_name = self.experiment_config['name']
         self.user_root = os.environ['HOME']
         self.resume = self.experiment_config['resume']
+        self.extract_phase = self.experiment_config['extract_phase']
 
         if '/' in self.experiment_config['resume_fpath']:
             self.resume_fpath = self.experiment_config['resume_fpath']
