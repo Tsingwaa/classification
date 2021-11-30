@@ -7,8 +7,10 @@
 #  Created by Xiao Li on 23-03-2020.
 #  Copyright (c) 2020. All rights reserved.
 
+import h5py
 import numpy as np
 import matplotlib.pyplot as pyplot
+import seaborn as sb
 import torch
 
 
@@ -78,7 +80,7 @@ def x2p(X, tol=1e-5, perplexity=30.0):
             tries += 1
 
         # Set the final row of P
-        P[i, n_list[0:i]+n_list[i+1:n]] = thisP
+        P[i, n_list[0:i] + n_list[i+1:n]] = thisP
 
     # Return final P-matrix
     return P
@@ -181,7 +183,7 @@ def tsne(X, no_dims=2, initial_dims=50, perplexity=30.0):
     return Y
 
 
-def main(X_fpath, y_fpath, use_cuda=True):
+def main(feat_label_fpath, use_cuda=True):
     """chonj"""
     if use_cuda:
         print("Use CUDA to accelerate.")
@@ -189,8 +191,9 @@ def main(X_fpath, y_fpath, use_cuda=True):
     else:
         torch.set_default_tensor_type(torch.DoubleTensor)
 
-    X = torch.from_numpy(np.loadtxt(X_fpath))
-    labels = np.loadtxt(y_fpath).tolist()
+    with h5py.File(feat_label_fpath, 'r') as f:
+        X = torch.from_numpy(f['features'][:])
+        labels = f['labels'][:]
 
     # confirm that x file get same number point than label file
     # otherwise may cause error in scatter
@@ -203,21 +206,14 @@ def main(X_fpath, y_fpath, use_cuda=True):
     if use_cuda:
         Y = Y.cpu().numpy()
 
-    # You may write result in two files
-    # print("Save Y values in file")
-    # Y1 = open("y1.txt", 'w')
-    # Y2 = open('y2.txt', 'w')
-    # for i in range(Y.shape[0]):
-    #     Y1.write(str(Y[i,0])+"\n")
-    #     Y2.write(str(Y[i,1])+"\n")
-    pyplot.scatter(Y[:, 0], Y[:, 1], 20, labels)
-    pyplot.show()
+    sb.scatterplot(x=Y[:, 0], y=Y[:, 1], hue=labels)
+    sb.show()
 
 
 if __name__ == "__main__":
     print("Run Y = tsne.tsne(X, no_dims, perplexity) to perform t-SNE"
           " on your dataset.")
-    X_fpath = ''
-    y_fpath = ''
+    feat_label_fpath =\
+        '/home/chenghua/Experiments/miniIN20_0.05_r18/features-labels.h5'
 
-    main(X_fpath, y_fpath, use_cuda=True)
+    main(feat_label_fpath, use_cuda=True)
