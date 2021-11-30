@@ -165,7 +165,7 @@ class BaseTrainer:
         return transform
 
     def init_sampler(self, dataset=None):
-        sampler_param = self.trainloader_config['param']
+        sampler_param = self.trainloader_param
         sampler_name = sampler_param['sampler']
         if sampler_name == 'None':
             sampler = None
