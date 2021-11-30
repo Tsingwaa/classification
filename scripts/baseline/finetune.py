@@ -16,7 +16,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AverageMeter, get_class_weight
+from utils import AverageMeter
 
 
 class DataLoaderX(DataLoader):
@@ -27,7 +27,16 @@ class DataLoaderX(DataLoader):
 class FineTuner(BaseTrainer):
     def __init__(self, local_rank=None, config=None):
         super(FineTuner, self).__init__(local_rank, config)
-        self.freeze = self.network_param['freeze']
+        # Finetune Experiment rename
+        self.exp_name += '2rw'
+        # Choose which part of network to freeze
+        self.freeze = ''
+        # Choose which sampler
+        self.trainloader_param['sampler'] = ''
+        # Choose which type of reweighting scheduler
+        self.loss_param['weight_type'] = ''
+        # Choose total epochs
+        self.total_epochs = 10
 
     def finetune(self):
         #######################################################################
@@ -74,9 +83,7 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        if self.loss_name in ['CrossEntropyLoss', 'FocalLoss']:
-            self.loss_param['weight'] = get_class_weight(
-                trainset.img_num, self.loss_param['weight_type'])
+        self.compute_class_weight(trainset.img_num)
         self.loss = self.init_loss()
 
         #######################################################################
