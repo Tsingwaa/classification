@@ -245,7 +245,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x, embedding=False):
         # See note [TorchScript super()]
         x = self.conv1(x)
         x = self.bn1(x)
@@ -259,9 +259,13 @@ class ResNet(nn.Module):
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
-        x = self.fc(x)
 
-        return x
+        if embedding:
+            ret = x
+        else:
+            ret = self.fc(x)
+
+        return ret
 
 
 @Networks.register_module('ResNet18')

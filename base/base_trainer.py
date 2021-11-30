@@ -87,8 +87,8 @@ class BaseTrainer:
                     f'Tensorboard dir: {self.tb_dir}\n'\
                     f'Save peroid: {self.save_period}\n'\
                     f'Resume Training: {self.resume}\n'\
-                    f'Distributed Training:'\
-                    f' {True if self.local_rank != -1 else False}\n'\
+                    f'Distributed Training: '\
+                    f'{True if self.local_rank != -1 else False}\n'\
                     f'**********************************************'\
                     f'**********************************************\n'
                 self.logger.info(exp_init_log)
@@ -154,34 +154,44 @@ class BaseTrainer:
         self.lr_scheduler_mode = 'epoch' \
             if self.lr_scheduler_name != "CyclicLR" else 'iterations'
 
-    def init_transform(self, transform_config=None):
+    def init_transform(self, transform_config=None, log_file=True):
         transform_name = transform_config['name']
         transform_param = transform_config['param']
         transform = build_transform(transform_name, **transform_param)
+        transform_init_log = f'===> Initialized {transform_name} '\
+                             f'for {transform_param["phase"]} dataset. '
         if self.local_rank in [-1, 0]:
-            transform_init_log = f'===> Initialized {transform_name} '\
-                f'for {transform_param["phase"]} dataset. '
-            self.logger.info(transform_init_log)
+            if log_file:
+                self.logger.info(transform_init_log)
+            else:
+                print(transform_init_log)
+
         return transform
 
-    def init_sampler(self, dataset=None):
+    def init_sampler(self, dataset=None, log_file=True):
         sampler_param = self.trainloader_param
         sampler_name = sampler_param['sampler']
         if sampler_name == 'None':
             sampler = None
+            sampler_init_log = '===> Initialized default sampler'
         elif sampler_name == 'DistributedSampler':
             sampler = DistributedSampler(dataset)
+            sampler_init_log = '===> Initialized DistributedSampler'
         else:
             sampler_param['dataset'] = dataset
             sampler = build_sampler(sampler_name, **sampler_param)
-            if self.local_rank in [-1, 0]:
-                sampler_init_log = f'===> Initialized {sampler_name} with'\
-                    f' resampled size={len(sampler)}'
+            sampler_init_log = f'===> Initialized {sampler_name} with'\
+                f' resampled size={len(sampler)}'
+
+        if self.local_rank in [-1, 0]:
+            if log_file:
                 self.logger.info(sampler_init_log)
+            else:
+                print(sampler_init_log)
 
         return sampler
 
-    def init_dataset(self, dataset_config=None, transform=None):
+    def init_dataset(self, dataset_config=None, transform=None, log_file=True):
         dataset_name = dataset_config['name']
         dataset_param = dataset_config['param']
         dataset_param['data_root'] = join(
@@ -191,14 +201,17 @@ class BaseTrainer:
         if dataset_param['phase'] == 'train':
             self.train_size = len(dataset)
 
-        if self.local_rank in [-1, 0]:
-            dataset_init_log = f'===> Initialized {dataset_param["phase"]}'\
-                f' {dataset_name}(size={len(dataset)},'\
-                f' classes={dataset.cls_num}).'
-            if dataset_param['phase'] == 'train':
-                dataset_init_log += f'\nimg_num={dataset.img_num}'
+        dataset_init_log = f'===> Initialized {dataset_param["phase"]}'\
+            f' {dataset_name}(size={len(dataset)},'\
+            f' classes={dataset.cls_num}).'
+        if dataset_param['phase'] == 'train':
+            dataset_init_log += f'\nimg_num={dataset.img_num}'
 
-            self.logger.info(dataset_init_log)
+        if self.local_rank in [-1, 0]:
+            if log_file:
+                self.logger.info(dataset_init_log)
+            else:
+                print(dataset_init_log)
 
         return dataset
 
@@ -220,51 +233,49 @@ class BaseTrainer:
                 self.model.parameters(), **self.optimizer_param)
             if self.resume and 'optimizer' in self.checkpoint:
                 optimizer.load_state_dict(self.checkpoint['optimizer'])
+
             if self.optimizer_name == 'SGD':
                 optimizer_init_log = f'===> Initialized {self.optimizer_name}'\
                     f' with init_lr={self.optimizer_param["lr"]}'\
                     f' momentum={self.optimizer_param["momentum"]}'\
                     f' nesterov={self.optimizer_param["nesterov"]}'
             else:
-                optimizer_init_log = f'===> Initialized {self.optimizer_name}'
+                optimizer_init_log = f'===> Initialized {self.optimizer_name}'\
+                    f' with init_lr={self.optimizer_param["lr"]}'
 
             if self.local_rank in [-1, 0]:
                 self.logger.info(optimizer_init_log)
 
             return optimizer
         except Exception as error:
-            logging.info(f'Optimizer initialize failed: {error} !')
             raise AttributeError(f'Optimizer initialize failed: {error} !')
 
     def init_lr_scheduler(self):
+        lrs_param = self.lr_scheduler_param
         if self.lr_scheduler_name == 'CyclicLR':
             self.iter_num = int(
                 np.ceil(self.train_size / self.train_batch_size))
-            self.lr_scheduler_param['step_size_up'] *= self.iter_num
-            self.lr_scheduler_param['step_size_down'] *= self.iter_num
-            lr_scheduler_init_log = '===> Initialized {} with step_size_up={}'\
-                ' step_size_down={} base_lr={:.0e} max_lr={:.0e}'.format(
-                    self.lr_scheduler_name,
-                    self.lr_scheduler_param['step_size_up'],
-                    self.lr_scheduler_param['step_size_down'],
-                    self.lr_scheduler_param['base_lr'],
-                    self.lr_scheduler_param['max_lr'],)
+            lrs_param['step_size_up'] *= self.iter_num
+            lrs_param['step_size_down'] *= self.iter_num
+            lrs_init_log = f'===> Initialized {self.lr_scheduler_name}'\
+                f'with step_size_up={lrs_param["step_size_up"]} '\
+                f'step_size_down={lrs_param["step_size_down"]} '\
+                f'base_lr={lrs_param["base_lr"]:.0e} '\
+                f'max_lr={lrs_param["max_lr"]:.0e}'
         elif self.lr_scheduler_name == 'MultiStepLR':
-            lr_scheduler_init_log = '===> Initialized {} with milestones={}'\
-                    ' gamma={}'.format(self.lr_scheduler_name,
-                                       self.lr_scheduler_param['milestones'],
-                                       self.lr_scheduler_param['gamma'])
+            lrs_init_log = f'===> Initialized {self.lr_scheduler_name} '\
+                f'with milestones={lrs_param["milestones"]}'\
+                f'gamma={lrs_param["gamma"]}'
         else:
-            lr_scheduler_init_log = '===> Initialized {} with {}'.format(
-                self.lr_scheduler_name,
-                self.lr_scheduler_param)
+            lrs_init_log = f'===> Initialized {self.lr_scheduler_name}'
         try:
             lr_scheduler = getattr(torch.optim.lr_scheduler,
                                    self.lr_scheduler_name)(
                                        self.optimizer,
-                                       **self.lr_scheduler_param)
+                                       **lrs_param)
             if self.local_rank in [-1, 0]:
-                self.logger.info(lr_scheduler_init_log)
+                self.logger.info(lrs_init_log)
+
             if self.resume:
                 lr_scheduler.load_state_dict(self.checkpoint['lr_scheduler'])
 
@@ -274,9 +285,9 @@ class BaseTrainer:
                     multiplier=self.warmup_param['multiplier'],
                     warmup_epochs=self.warmup_param['warmup_epochs'],
                     after_scheduler=lr_scheduler,)
-                warmup_log = '===> Warmup for {} epochs with multiplier={}\n'\
-                    ''.format(self.warmup_param["warmup_epochs"],
-                              self.warmup_param['multiplier'],)
+                warmup_log = \
+                    f'===> Warmup {self.warmup_param["warmup_epochs"]} epochs'\
+                    f' with multiplier={self.warmup_param["multiplier"]}\n'
                 if self.local_rank in [-1, 0]:
                     self.logger.info(warmup_log)
             else:
@@ -286,10 +297,10 @@ class BaseTrainer:
 
             return ret_lr_scheduler
         except Exception as error:
-            logging.info(f'LR scheduler initilize failed: {error} !')
+            # logging.info(f'LR scheduler initilize failed: {error} !')
             raise AttributeError(f'LR scheduler initial failed: {error} !')
 
-    def init_model(self, network_name=None, network_param=None):
+    def init_model(self, network_name=None, network_param=None, log_file=True):
         if network_name is None:
             network_name = self.network_name
         if network_param is None:
@@ -298,7 +309,7 @@ class BaseTrainer:
         model = build_network(network_name, **network_param)
 
         # Count the total amount of parameters with gradient.
-        total_params = 0
+        total_params = 0.
         for x in filter(lambda p: p.requires_grad, model.parameters()):
             total_params += np.prod(x.data.numpy().shape)
         total_params /= 10 ** 6
@@ -306,27 +317,29 @@ class BaseTrainer:
         pretrained = network_param['pretrained']
         if self.resume:
             model.load_state_dict(self.checkpoint['model'])
-            model_init_log = '===> Resumed {} from "{}". Total'\
-                'parameters: {:.2f}m'.format(
-                    network_name, self.resume_fpath, total_params)
+            model_init_log = f'===> Resumed {network_name} '\
+                f'from {self.resume_fpath}. Total prams: {total_params:.2f}m'
 
         elif pretrained:
             pretrained_fpath = network_param['pretrained_fpath']
             state_dict = torch.load(pretrained_fpath, map_location='cpu')
             if any(name in network_name for name in ['ResNet18', 'ResNet34',
                                                      'ResNet50', 'ResNet101']):
-                state_dict = {k: v for k, v in state_dict.items() if
-                              'fc' not in k}
+                state_dict =\
+                        {k: v for k, v in state_dict.items() if 'fc' not in k}
 
             model.load_state_dict(state_dict, strict=False)
-            model_init_log = f'===> Initialized pretrained {network_name}'\
-                f'from "{pretrained_fpath}". Total parameters:'\
-                f' {total_params:.2f}m'
+            model_init_log = f'===> Resumed pretrained {network_name} from '\
+                f'"{pretrained_fpath}". Total params: {total_params:.2f}m'
         else:
             model_init_log = f'===> Initialized {network_name}.'\
-                    f' Total parameters: {total_params:.2f}m'
+                f'Total params: {total_params:.2f}m'
+
         if self.local_rank in [-1, 0]:
-            self.logger.info(model_init_log)
+            if log_file:
+                self.logger.info(model_init_log)
+            else:
+                print(model_init_log)
 
         model.cuda()
 
@@ -334,9 +347,9 @@ class BaseTrainer:
 
     def init_module(self, module_name=None, module_param=None):
         module = build_module(module_name, **module_param)
-        module_init_log = '===> Initialized {}.'.format(module_name)
         if self.local_rank in [-1, 0]:
-            self.logger.info(module_init_log)
+            self.logger.info(f'===> Initialized {module_name} with'
+                             f'{module_param}')
         return module
 
     def init_loss(self, loss_name=None, **kwargs):
@@ -395,10 +408,11 @@ class BaseTrainer:
         checkpoint = torch.load(resume_fpath, map_location='cpu')
         self.start_epoch = checkpoint['epoch']
         mr = checkpoint['mr']
-        recalls = checkpoint['group_recalls']
-        resume_log = '\n===> Resume checkpoint from "{}".\n'\
-            'Mean recall:{:.2%}\n'\
-            'Class recalls:{}'.format(resume_fpath, mr, recalls)
+        recalls = checkpoint.get('group_recalls', None)
+        resume_log = f'\n===> Resume checkpoint from "{resume_fpath}".\n'\
+            f'Mean recall:{mr:.2%}\n'\
+            f'Class recalls:{recalls}'
+
         return checkpoint, resume_log
 
     def save_checkpoint(self, epoch, is_best=False, mr=None, ap=None,

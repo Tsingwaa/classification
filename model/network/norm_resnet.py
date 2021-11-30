@@ -292,12 +292,11 @@ class NormResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x, embedding=False):
         # See note [TorchScript super()]
         x = self.norm(x)
         x = self.conv1(x)
         x = self.bn1(x)
-        # x = self.bn1_clean(x) if self.is_clean else self.bn1_adv(x)
         x = self.relu(x)
         x = self.maxpool(x)
 
@@ -308,9 +307,13 @@ class NormResNet(nn.Module):
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
-        x = self.fc(x)
 
-        return x
+        if embedding:
+            ret = x
+        else:
+            ret = self.fc(x)
+
+        return ret
 
 
 @Networks.register_module('NormResNet18')
