@@ -6,6 +6,7 @@ import warnings
 import argparse
 import torch
 import yaml
+import numpy as np
 # from pudb import set_trace
 from os.path import join
 from torch.utils.data import DataLoader
@@ -82,8 +83,10 @@ class Extractor(BaseTrainer):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
-        transform = self.init_transform(self.transform_config)
-        dataset = self.init_dataset(self.dataset_config, transform)
+        print('\n')
+        transform = self.init_transform(self.transform_config, log_file=False)
+        dataset = self.init_dataset(self.dataset_config, transform,
+                                    log_file=False)
         self.dataloader = DataLoaderX(
             dataset,
             batch_size=self.batch_size,
@@ -96,11 +99,12 @@ class Extractor(BaseTrainer):
         #######################################################################
         # Initialize Network
         #######################################################################
-        self.model = self.init_model()
+        self.model = self.init_model(log_file=False)
 
         #######################################################################
         # Start evaluating
         #######################################################################
+        print('\n\n')
         pbar = tqdm(total=len(self.dataloader), desc='Extracting')
 
         all_feats = []
@@ -112,7 +116,7 @@ class Extractor(BaseTrainer):
                 all_labels.extend(batch_labels)
 
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
-                batch_feats = self.model.extract_feat(batch_imgs)
+                batch_feats = self.model(batch_imgs, embedding=True)
 
                 # collect features
                 all_feats.extend(batch_feats.cpu().numpy().tolist())
@@ -121,9 +125,14 @@ class Extractor(BaseTrainer):
         pbar.close()
 
         # save feature and labels
-        file = h5py.File(self.feat_fpath, 'w')
-        file['features'] = all_feats
-        file['labels'] = all_labels
+        if not os.path.exists(self.feat_fpath):  # h5不能重新写入
+            os.remove(self.feat_fpath)
+
+        with h5py.File(self.feat_fpath, 'w') as f:
+            f['features'] = np.array(all_feats)
+            f['labels'] = all_labels
+
+        print(f'\nFeatures-labels file is saved at "{self.feat_fpath}"\n')
 
 
 def parse_args():
