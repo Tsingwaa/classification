@@ -78,7 +78,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Optimizer
         #######################################################################
-        self.optimizer = self.init_optimizer()
+        self.optimizer = self.init_optimizer(self.model)
 
         #######################################################################
         # Initialize DistributedDataParallel
@@ -94,7 +94,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.lr_scheduler = self.init_lr_scheduler()
+        self.lr_scheduler = self.init_lr_scheduler(self.optimizer)
 
         #######################################################################
         # Start Training
@@ -106,7 +106,8 @@ class Trainer(BaseTrainer):
         last_20_head_mr = []
         last_20_mid_mr = []
         last_20_tail_mr = []
-        for cur_epoch in range(self.start_epoch, self.total_epochs + 1):
+        self.final_epoch = self.start_epoch + self.total_epochs
+        for cur_epoch in range(self.start_epoch, self.final_epoch):
             # learning rate decay by epoch
             if self.lr_scheduler_mode == "epoch":
                 self.lr_scheduler.step()
@@ -119,19 +120,19 @@ class Trainer(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 val_mr, val_loss, group_recalls = self.evaluate(cur_epoch)
 
-                if self.total_epochs - cur_epoch <= 20:
+                if self.final_epoch - cur_epoch <= 20:
                     last_20_mr.append(val_mr)
                     last_20_head_mr.append(group_recalls[0])
                     last_20_mid_mr.append(group_recalls[1])
                     last_20_tail_mr.append(group_recalls[2])
 
                 self.logger.debug(
-                    "Epoch[{epoch:>3d}/{total_epochs}] "
+                    "Epoch[{epoch:>3d}/{final_epoch}] "
                     "Trainset Loss={train_loss:.4f} MR={train_mr:.2%} || "
                     "Valset Loss={val_loss:.4f} MR={val_mr:.2%} "
                     "Head={head:.2%} Mid={mid:.2%} Tail={tail:.2%}".format(
                         epoch=cur_epoch,
-                        total_epochs=self.total_epochs,
+                        final_epoch=self.final_epoch - 1,
                         train_loss=train_loss,
                         train_mr=train_mr,
                         val_loss=val_loss,
@@ -235,7 +236,8 @@ class Trainer(BaseTrainer):
         train_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
 
         if self.local_rank in [-1, 0]:
-            train_pbar.set_postfix_str("LR:{:.1e} Loss:{:.2f} MR:{:.2%}".format(
+            train_pbar.set_postfix_str(
+                "LR:{:.1e} Loss:{:.2f} MR:{:.2%}".format(
                     self.optimizer.param_groups[0]["lr"],
                     train_loss_meter.avg, train_mr))
             train_pbar.close()
@@ -305,17 +307,20 @@ def parse_args():
     return args
 
 
-def _set_seed(seed=0):
+def _set_random_seed(seed=0):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+    # 固定内部随机性
     torch.backends.cudnn.deterministic = True
+    # 输入尺寸一致，加速训练
+    torch.backends.cudnn.benchmark = True
 
 
 def main(args):
     warnings.filterwarnings("ignore")
-    _set_seed()
+    _set_random_seed()
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     trainer = Trainer(local_rank=args.local_rank, config=config)

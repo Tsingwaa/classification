@@ -83,7 +83,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Optimizer
         #######################################################################
-        self.optimizer = self.init_optimizer()
+        self.optimizer = self.init_optimizer(self.model)
 
         #######################################################################
         # Initialize Adversarial Training
@@ -109,7 +109,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.lr_scheduler = self.init_lr_scheduler()
+        self.lr_scheduler = self.init_lr_scheduler(self.optimizer)
 
         #######################################################################
         # Start Training

@@ -19,7 +19,7 @@ from torch import distributed as dist
 from apex import amp
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AverageMeter
+from utils import AverageMeter, switch_clean
 
 
 class DataLoaderX(DataLoader):
@@ -193,6 +193,8 @@ class FineTuner(BaseTrainer):
         last_head_mrs = []
         last_mid_mrs = []
         last_tail_mrs = []
+
+        self.model.apply(switch_clean)
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             # learning rate decay by epoch
             if self.optimizer_name != 'Adam' and\
