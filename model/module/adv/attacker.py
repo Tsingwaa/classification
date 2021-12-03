@@ -165,7 +165,7 @@ class AdaptLinfPGD(LinfPGD):
 
 @Modules.register_module('AdaptLinfPGD2')
 class AdaptLinfPGD2(AdaptLinfPGD):
-    """以最大类epsilon=7/255为基准, 逐类线性增大, 最小类为14/255"""
+    """以最大类epsilon=8/255为基准, 逐类线性增大, 最小类为16/255"""
 
     def project(self, perturbation, use_target, target):
         if use_target:

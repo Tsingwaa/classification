@@ -44,7 +44,6 @@ class Extractor(BaseTrainer):
         self.resume = self.experiment_config['resume']
         self.total_epochs = self.experiment_config['total_epochs']
         # 默认取验证集的特征进行降维可视化
-        self.extract_phase = self.experiment_config.get('extract_phase', 'val')
         print(f'===> Starting extracting feature of {self.exp_name}...')
 
         if '/' in self.experiment_config['resume_fpath']:
@@ -60,51 +59,44 @@ class Extractor(BaseTrainer):
 
         self.writer = SummaryWriter(log_dir=embedding_dir)
 
-        self.feat_fpath = join(self.user_root, 'Experiments', self.exp_name,
-                               f'{self.extract_phase}_features-labels.h5')
-
         self.checkpoint, resume_log = self.resume_checkpoint()
 
         self.save_dir = join(self.user_root, 'Experiments', self.exp_name)
         os.makedirs(self.save_dir, exist_ok=True)
 
-        #######################################################################
-        # Dataloader setting
-        #######################################################################
-        if self.extract_phase == 'val':
-            self.transform_config = config['val_transform']
-            self.dataset_config = config['val_dataset']
-            self.dataloader_config = config['valloader']
-        else:
-            self.transform_config = config['train_transform']
-            self.dataset_config = config['train_dataset']
-            self.dataloader_config = config['trainloader']
-
-        self.dataloader_param = self.dataloader_config['param']
-        self.batch_size = self.dataloader_param['batch_size']
-        self.num_workers = self.dataloader_param['num_workers']
-
-        #######################################################################
-        # Network setting
-        #######################################################################
-        self.network_config = config['network']
-        self.network_name = self.network_config['name']
-        self.network_param = self.network_config['param']
+        self._set_configs(config)
 
     def extract(self):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
-        transform = self.init_transform(self.transform_config, log_file=False)
-        dataset = self.init_dataset(self.dataset_config, transform,
-                                    log_file=False)
-        reform_mean = torch.tensor(dataset.mean).view(1, 3, 1, 1)
-        reform_std = torch.tensor(dataset.std).view(1, 3, 1, 1)
-        self.dataloader = DataLoaderX(
-            dataset,
-            batch_size=self.batch_size,
+        train_transform = self.init_transform(self.train_transform_config,
+                                              log_file=False)
+        trainset = self.init_dataset(self.trainset_config,
+                                     train_transform,
+                                     log_file=False)
+        self.reform_mean = torch.tensor(trainset.mean).view(1, 3, 1, 1)
+        self.reform_std = torch.tensor(trainset.std).view(1, 3, 1, 1)
+        self.trainloader = DataLoaderX(
+            trainset,
+            batch_size=self.train_batch_size,
             shuffle=False,
-            num_workers=self.num_workers,
+            num_workers=self.train_num_workers,
+            pin_memory=True,
+            drop_last=False,
+        )
+
+        val_transform = self.init_transform(self.val_transform_config,
+                                            log_file=False)
+        valset = self.init_dataset(self.valset_config,
+                                   val_transform,
+                                   log_file=False)
+
+        self.valloader = DataLoaderX(
+            valset,
+            batch_size=self.val_batch_size,
+            shuffle=False,
+            num_workers=self.val_num_workers,
             pin_memory=True,
             drop_last=False,
         )
@@ -117,7 +109,11 @@ class Extractor(BaseTrainer):
         #######################################################################
         # Start evaluating
         #######################################################################
-        pbar = tqdm(total=len(self.dataloader), desc='Extracting')
+        self.extract_one_phase(self.trainloader, phase='train')
+        self.extract_one_phase(self.valloader, phase='val')
+
+    def extract_one_phase(self, dataloader, phase):
+        pbar = tqdm(total=len(dataloader), desc=f'Extracting {phase} features')
 
         all_imgs = []
         all_feats = []
@@ -125,9 +121,10 @@ class Extractor(BaseTrainer):
         all_preds = []
         self.model.eval()
         with torch.no_grad():
-            for i, (batch_imgs, batch_labels) in enumerate(self.dataloader):
+            for i, (batch_imgs, batch_labels) in enumerate(dataloader):
                 # collect labels
-                batch_ori_imgs = batch_imgs * reform_std + reform_mean
+                batch_ori_imgs = batch_imgs * self.reform_std +\
+                        self.reform_mean
                 batch_resized_imgs = F.interpolate(batch_ori_imgs,
                                                    size=(112, 112),)
                 all_imgs.append(batch_resized_imgs.detach())
@@ -153,24 +150,26 @@ class Extractor(BaseTrainer):
         self.writer.add_embedding(mat=all_feats,
                                   metadata=all_labels,
                                   label_img=all_imgs,
-                                  tag='GT',
+                                  tag=f'{phase}_GT',
                                   global_step=self.total_epochs,)
         self.writer.add_embedding(mat=all_feats,
                                   metadata=all_preds,
                                   label_img=all_imgs,
-                                  tag='Pred',
+                                  tag=f'{phase}_Pred',
                                   global_step=self.total_epochs,)
         self.writer.close()
 
+        feat_fpath = join(self.exp_root, self.exp_name,
+                          f'{phase}_features-labels.h5')
         # save feature and labels
-        if os.path.exists(self.feat_fpath):  # h5不能重新写入
-            os.remove(self.feat_fpath)
+        if os.path.exists(feat_fpath):  # h5不能重新写入
+            os.remove(feat_fpath)
 
-        with h5py.File(self.feat_fpath, 'w') as f:
+        with h5py.File(feat_fpath, 'w') as f:
             f['features'] = all_feats
             f['labels'] = all_labels
 
-        print(f'Features-labels file is saved at "{self.feat_fpath}"\n')
+        print(f'Features-labels file is saved at "{feat_fpath}"\n')
 
 
 def parse_args():

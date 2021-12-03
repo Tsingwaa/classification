@@ -1,16 +1,16 @@
 experiment:
-  name: "miniIN20_0.05_r18_LinfPGD_joint0.5"
+  name: "miniIN20_0.05_r18_LinfPGD_joint0.5_Strg_adapt2_RS"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: True
+  resume: False
   resume_fpath: "last.pth.tar"
   extract_phase: "train"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 adv:
-  name: "LinfPGD"
+  name: "AdaptLinfPGD2"
   param:
     joint_training: True
     clean_weight: 0.5
@@ -57,6 +57,7 @@ train_transform:
   param:
     phase: "train"
     resize: [224, 224]
+    strong: True
 
 val_transform:
   name: "AdvTransform"
@@ -88,7 +89,8 @@ val_dataset:
 trainloader:
   name: "Dataloader"
   param:
-    sampler: None
+    sampler: "BalanceSampler"
+    retain_epoch_size: False
     batch_size: 64
     num_workers: 6
 
@@ -105,7 +107,7 @@ network:
     mean: [0.3567, 0.4279, 0.4439]
     std: [0.2761, 0.2584, 0.2705]
     dual_BN: True
-    # use_ssp: False
+    use_ssp: False
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 

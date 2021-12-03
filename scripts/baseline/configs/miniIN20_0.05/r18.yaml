@@ -5,25 +5,26 @@ experiment:
   log_fname: "train.log"
   resume: True
   resume_fpath: "last.pth.tar"
+  extract_phase: 'train'
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
  
 finetune:
-  name: "2RS"
+  name: "2RW"
   log_fname: "finetune.log"
   total_epochs: 30
   unfreeze_keys: ["fc"]
   trainloader:
     name: "Dataloader"
     param:
-      sampler: "BalanceSampler"
+      sampler: ""
       retain_epoch_size: True
       batch_size: 64
       num_workers: 6
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: ""
+      weight_type: "class_weight"
       label_smoothing: 0.
   optimizer:
     name: "SGD"

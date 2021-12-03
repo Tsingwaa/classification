@@ -141,7 +141,7 @@ class Trainer(BaseTrainer):
                     last_20_mid_mrs.append(group_recalls[1])
                     last_20_tail_mrs.append(group_recalls[2])
 
-                self.logger.debug(
+                self.log(
                     'Epoch[{epoch:>3d}/{total_epochs}] '
                     'Trainset Loss={train_loss:.4f} '
                     'ADV={adv_loss:.4f} MR={adv_mr:.2%} '
@@ -160,7 +160,8 @@ class Trainer(BaseTrainer):
                         head=group_recalls[0],
                         mid=group_recalls[1],
                         tail=group_recalls[2],
-                    )
+                    ),
+                    log_level='file',
                 )
 
                 # if len(val_recalls) <= 20 and cur_epoch == self.total_epochs:
@@ -197,7 +198,7 @@ class Trainer(BaseTrainer):
         final_tail_mr = np.around(np.mean(last_20_tail_mrs), decimals=4)
 
         if self.local_rank in [-1, 0]:
-            self.logger.info(
+            self.log(
                 f"\n===> Best mean recall: {best_mr:.2%} (epoch{best_epoch})\n"
                 f"Group recalls: {best_group_recalls}\n\n"
                 f"===> Final average mean recall of last 20 epochs:"

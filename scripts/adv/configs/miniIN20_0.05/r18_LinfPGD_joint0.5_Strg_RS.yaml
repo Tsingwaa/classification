@@ -1,9 +1,9 @@
 experiment:
-  name: "miniIN20_0.05_r18_LinfPGD_joint0.5"
+  name: "miniIN20_0.05_r18_LinfPGD_joint0.5_Strg_RS"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: True
+  resume: False
   resume_fpath: "last.pth.tar"
   extract_phase: "train"
   save_period: 10
@@ -57,6 +57,7 @@ train_transform:
   param:
     phase: "train"
     resize: [224, 224]
+    strong: True
 
 val_transform:
   name: "AdvTransform"
@@ -88,7 +89,8 @@ val_dataset:
 trainloader:
   name: "Dataloader"
   param:
-    sampler: None
+    sampler: 'BalanceSampler'
+    retain_epoch_size: False
     batch_size: 64
     num_workers: 6
 
