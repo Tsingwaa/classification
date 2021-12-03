@@ -77,31 +77,57 @@ class RandTransform:
 
 @Transforms.register_module('AdvTransform')
 class AdvTransform:
-    def __init__(self, phase='train', resize=(224, 224), **kwargs):
+    def __init__(self, phase='train', resize=(224, 224),
+                 strong=True, **kwargs):
         self.phase = phase
         self.resize = resize
+        self.strong = strong
 
     def __call__(self, x, mean=IN_MEAN, std=IN_STD):
         if self.phase == 'train':
-            ret_transform = transforms.Compose([
-                transforms.Resize(int(self.resize[1] / 0.875)),
-                transforms.RandomCrop(self.resize),
-                transforms.RandomHorizontalFlip(0.5),
-                transforms.RandomRotation(25),
-                # transforms.ColorJitter(
-                #     brightness=0.4,
-                #     saturation=0.4,
-                #     contrast=0.4,
-                #     hue=0.05
-                # ),
-                transforms.ToTensor(),
-                # transforms.Normalize(mean, std),
-                # transforms.RandomErasing()
-            ])
+            if self.strong:
+                ret_transform = transforms.Compose([
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.RandomVerticalFlip(0.5),
+                    transforms.RandomAffine(
+                        degrees=30,
+                        translate=(0.2, 0.2),
+                        scale=(0.5, 1),
+                        shear=10,
+                        fillcolor=(127, 127, 127),
+                    ),
+                    transforms.RandomResizedCrop(self.resize),
+                    transforms.ColorJitter(
+                        brightness=0.4,
+                        saturation=0.4,
+                        contrast=0.4,
+                        hue=0.4,
+                    ),
+                    transforms.ToTensor(),
+                    # transforms.Normalize(mean, std),
+                    # transforms.RandomErasing()
+                ])
+            else:
+                ret_transform = transforms.Compose([
+                    transforms.Resize(int(self.resize[1] / 0.875)),
+                    transforms.RandomCrop(self.resize),
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.RandomRotation(30),
+                    # transforms.ColorJitter(
+                    #     brightness=0.4,
+                    #     saturation=0.4,
+                    #     contrast=0.4,
+                    #     hue=0.05
+                    # ),
+                    transforms.ToTensor(),
+                    # transforms.Normalize(mean, std),
+                    # transforms.RandomErasing()
+                ])
         else:
             ret_transform = transforms.Compose([
-                transforms.Resize(int(self.resize[1] / 0.875)),
-                transforms.CenterCrop(self.resize),
+                transforms.Resize(self.resize),
+                # transforms.Resize(int(self.resize[1] / 0.875)),
+                # transforms.CenterCrop(self.resize),
                 transforms.ToTensor(),
                 # transforms.Normalize(mean, std)
             ])
