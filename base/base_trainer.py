@@ -1,6 +1,7 @@
 """Base Trainer"""
 # ############# Build-in Package #############
 import os
+import math
 import abc
 # import shutil
 import logging
@@ -186,8 +187,10 @@ class BaseTrainer:
         self.log(dataset_init_log, log_level)
         return dataset
 
-    def init_sampler(self, dataset=None, log_level='default'):
-        sampler_param = self.trainloader_param
+    def init_sampler(self, dataset=None, sampler_param=None,
+                     log_level='default'):
+        if sampler_param is None:
+            sampler_param = self.trainloader_param
         sampler_name = sampler_param['sampler']
         if sampler_name in {'None', ''}:
             sampler = None
@@ -244,7 +247,8 @@ class BaseTrainer:
             else:
                 var.requires_grad = False
 
-    def init_optimizer(self, model, resume=True):
+    def init_optimizer(self, model, optimizer_name, optimizer_param=None,
+                       checkpoint=None, resume=True):
         # model_params = [
         #     {
         #         'params': [p for n, p in self.model.named_parameters()
@@ -257,14 +261,21 @@ class BaseTrainer:
         #         'weight_decay': 0.0
         #     }
         # ]
+        if optimizer_name is None:
+            optimizer_name = self.optimizer_name
+        if optimizer_param is None:
+            optimizer_param = self.optimizer_param
         try:
-            optimizer = getattr(torch.optim, self.optimizer_name)(
-                model.parameters(), **self.optimizer_param)
-            if resume and self.resume and 'optimizer' in self.checkpoint:
-                optimizer.load_state_dict(self.checkpoint['optimizer'])
+            optimizer = getattr(torch.optim, optimizer_name)(
+                model.parameters(), **optimizer_param)
+            if resume and self.resume:
+                if checkpoint is None:
+                    checkpoint = self.checkpoint
+                if 'optimizer' in checkpoint:
+                    optimizer.load_state_dict(checkpoint['optimizer'])
             if self.local_rank in [-1, 0]:
-                self.logger.info(f'===> Initialized {self.optimizer_name}: '
-                                 f'{self.optimizer_param}')
+                self.log(f'===> Initialized {optimizer_name}: '
+                         f'{optimizer_param}')
             return optimizer
         except Exception as error:
             raise AttributeError(f'Optimizer initialize failed: {error} !')
@@ -274,14 +285,13 @@ class BaseTrainer:
         if not warmup:
             self.warmup = False
         if self.lr_scheduler_name == 'CyclicLR':
-            self.iter_num = int(
-                np.ceil(self.train_size / self.train_batch_size))
+            self.iter_num = math.ceil(self.train_size / self.train_batch_size)
             lrs_param['step_size_up'] *= self.iter_num
             lrs_param['step_size_down'] *= self.iter_num
         try:
             lr_scheduler = getattr(torch.optim.lr_scheduler,
                                    self.lr_scheduler_name)(
-                                       optimizer, lrs_param)
+                                       optimizer, **lrs_param)
             self.log(
                 f"===> Initialized {self.lr_scheduler_name}: {lrs_param}")
             if self.warmup:
