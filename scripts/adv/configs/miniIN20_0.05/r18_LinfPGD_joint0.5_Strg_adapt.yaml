@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_r18_LinfPGD_joint0.5_Strg_adapt2"
+  name: "miniIN20_0.05_r18_LinfPGD_joint0.5_Strg_adapt"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -10,7 +10,7 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 adv:
-  name: "AdaptLinfPGD2"
+  name: "AdaptLinfPGD"
   param:
     joint_training: True
     clean_weight: 0.5

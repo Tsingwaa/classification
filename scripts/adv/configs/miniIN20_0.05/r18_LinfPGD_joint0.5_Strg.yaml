@@ -89,7 +89,7 @@ val_dataset:
 trainloader:
   name: "Dataloader"
   param:
-    sampler: None
+    sampler: ''
     batch_size: 64
     num_workers: 6
 

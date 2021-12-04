@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_r18_LinfPGD_joint0.5_Strg_adapt2"
+  name: "miniIN20_0.05_r18_LinfPGD_joint0.5_Strg_adapt_RS"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -10,7 +10,7 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 adv:
-  name: "AdaptLinfPGD2"
+  name: "AdaptLinfPGD"
   param:
     joint_training: True
     clean_weight: 0.5
@@ -47,7 +47,7 @@ finetune:
       momentum: 0.9
       nesterov: True
   lr_scheduler:
-    name: "MultiStepLR"
+    name: 'MultiStepLR'
     param:
       milestones: [5, 10, 15, 20]
       gamma: 0.1
@@ -89,7 +89,8 @@ val_dataset:
 trainloader:
   name: "Dataloader"
   param:
-    sampler: None
+    sampler: "BalanceSampler"
+    retain_epoch_size: False
     batch_size: 64
     num_workers: 6
 
