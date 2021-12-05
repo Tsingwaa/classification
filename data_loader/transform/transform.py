@@ -78,7 +78,7 @@ class RandTransform:
 @Transforms.register_module('AdvTransform')
 class AdvTransform:
     def __init__(self, phase='train', resize=(224, 224),
-                 strong=True, **kwargs):
+                 strong=False, **kwargs):
         self.phase = phase
         self.resize = resize
         self.strong = strong
@@ -104,32 +104,24 @@ class AdvTransform:
                         hue=0.4,
                     ),
                     transforms.ToTensor(),
-                    # transforms.Normalize(mean, std),
-                    # transforms.RandomErasing()
                 ])
             else:
                 ret_transform = transforms.Compose([
-                    transforms.Resize(int(self.resize[1] / 0.875)),
-                    transforms.RandomCrop(self.resize),
-                    transforms.RandomHorizontalFlip(0.5),
                     transforms.RandomRotation(30),
-                    # transforms.ColorJitter(
-                    #     brightness=0.4,
-                    #     saturation=0.4,
-                    #     contrast=0.4,
-                    #     hue=0.05
-                    # ),
+                    transforms.RandomResizedCrop(self.resize),
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.ColorJitter(
+                        brightness=0.05,
+                        saturation=0.05,
+                        contrast=0.05,
+                        hue=0.05,
+                    ),
                     transforms.ToTensor(),
-                    # transforms.Normalize(mean, std),
-                    # transforms.RandomErasing()
                 ])
         else:
             ret_transform = transforms.Compose([
                 transforms.Resize(self.resize),
-                # transforms.Resize(int(self.resize[1] / 0.875)),
-                # transforms.CenterCrop(self.resize),
                 transforms.ToTensor(),
-                # transforms.Normalize(mean, std)
             ])
         return ret_transform(x)
 
