@@ -53,15 +53,16 @@ class BaseTrainer:
         self.total_epochs = self.exp_config['total_epochs']
 
         self.resume = self.exp_config['resume']
-        if '/' in self.exp_config['resume_fpath']:
-            self.resume_fpath = self.exp_config['resume_fpath']
-        else:
-            self.resume_fpath = join(
-                self.user_root, 'Experiments', self.exp_name,
-                self.exp_config['resume_fpath'])
 
         if self.resume:
-            self.checkpoint, resume_log = self.resume_checkpoint()
+            if '/' in self.exp_config['resume_fpath']:
+                self.resume_fpath = self.exp_config['resume_fpath']
+            else:
+                self.resume_fpath = join(
+                    self.user_root, 'Experiments', self.exp_name,
+                    self.exp_config['resume_fpath'])
+            self.checkpoint, resume_log =\
+                self.resume_checkpoint(self.resume_fpath)
             self.start_epoch = self.checkpoint['epoch'] + 1
 
         if self.local_rank in [-1, 0]:
@@ -189,7 +190,7 @@ class BaseTrainer:
         log_level = kwargs.get('log_level', 'default')
         kwargs.pop('log_level', None)
 
-        if sampler_name in {'None', ''}:
+        if sampler_name in {None, 'None', ''}:
             sampler = None
             sampler_init_log = '===> Initialized default sampler'
         elif sampler_name == 'DistributedSampler':
@@ -213,7 +214,7 @@ class BaseTrainer:
 
         prefix = 'Initialized'
         if kwargs.get('resume', False):
-            checkpoint = kwargs.get('checkpoint', None)
+            checkpoint = kwargs['checkpoint']
             model.load_state_dict(checkpoint['model'])
             prefix = 'Resumed checkpoint params to'
         elif kwargs.get('pretrained', False):
@@ -222,6 +223,7 @@ class BaseTrainer:
             model.load_state_dict(state_dict, strict=False)
             prefix = 'Resumed pretrained params to'
 
+        kwargs.pop('checkpoint', None)
         model_init_log = f"===> {prefix} {network_name}(total_params"\
             f"={total_params:.2f}m): {kwargs}"
         self.log(model_init_log, log_level)
@@ -272,6 +274,7 @@ class BaseTrainer:
         kwargs.pop('log_level', None)
 
         loss = build_loss(loss_name, **kwargs)
+        kwargs.pop('weight', None)
         self.log(f'===> Initialized {loss_name}: {kwargs}', log_level)
         return loss
 
@@ -307,14 +310,14 @@ class BaseTrainer:
             lr_scheduler = getattr(torch.optim.lr_scheduler,
                                    scheduler_name)(optimizer, **kwargs)
             self.log(f"===> Initialized {scheduler_name}: {kwargs}")
-
-            lr_scheduler = GradualWarmupScheduler(
-                optimizer,
-                multiplier=1,
-                warmup_epochs=warmup_epochs,
-                after_scheduler=lr_scheduler,)
-            self.log(f'===> Initialized gradual warmup scheduler: '
-                     f'warmup_epochs={warmup_epochs}')
+            if warmup_epochs > 0:
+                lr_scheduler = GradualWarmupScheduler(
+                    optimizer,
+                    multiplier=1,
+                    warmup_epochs=warmup_epochs,
+                    after_scheduler=lr_scheduler,)
+                self.log(f'===> Initialized gradual warmup scheduler: '
+                         f'warmup_epochs={warmup_epochs}')
             return lr_scheduler
         except Exception as error:
             raise AttributeError(f'LR scheduler init failed: {error}')
@@ -331,9 +334,7 @@ class BaseTrainer:
             if not self.local_rank:
                 tensor /= self.world_size
 
-    def resume_checkpoint(self, resume, **kwargs):
-        resume_fpath = kwargs.get('resume_fpath', None)
-
+    def resume_checkpoint(self, resume_fpath):
         checkpoint = torch.load(resume_fpath, map_location='cpu')
         mr = checkpoint['mr']
         recalls = checkpoint.get('group_recalls', None)
