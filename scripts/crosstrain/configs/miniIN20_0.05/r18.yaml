@@ -3,7 +3,7 @@ experiment:
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: True
+  resume: False
   resume_fpath: "last.pth.tar"
   extract_phase: 'train'
   save_period: 10
@@ -74,7 +74,7 @@ tail_train_dataset:
     imb_type: 'exp'
     imb_factor: 0.05
     seed: 0
-    tail_classes: 0.5
+    tail_num_classes: 10
 
 val_dataset:
   name: "imb_miniImageNet20"
@@ -86,31 +86,24 @@ val_dataset:
     # download: False
 
 trainloader:
-  name: "Dataloader"
-  param:
-    sampler: "None"
-    batch_size: 64
-    num_workers: 6
+  sampler: "None"
+  batch_size: 64
+  num_workers: 6
 
 tail_trainloader:
-  name: "Dataloader"
-  param:
-    sampler: "BalanceSampler"
-    retain_epoch_size: False
-    batch_size: 64
-    num_workers: 6
+  sampler: "BalanceSampler"
+  retain_epoch_size: False
+  batch_size: 64
+  num_workers: 6
 
 valloader:
-  name: "Dataloader"
-  param:
-    batch_size: 128
-    num_workers: 6
+  batch_size: 128
+  num_workers: 6
 
 network:
   name: "ResNet18"
   param:
     num_classes: 20
-    # use_ssp: False
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
@@ -128,11 +121,13 @@ optimizer:
     momentum: 0.9
     nesterov: True
 
-warmup_lr_scheduler:
-  warmup: True
+tail_optimizer:
+  name: "SGD"
   param:
-    warmup_epochs: 10
-    multiplier: 1
+    lr: 0.001
+    weight_decay: 1.0e-5
+    momentum: 0.9
+    nesterov: True
 
 lr_scheduler:
   # name: "CyclicLR"
@@ -140,6 +135,7 @@ lr_scheduler:
   name: "MultiStepLR"
   # name: "CosineAnnealingWarmRestarts"
   param:
+    warmup_epochs: 10
     # CyclicLR
     # step_size_up: 3  # 3 * iterations
     # step_size_down: 2  # 2 * iterations
@@ -154,3 +150,10 @@ lr_scheduler:
     # T_0: 5
     # T_mult: 1
     # eta_min: 0
+
+tail_lr_scheduler:
+  name: "MultiStepLR"
+  param:
+    warmup_epochs: 5
+    milestones: [60, 100, 150]
+    gamma: 0.1

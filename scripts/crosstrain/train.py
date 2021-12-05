@@ -27,45 +27,56 @@ class DataLoaderX(DataLoader):
 class Trainer(BaseTrainer):
     def __init__(self, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
-        self.tail_trainset_config = config['tail_train_dataset']
-        self.tail_trainset_param = self.tail_trainset_config['param']
+        tailset_config = config['tail_train_dataset']
+        self.tailset_name = tailset_config['name']
+        self.tailset_params = tailset_config['param']
 
-        self.tail_trainloader_config = config['tail_trainloader']
-        self.tail_trainloader_param = self.tail_trainloader_config['param']
+        self.tailloader_params = config['tail_trainloader']
+        self.tailloader_batchsize = self.tailloader_params['batch_size']
+        self.tailloader_workers = self.tailloader_params['num_workers']
+        self.tail_sampler_name = self.tailloader_params['sampler']
+
+        tail_opt_config = config['tail_optimizer']
+        self.tail_opt_name = tail_opt_config['name']
+        self.tail_opt_params = tail_opt_config['param']
+
+        tail_scheduler_config = config['tail_lr_scheduler']
+        self.tail_scheduler_name = tail_scheduler_config['name']
+        self.tail_scheduler_params = tail_scheduler_config['param']
 
     def train(self):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
-        train_transform = self.init_transform(self.train_transform_config)
-        trainset = self.init_dataset(self.trainset_config,
-                                     train_transform)
-        train_sampler = self.init_sampler(trainset)
+        train_transform = self.init_transform(self.train_transform_name,
+                                              **self.train_transform_params)
+        trainset = self.init_dataset(self.trainset_name,
+                                     transform=train_transform,
+                                     **self.trainset_params)
+        train_sampler = self.init_sampler(self.train_sampler_name,
+                                          dataset=trainset,
+                                          **self.trainloader_params)
+        self.trainloader = DataLoaderX(trainset,
+                                       batch_size=self.train_batchsize,
+                                       shuffle=(train_sampler is None),
+                                       num_workers=self.train_workers,
+                                       pin_memory=True,
+                                       drop_last=True,
+                                       sampler=train_sampler)
 
-        tail_trainset = self.init_dataset(self.tail_trainset_config,
-                                          train_transform)
-        tail_train_sampler = self.init_sampler(tail_trainset,
-                                               self.tail_dataloader_param)
-
-        self.trainloader = DataLoaderX(
-            trainset,
-            batch_size=self.train_batch_size,
-            shuffle=(train_sampler is None),
-            num_workers=self.train_num_workers,
-            pin_memory=True,
-            drop_last=True,
-            sampler=train_sampler
-        )
-        self.tail_trainloader = DataLoaderX(
-            tail_trainset,
-            batch_size=self.tail_trainloader_param['batch_size'],
-            shuffle=(tail_train_sampler is None),
-            num_workers=self.tail_trainloader_param['num_workers'],
-            pin_memory=True,
-            drop_last=True,
-            sampler=tail_train_sampler
-        )
-
+        tailset = self.init_dataset(self.tailset_name,
+                                    transform=train_transform,
+                                    **self.tailset_params)
+        tail_sampler = self.init_sampler(self.tail_sampler_name,
+                                         tailset,
+                                         **self.tailloader_params)
+        self.tailloader = DataLoaderX(tailset,
+                                      batch_size=self.tailloader_batchsize,
+                                      shuffle=(tail_sampler is None),
+                                      num_workers=self.tailloader_workers,
+                                      pin_memory=True,
+                                      drop_last=True,
+                                      sampler=tail_sampler)
         if self.local_rank != -1:
             print(f"global_rank {self.global_rank},"
                   f"world_size {self.world_size},"
@@ -73,35 +84,39 @@ class Trainer(BaseTrainer):
                   f"sampler '{self.train_sampler_name}'")
 
         if self.local_rank in [-1, 0]:
-            val_transform = self.init_transform(self.val_transform_config)
-            valset = self.init_dataset(self.valset_config, val_transform)
-            self.valloader = DataLoaderX(
-                valset,
-                batch_size=self.val_batch_size,
-                shuffle=False,
-                num_workers=self.val_num_workers,
-                pin_memory=True,
-                drop_last=False,
-            )
+            val_transform = self.init_transform(self.val_transform_name,
+                                                **self.val_transform_params)
+            valset = self.init_dataset(self.valset_name,
+                                       transform=val_transform,
+                                       **self.valset_params)
+            self.valloader = DataLoaderX(valset,
+                                         batch_size=self.val_batchsize,
+                                         shuffle=False,
+                                         num_workers=self.val_workers,
+                                         pin_memory=True,
+                                         drop_last=False,)
 
         #######################################################################
         # Initialize Network
         #######################################################################
-        self.model = self.init_model()
+        self.model = self.init_model(self.network_name, **self.network_params)
 
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.compute_class_weight(trainset.img_num)
-        self.criterion = self.init_loss()
+        self.loss_params = self.update_class_weight(trainset.img_num,
+                                                    **self.loss_params)
+        self.criterion = self.init_loss(self.loss_name, **self.loss_params)
 
         #######################################################################
         # Initialize Optimizer
         #######################################################################
-        self.optimizer = self.init_optimizer(self.model)
-        self.tail_optimizer = torch.optim.SGD(self.model, lr=0.001,
-                                              momentum=True,
-                                              nesterov=0.9)
+        self.optimizer = self.init_optimizer(self.opt_name,
+                                             self.model,
+                                             **self.opt_params)
+        self.tail_optimizer = self.init_optimizer(self.tail_opt_name,
+                                                  self.model,
+                                                  **self.tail_opt_params)
 
         #######################################################################
         # Initialize DistributedDataParallel
@@ -114,12 +129,18 @@ class Trainer(BaseTrainer):
                                                  device_ids=[self.local_rank],
                                                  output_device=self.local_rank,
                                                  find_unused_parameters=True)
+
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.lr_scheduler = self.init_lr_scheduler(self.optimizer)
-        self.tail_lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
-            self.tail_optimizer, milestones=[60, 100, 150])
+        self.lr_scheduler = self.init_lr_scheduler(
+            self.scheduler_name,
+            self.optimizer,
+            **self.scheduler_params)
+        self.tail_lr_scheduler = self.init_lr_scheduler(
+            self.tail_scheduler_name,
+            self.tail_optimizer,
+            **self.tail_scheduler_params)
 
         #######################################################################
         # Start Training
@@ -134,53 +155,58 @@ class Trainer(BaseTrainer):
         self.final_epoch = self.start_epoch + self.total_epochs
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             # learning rate decay by epoch
-            if self.lr_scheduler_mode == "epoch":
-                self.lr_scheduler.step()
-
+            self.lr_scheduler.step()
             if self.local_rank != -1:
                 train_sampler.set_epoch(cur_epoch)
 
             train_mr, train_group_recalls, train_loss =\
-                self.train_epoch(cur_epoch, num_classes=trainset.cls_num)
+                self.train_epoch(cur_epoch,
+                                 self.trainloader,
+                                 self.model,
+                                 self.criterion,
+                                 self.optimizer,
+                                 self.lr_scheduler,
+                                 num_classes=trainset.cls_num)
 
-            tail_mr, _, tail_loss = self.train_epoch(
-                cur_epoch, trainloader=self.tail_trainloader,
-                lr_scheduler=self.tail_lr_scheduler
-            )
+            self.tail_lr_scheduler.step()
+            tail_mr, _, tail_loss = self.train_epoch(cur_epoch,
+                                                     self.tailloader,
+                                                     self.model,
+                                                     self.criterion,
+                                                     self.tail_optimizer,
+                                                     self.tail_lr_scheduler,
+                                                     num_classes=None,
+                                                     desc_suffix='tail train')
 
             if self.local_rank in [-1, 0]:
-                val_mr, val_group_recalls, val_loss = self.evaluate(cur_epoch)
+                val_mr, val_group_recalls, val_loss =\
+                        self.evaluate(cur_epoch,
+                                      self.valloader,
+                                      self.model,
+                                      self.criterion,
+                                      num_classes=trainset.cls_num)
 
                 if self.final_epoch - cur_epoch <= 20:
                     last_20_mr.append(val_mr)
                     last_20_head_mr.append(val_group_recalls[0])
                     last_20_mid_mr.append(val_group_recalls[1])
                     last_20_tail_mr.append(val_group_recalls[2])
-
-                self.log(
-                    "Epoch[{epoch:>3d}/{final_epoch}] "
-                    "Trainset Loss={train_loss:.4f} MR={train_mr:.2%} || "
-                    "Valset Loss={val_loss:.4f} MR={val_mr:.2%} "
-                    "Head={head:.2%} Mid={mid:.2%} Tail={tail:.2%}".format(
-                        epoch=cur_epoch,
-                        final_epoch=self.final_epoch - 1,
-                        train_loss=train_loss,
-                        train_mr=train_mr,
-                        val_loss=val_loss,
-                        val_mr=val_mr,
-                        head=val_group_recalls[0],
-                        mid=val_group_recalls[1],
-                        tail=val_group_recalls[2],
-                    ),
-                    log_level='file'
-                )
-
+                self.log(f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
+                         f"Trainset Loss={train_loss:.4f} MR={train_mr:.2%}"
+                         f"Head={train_group_recalls[0]:.2%} "
+                         f"Mid={train_group_recalls[1]:.2%} "
+                         f"Tail={train_group_recalls[2]:.2%}"
+                         f" || Valset Loss={val_loss:.4f} MR={val_mr:.2%} "
+                         f"Head={val_group_recalls[0]:.2%} "
+                         f"Mid={val_group_recalls[1]:.2%} "
+                         f"Tail={val_group_recalls[2]:.2%}",
+                         log_level='file')
                 # if len(val_recalls) <= 20 and cur_epoch == self.total_epochs:
                 #     self.logger.info(f"Class recalls: {val_recalls}\n")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(f"{self.exp_name}/LR",
-                                       self.optimizer.param_groups[0]["lr"],
+                                       self.optimizer.param_groups[-1]["lr"],
                                        cur_epoch)
                 self.writer.add_scalars(f"{self.exp_name}/Loss",
                                         {"train_loss": train_loss,
@@ -189,6 +215,11 @@ class Trainer(BaseTrainer):
                 self.writer.add_scalars(f"{self.exp_name}/Recall",
                                         {"train_mr": train_mr,
                                          "val_mr": val_mr},
+                                        cur_epoch)
+                self.writer.add_scalars(f"{self.exp_name}/TrainGroupRecall",
+                                        {"head_mr": train_group_recalls[0],
+                                         "mid_mr": train_group_recalls[1],
+                                         "tail_mr": train_group_recalls[2]},
                                         cur_epoch)
                 self.writer.add_scalars(f"{self.exp_name}/GroupRecall",
                                         {"head_mr": val_group_recalls[0],
@@ -200,8 +231,15 @@ class Trainer(BaseTrainer):
                     best_mr = val_mr
                     best_epoch = cur_epoch
                     best_group_recalls = val_group_recalls
-                self.save_checkpoint(cur_epoch, is_best, val_mr,
-                                     val_group_recalls)
+                if (not cur_epoch % self.save_period) or is_best:
+                    self.save_checkpoint(epoch=cur_epoch,
+                                         model=self.model,
+                                         optimizer=self.optimizer,
+                                         is_best=is_best,
+                                         mr=val_mr,
+                                         group_recalls=val_group_recalls,
+                                         prefix=None,
+                                         save_dir=self.save_dir)
 
         final_mr = np.around(np.mean(last_20_mr), decimals=4)
         final_head_mr = np.around(np.mean(last_20_head_mr), decimals=4)
@@ -221,45 +259,26 @@ class Trainer(BaseTrainer):
                 f"*********************************************************"
             )
 
-    def train_epoch(self, cur_epoch, num_classes=None, trainloader=None,
-                    model=None, criterion=None, optimizer=None,
-                    lr_scheduler=None, lr_scheduler_mode='epoch'):
-        if trainloader is None:
-            trainloader = self.dataloader
-        if model is None:
-            model = self.model
-        if criterion is None:
-            criterion = self.criterion
-        if optimizer is None:
-            optimizer = self.optimizer
-        if lr_scheduler is None:
-            lr_scheduler = self.lr_scheduler
-
+    def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
+                    lr_scheduler, num_classes=None, desc_suffix=''):
         model.train()
-
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                desc="Train Epoch[{:>3d}/{}]".format(
-                    cur_epoch, self.total_epochs)
-            )
+                desc=f"Train Epoch[{cur_epoch:>3d}/{self.total_epochs}]"
+                     f"{desc_suffix}")
 
-        all_labels = []
-        all_preds = []
+        all_labels, all_preds = [], []
         train_loss_meter = AverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
-            if lr_scheduler_mode == "iteration":
-                lr_scheduler.step()
-
             optimizer.zero_grad()
+
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
-
             batch_prob = model(batch_imgs)
-
             avg_loss = criterion(batch_prob, batch_labels)
             if self.local_rank != -1:
-                with amp.scale_loss(avg_loss, optimizer) as scaled_loss:
+                with amp.scale_loss(avg_loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()
                 optimizer.step()
                 self._reduce_loss(avg_loss)
@@ -275,53 +294,41 @@ class Trainer(BaseTrainer):
 
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
-                train_pbar.set_postfix_str("LR:{:.1e} Loss:{:.4f}".format(
-                        optimizer.param_groups[0]["lr"],
-                        train_loss_meter.avg,))
+                train_pbar.set_postfix_str(
+                    f"LR:{optimizer.param_groups[-1]['lr']:.1e} "
+                    f"Loss:{train_loss_meter.avg:.4f}")
 
         train_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
         train_recalls = metrics.recall_score(all_labels, all_preds,
                                              average=None)
-
         # seperate all classes into 3 groups: Head, Mid, Tail
         if num_classes is not None:
             head_classes = math.floor(num_classes / 3)
             tail_classes = head_classes
-            group_recalls = [
-                np.around(
-                    np.mean(train_recalls[:head_classes]),
-                    decimals=4),
-                np.around(
-                    np.mean(
-                        train_recalls[head_classes:num_classes-tail_classes]),
-                    decimals=4),
-                np.around(
-                    np.mean(train_recalls[num_classes-tail_classes:]),
-                    decimals=4),
+            train_group_recalls = [
+                np.around(np.mean(train_recalls[:head_classes]),
+                          decimals=4),
+                np.around(np.mean(train_recalls[
+                                    head_classes:num_classes-tail_classes]),
+                          decimals=4),
+                np.around(np.mean(train_recalls[num_classes-tail_classes:]),
+                          decimals=4),
             ]
         else:
-            group_recalls = [0., 0., 0.]
+            train_group_recalls = [0., 0., 0.]
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(
-                f"LR:{optimizer.param_groups[-1]['lr']} "
+                f"LR:{optimizer.param_groups[-1]['lr']:.1e} "
                 f"Loss:{train_loss_meter.avg:.2f} "
                 f"MR:{train_mr:.2%} "
-                f"Head:{group_recalls[0]:.2%} "
-                f"Mid:{group_recalls[1]:.2%} "
-                f"Tail:{group_recalls[2]:.2%}")
+                f"Head:{train_group_recalls[0]:.0%} "
+                f"Mid:{train_group_recalls[1]:.0%} "
+                f"Tail:{train_group_recalls[2]:.0%}")
             train_pbar.close()
 
-        return train_mr, group_recalls, train_loss_meter.avg
+        return train_mr, train_group_recalls, train_loss_meter.avg
 
-    def evaluate(self, cur_epoch, num_classes=None, valloader=None,
-                 model=None, criterion=None):
-        if valloader is None:
-            valloader = self.valloader
-        if model is None:
-            model = self.model
-        if criterion is None:
-            criterion = self.criterion
-
+    def evaluate(self, cur_epoch, valloader, model, criterion, num_classes):
         model.eval()
 
         if self.local_rank in [-1, 0]:
@@ -347,34 +354,32 @@ class Trainer(BaseTrainer):
 
         val_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
         val_recalls = metrics.recall_score(all_labels, all_preds, average=None)
+        # val_recalls = np.around(val_recalls, decimals=4).tolist()
 
         # seperate all classes into 3 groups: Head, Mid, Tail
         if num_classes is not None:
             head_classes = math.floor(num_classes / 3)
             tail_classes = head_classes
-            group_recalls = [
-                np.around(
-                    np.mean(val_recalls[:head_classes]),
-                    decimals=4),
-                np.around(
-                    np.mean(
-                        val_recalls[head_classes:num_classes-tail_classes]),
-                    decimals=4),
-                np.around(
-                    np.mean(val_recalls[num_classes-tail_classes:]),
-                    decimals=4),
+            val_group_recalls = [
+                np.around(np.mean(val_recalls[:head_classes]),
+                          decimals=4),
+                np.around(np.mean(val_recalls[
+                                head_classes:num_classes-tail_classes]),
+                          decimals=4),
+                np.around(np.mean(val_recalls[num_classes-tail_classes:]),
+                          decimals=4),
             ]
         else:
-            group_recalls = [0., 0., 0.]
+            val_group_recalls = [0., 0., 0.]
         if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(
                 f"Loss:{val_loss_meter.avg:.2f} MR:{val_mr:.2%} "
-                f"Head:{group_recalls[0]:.2%} "
-                f"Mid:{group_recalls[1]:.2%} "
-                f"Tail:{group_recalls[2]:.2%}")
+                f"Head:{val_group_recalls[0]:.0%} "
+                f"Mid:{val_group_recalls[1]:.0%} "
+                f"Tail:{val_group_recalls[2]:.0%}")
             val_pbar.close()
 
-        return val_mr, group_recalls, val_loss_meter.avg
+        return val_mr, val_group_recalls, val_loss_meter.avg
 
 
 def parse_args():

@@ -168,7 +168,7 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.compute_class_weight(trainset.img_num)
+        self.update_class_weight(trainset.img_num)
         self.loss = self.init_loss()
 
         #######################################################################
