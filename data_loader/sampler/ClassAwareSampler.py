@@ -123,26 +123,19 @@ def get_balanced_samper(dataset):
 
 @Samplers.register_module('BalanceSampler')
 class BalancedSampler(Sampler):
-    def __init__(self, dataset, retain_epoch_size, **kwargs):
-        self.num_buckets = len(np.unique(dataset.labels))
-        self.buckets = [[] for _ in range(self.num_buckets)]
+    def __init__(self, dataset, retain_epoch_size=False, **kwargs):
+        self.retain_epoch_size = retain_epoch_size
+        self.unique_labels = np.unique(dataset.labels)
+        self.num_buckets = len(self.unique_labels)
+        self.buckets = {uq_label: [] for uq_label in self.unique_labels}
         for idx, label in enumerate(dataset.labels):
             self.buckets[label].append(idx)
 
         # Pointer for each class to mark which index we should choose next.
         # Initialize pointer as the first one (index = 0)
-        self.bucket_pointers = [0 for _ in range(self.num_buckets)]
-        self.retain_epoch_size = retain_epoch_size
-        self.max_bucket_size = max([len(bucket) for bucket in self.buckets])
-        # if not self.retain_epoch_size:
-        #     # oversample
-        #     for label, bucket in enumerate(self.buckets):
-        #         num_add = self.max_bucket_size - len(bucket)
-        #         if num_add == 0:
-        #             continue
-        #         else:
-        #             idx_add = random.sample(bucket, num_add)
-        #             self.buckets[label].extend(idx_add)
+        self.bucket_pointers = {uq_label: 0 for uq_label in self.unique_labels}
+        self.max_bucket_size = max([len(bucket) for bucket in
+                                    self.buckets.values()])
 
     def __iter__(self):
         count = self.__len__()
@@ -152,7 +145,7 @@ class BalancedSampler(Sampler):
 
     def _next_item(self):
         # Randomly choose one class
-        bucket_idx = random.randint(0, self.num_buckets - 1)
+        bucket_idx = random.choice(self.unique_labels)
         # get indexes of corresponding class
         bucket = self.buckets[bucket_idx]
         # choose the pointed item
@@ -168,7 +161,7 @@ class BalancedSampler(Sampler):
     def __len__(self):
         if self.retain_epoch_size:
             # Acrually we need to upscale to next full batch
-            return sum([len(bucket) for bucket in self.buckets])
+            return sum([len(bucket) for bucket in self.buckets.values()])
         else:
             # Ensures every instance has the chance to be visited in an epoch
             # oversample each class size to max class size.
