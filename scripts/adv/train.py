@@ -341,7 +341,7 @@ class Trainer(BaseTrainer):
     def evaluate(self, cur_epoch, valloader, model, criterion,
                  num_classes=None):
         model.eval()
-
+        model.apply(switch_clean)
         val_pbar = tqdm(total=len(valloader), ncols=0,
                         desc='                 Val')
 

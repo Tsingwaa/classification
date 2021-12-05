@@ -344,10 +344,8 @@ def _set_random_seed(seed=0):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    # 固定内部随机性
-    torch.backends.cudnn.deterministic = True
-    # 输入尺寸一致，加速训练
-    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.deterministic = True  # 固定内部随机性
+    torch.backends.cudnn.benchmark = True  # 输入尺寸一致，加速训练
 
 
 def main(args):

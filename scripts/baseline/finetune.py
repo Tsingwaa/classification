@@ -47,43 +47,39 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
-        self.experiment_config = config['experiment']
-        self.exp_name = self.experiment_config['name']
+        self.exp_config = config['experiment']
+        self.exp_name = self.exp_config['name']
         self.finetune_config = config['finetune']
         self.finetune_name = self.finetune_config['name']
+
         self.user_root = os.environ['HOME']
+        self.exp_root = join(self.user_root, 'Experiments')
         self.total_epochs = self.finetune_config['total_epochs']
         self.resume = True
-        if '/' in self.experiment_config['resume_fpath']:
-            self.resume_fpath = self.experiment_config['resume_fpath']
+        if '/' in self.exp_config['resume_fpath']:
+            self.resume_fpath = self.exp_config['resume_fpath']
         else:
-            self.resume_fpath = join(
-                self.user_root, 'Experiments', self.exp_name,
-                self.experiment_config['resume_fpath'])
-
-        self.checkpoint, resume_log = self.resume_checkpoint()
+            self.resume_fpath = join(self.exp_root, self.exp_name,
+                                     self.exp_config['resume_fpath'])
+        self.checkpoint, resume_log =\
+            self.resume_checkpoint(self.resume_fpath)
         self.start_epoch = self.checkpoint['epoch'] + 1
         self.final_epoch = self.start_epoch + self.total_epochs
 
         if self.local_rank in [-1, 0]:
-            self.save_dir = join(
-                self.user_root, 'Experiments', self.exp_name
-            )
-            self.tb_dir = join(
-                self.user_root, 'Experiments', 'Tensorboard', self.exp_name
-            )
+            self.eval_period = self.exp_config['eval_period']
+            self.save_period = self.exp_config['save_period']
+            self.save_dir = join(self.exp_root, self.exp_name)
+            os.makedirs(self.save_dir, exist_ok=True)
+
+            # self.tb_dir = join(self.exp_root, 'Tensorboard', self.exp_name)
+            # os.makedirs(self.tb_dir, exist_ok=True)
+            # self.writer = SummaryWriter(log_dir=self.tb_dir)
+
+            # Set logger to save .log file and output to screen.
             self.log_fpath = join(self.save_dir,
                                   f'finetune{self.finetune_name}.log')
-            self.save_period = self.experiment_config['save_period']
-            self.eval_period = self.experiment_config['eval_period']
-
-            os.makedirs(self.save_dir, exist_ok=True)
-            # os.makedirs(self.tb_dir, exist_ok=True)
-
-            # self.writer = SummaryWriter(log_dir=self.tb_dir)
-            # Set logger to save .log file and output to screen.
             self.logger = self.init_logger(self.log_fpath)
-
             exp_init_log = f'\n****************************************'\
                 f'****************************************************'\
                 f'\nExperiment: Finetune {self.exp_name}\n'\
@@ -96,50 +92,49 @@ class FineTuner(BaseTrainer):
                 f'{True if self.local_rank != -1 else False}\n'\
                 f'**********************************************'\
                 f'**********************************************\n'
-            self.logger.info(exp_init_log)
-            self.logger.info(resume_log)
+            self.log(exp_init_log)
+            self.log(resume_log)
 
         self._set_configs(config)
 
         self.unfreeze_keys = self.finetune_config['unfreeze_keys']
 
-        self.trainloader_config = self.finetune_config['trainloader']
-        self.trainloader_name = self.trainloader_config['name']
-        self.trainloader_param = self.trainloader_config['param']
-        self.train_sampler_name = self.trainloader_param['sampler']
-        self.train_batch_size = self.trainloader_param['batch_size']
-        self.train_num_workers = self.trainloader_param['num_workers']
+        self.trainloader_params = self.finetune_config['trainloader']
+        self.train_sampler_name = self.trainloader_params['sampler']
+        self.train_batchsize = self.trainloader_params['batch_size']
+        self.train_workers = self.trainloader_params['num_workers']
 
-        self.loss_config = self.finetune_config['loss']
-        self.loss_name = self.loss_config['name']
-        self.loss_param = self.loss_config['param']
+        loss_config = self.finetune_config['loss']
+        self.loss_name = loss_config['name']
+        self.loss_params = loss_config['param']
 
-        self.optimizer_config = self.finetune_config['optimizer']
-        self.optimizer_name = self.optimizer_config['name']
-        self.optimizer_param = self.optimizer_config['param']
+        opt_config = self.finetune_config['optimizer']
+        self.opt_name = opt_config['name']
+        self.opt_config = opt_config['param']
 
-        self.lr_scheduler_config = self.finetune_config['lr_scheduler']
-        self.lr_scheduler_name = self.lr_scheduler_config['name']
-        self.lr_scheduler_param = self.lr_scheduler_config['param']
-        self.lr_scheduler_mode = 'epoch'
+        scheduler_config = self.finetune_config['lr_scheduler']
+        self.scheduler_name = scheduler_config['name']
+        self.scheduler_params = scheduler_config['param']
 
     def finetune(self):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
-        train_transform = self.init_transform(self.train_transform_config)
-        trainset = self.init_dataset(self.trainset_config, train_transform)
-        train_sampler = self.init_sampler(trainset)
-
-        self.trainloader = DataLoaderX(
-            trainset,
-            batch_size=self.train_batch_size,
-            shuffle=(train_sampler is None),
-            num_workers=self.train_num_workers,
-            pin_memory=True,
-            drop_last=True,
-            sampler=train_sampler
-        )
+        train_transform = self.init_transform(self.train_transform_name,
+                                              **self.train_transform_params)
+        trainset = self.init_dataset(self.trainset_name,
+                                     transform=train_transform,
+                                     **self.trainset_params)
+        train_sampler = self.init_sampler(self.train_sampler_name,
+                                          dataset=trainset,
+                                          **self.trainloader_params)
+        self.trainloader = DataLoaderX(trainset,
+                                       batch_size=self.train_batchsize,
+                                       shuffle=(train_sampler is None),
+                                       num_workers=self.train_workers,
+                                       pin_memory=True,
+                                       drop_last=True,
+                                       sampler=train_sampler)
 
         if self.local_rank != -1:
             print(f"global_rank {self.global_rank},"
@@ -148,40 +143,43 @@ class FineTuner(BaseTrainer):
                   f"sampler '{self.train_sampler_name}'")
 
         if self.local_rank in [-1, 0]:
-            val_transform = self.init_transform(self.val_transform_config)
-            valset = self.init_dataset(self.valset_config, val_transform)
-            self.valloader = DataLoaderX(
-                valset,
-                batch_size=self.val_batch_size,
-                shuffle=False,
-                num_workers=self.val_num_workers,
-                pin_memory=True,
-                drop_last=False,
-            )
+            val_transform = self.init_transform(self.val_transform_name,
+                                                **self.val_transform_params)
+            valset = self.init_dataset(self.valset_name,
+                                       transform=val_transform,
+                                       **self.valset_params)
+            self.valloader = DataLoaderX(valset,
+                                         batch_size=self.val_batchsize,
+                                         shuffle=False,
+                                         num_workers=self.val_workers,
+                                         pin_memory=True,
+                                         drop_last=False,)
 
         #######################################################################
         # Initialize Network
         #######################################################################
-        self.model = self.init_model()
+        self.model = self.init_model(self.network_name, **self.network_params)
         self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
 
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.update_class_weight(trainset.img_num)
-        self.loss = self.init_loss()
+        self.loss_params = self.update_class_weight(
+            trainset.img_num, **self.loss_params)
+        self.criterion = self.init_loss(self.loss_name, **self.loss_params)
 
         #######################################################################
         # Initialize Optimizer
         #######################################################################
-        self.optimizer = self.init_optimizer(self.model, resume=False)
+        self.optimizer = self.init_optimizer(self.opt_name, self.model,
+                                             **self.opt_params)
 
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        if self.optimizer_name != 'Adam':
-            self.lr_scheduler = self.init_lr_scheduler(self.optimizer,
-                                                       warmup=False)
+        self.lr_scheduler = self.init_lr_scheduler(self.scheduler_name,
+                                                   self.optimizer,
+                                                   **self.scheduler_params)
 
         #######################################################################
         # Start Training
@@ -195,23 +193,33 @@ class FineTuner(BaseTrainer):
         last_tail_mrs = []
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             # learning rate decay by epoch
-            if self.optimizer_name != 'Adam' and\
-               self.lr_scheduler_mode == "epoch":
-                self.lr_scheduler.step()
+            self.lr_scheduler.step()
 
             if self.local_rank != -1:
                 train_sampler.set_epoch(cur_epoch)
 
-            train_mr, train_loss = self.train_epoch(cur_epoch)
+            train_mr, train_group_recalls, train_loss =\
+                self.train_epoch(cur_epoch,
+                                 self.trainloader,
+                                 self.model,
+                                 self.criterion,
+                                 self.optimizer,
+                                 self.lr_scheduler,
+                                 num_classes=trainset.cls_num)
 
             if self.local_rank in [-1, 0]:
-                val_mr, val_loss, group_recalls = self.evaluate(cur_epoch)
+                val_mr, val_group_recalls, val_loss =\
+                        self.evaluate(cur_epoch,
+                                      self.valloader,
+                                      self.model,
+                                      self.criterion,
+                                      num_classes=trainset.cls_num)
 
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_mr)
-                    last_head_mrs.append(group_recalls[0])
-                    last_mid_mrs.append(group_recalls[1])
-                    last_tail_mrs.append(group_recalls[2])
+                    last_head_mrs.append(val_group_recalls[0])
+                    last_mid_mrs.append(val_group_recalls[1])
+                    last_tail_mrs.append(val_group_recalls[2])
 
                 self.logger.debug(
                     "Epoch[{epoch:>3d}/{final_epoch}] "
@@ -224,9 +232,9 @@ class FineTuner(BaseTrainer):
                         train_mr=train_mr,
                         val_loss=val_loss,
                         val_mr=val_mr,
-                        head=group_recalls[0],
-                        mid=group_recalls[1],
-                        tail=group_recalls[2],
+                        head=val_group_recalls[0],
+                        mid=val_group_recalls[1],
+                        tail=val_group_recalls[2],
                     )
                 )
 
@@ -252,9 +260,16 @@ class FineTuner(BaseTrainer):
                 if is_best:
                     best_mr = val_mr
                     best_epoch = cur_epoch
-                    best_group_recalls = group_recalls
-                self.save_checkpoint(cur_epoch, is_best, val_mr, group_recalls,
-                                     prefix='finetune' + self.finetune_name)
+                    best_group_recalls = val_group_recalls
+                if (not cur_epoch % self.save_period) or is_best:
+                    self.save_checkpoint(epoch=cur_epoch,
+                                         model=self.model,
+                                         optimizer=self.optimizer,
+                                         is_best=is_best,
+                                         mr=val_mr,
+                                         group_recalls=val_group_recalls,
+                                         prefix='finetune'+self.finetune_name,
+                                         save_dir=self.save_dir)
 
         final_mr = np.around(np.mean(last_mrs), decimals=4)
         final_head_mr = np.around(np.mean(last_head_mrs), decimals=4)
@@ -274,36 +289,31 @@ class FineTuner(BaseTrainer):
                 f"*********************************************************\n"
             )
 
-    def train_epoch(self, cur_epoch):
-        self.model.train()
-        train_pbar = tqdm(
-            total=len(self.trainloader),
-            desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]"
-        )
+    def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
+                    lr_scheduler, num_classes=None):
+        model.train()
+        if self.local_rank in [-1, 0]:
+            train_pbar = tqdm(
+                total=len(trainloader),
+                desc=f"Train Epoch[{cur_epoch:>3d}/{self.total_epochs}]")
 
-        all_labels = []
-        all_preds = []
+        all_labels, all_preds = [], []
         train_loss_meter = AverageMeter()
-        for i, (batch_imgs, batch_labels) in enumerate(self.trainloader):
-            if self.optimizer_name != 'Adam' and\
-               self.lr_scheduler_mode == "iteration":
-                self.lr_scheduler.step()
+        for i, (batch_imgs, batch_labels) in enumerate(trainloader):
+            optimizer.zero_grad()
 
-            self.optimizer.zero_grad()
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
-
-            batch_prob = self.model(batch_imgs)
-
-            avg_loss = self.loss(batch_prob, batch_labels)
+            batch_prob = model(batch_imgs)
+            avg_loss = criterion(batch_prob, batch_labels)
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()
-                self.optimizer.step()
+                optimizer.step()
                 self._reduce_loss(avg_loss)
             else:
                 avg_loss.backward()
-                self.optimizer.step()
+                optimizer.step()
 
             batch_pred = batch_prob.max(1)[1]
             train_loss_meter.update(avg_loss.item(), 1)
@@ -314,34 +324,56 @@ class FineTuner(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str("LR:{:.1e} Loss:{:.4f}".format(
-                        self.optimizer.param_groups[-1]["lr"],
-                        train_loss_meter.avg,))
+                        self.optimizer.param_groups[0]["lr"],
+                        train_loss_meter.avg))
 
         train_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
+        train_recalls = metrics.recall_score(all_labels, all_preds,
+                                             average=None)
+        # seperate all classes into 3 groups: Head, Mid, Tail
+        if num_classes is not None:
+            head_classes = math.floor(num_classes / 3)
+            tail_classes = head_classes
+            train_group_recalls = [
+                np.around(np.mean(train_recalls[:head_classes]),
+                          decimals=4),
+                np.around(np.mean(train_recalls[
+                                    head_classes:num_classes-tail_classes]),
+                          decimals=4),
+                np.around(np.mean(train_recalls[num_classes-tail_classes:]),
+                          decimals=4),
+            ]
+        else:
+            train_group_recalls = [0., 0., 0.]
+        if self.local_rank in [-1, 0]:
+            train_pbar.set_postfix_str(
+                f"LR:{optimizer.param_groups[-1]['lr']:.1e} "
+                f"Loss:{train_loss_meter.avg:.2f} "
+                f"MR:{train_mr:.2%} "
+                f"Head:{train_group_recalls[0]:.0%} "
+                f"Mid:{train_group_recalls[1]:.0%} "
+                f"Tail:{train_group_recalls[2]:.0%}")
+            train_pbar.close()
 
-        train_pbar.set_postfix_str("LR:{:.1e} Loss:{:.2f} MR:{:.2%}".format(
-                self.optimizer.param_groups[0]["lr"],
-                train_loss_meter.avg, train_mr))
-        train_pbar.close()
+        return train_mr, train_group_recalls, train_loss_meter.avg
 
-        return train_mr, train_loss_meter.avg
+    def evaluate(self, cur_epoch, valloader, model, criterion, num_classes):
+        model.eval()
 
-    def evaluate(self, cur_epoch):
-        self.model.eval()
-
-        val_pbar = tqdm(total=len(self.valloader), ncols=0,
-                        desc="                 Val")
+        if self.local_rank in [-1, 0]:
+            val_pbar = tqdm(total=len(valloader), ncols=0,
+                            desc="                 Val")
 
         all_labels = []
         all_preds = []
         val_loss_meter = AverageMeter()
         with torch.no_grad():
-            for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
+            for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
-                batch_probs = self.model(batch_imgs)
+                batch_probs = model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]
-                avg_loss = self.loss(batch_probs, batch_labels)
+                avg_loss = criterion(batch_probs, batch_labels)
                 val_loss_meter.update(avg_loss.item(), 1)
 
                 all_labels.extend(batch_labels.cpu().numpy().tolist())
@@ -351,31 +383,32 @@ class FineTuner(BaseTrainer):
 
         val_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
         val_recalls = metrics.recall_score(all_labels, all_preds, average=None)
-        val_recalls = np.around(val_recalls, decimals=2).tolist()
+        # val_recalls = np.around(val_recalls, decimals=4).tolist()
 
         # seperate all classes into 3 groups: Head, Mid, Tail
-        num_classes = self.network_param['num_classes']
-        head_classes = math.floor(num_classes / 3)
-        tail_classes = head_classes
-        group_recalls = [
-            np.around(
-                np.mean(val_recalls[:head_classes]),
-                decimals=4),
-            np.around(
-                np.mean(val_recalls[head_classes:num_classes-tail_classes]),
-                decimals=4),
-            np.around(
-                np.mean(val_recalls[num_classes-tail_classes:]),
-                decimals=4),
-        ]
-        val_pbar.set_postfix_str(
-            f"Loss:{val_loss_meter.avg:.2f} MR:{val_mr:.2%} "
-            f"Head:{group_recalls[0]:.2%} "
-            f"Mid:{group_recalls[1]:.2%} "
-            f"Tail:{group_recalls[2]:.2%}")
-        val_pbar.close()
+        if num_classes is not None:
+            head_classes = math.floor(num_classes / 3)
+            tail_classes = head_classes
+            val_group_recalls = [
+                np.around(np.mean(val_recalls[:head_classes]),
+                          decimals=4),
+                np.around(np.mean(val_recalls[
+                                head_classes:num_classes-tail_classes]),
+                          decimals=4),
+                np.around(np.mean(val_recalls[num_classes-tail_classes:]),
+                          decimals=4),
+            ]
+        else:
+            val_group_recalls = [0., 0., 0.]
+        if self.local_rank in [-1, 0]:
+            val_pbar.set_postfix_str(
+                f"Loss:{val_loss_meter.avg:.2f} MR:{val_mr:.2%} "
+                f"Head:{val_group_recalls[0]:.0%} "
+                f"Mid:{val_group_recalls[1]:.0%} "
+                f"Tail:{val_group_recalls[2]:.0%}")
+            val_pbar.close()
 
-        return val_mr, val_loss_meter.avg, group_recalls
+        return val_mr, val_group_recalls, val_loss_meter.avg
 
 
 def parse_args():
@@ -393,6 +426,7 @@ def _set_seed(seed=0):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = True
 
 
 def main(args):

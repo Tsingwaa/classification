@@ -28,12 +28,10 @@ finetune:
   total_epochs: 30
   unfreeze_keys: ["fc"]
   trainloader:
-    name: "Dataloader"
-    param:
-      sampler: ""
-      retain_epoch_size: True
-      batch_size: 64
-      num_workers: 6
+    sampler: ""
+    retain_epoch_size: True
+    batch_size: 64
+    num_workers: 6
   loss:
     name: "CrossEntropyLoss"
     param:
@@ -102,7 +100,6 @@ network:
     mean: [0.3567, 0.4279, 0.4439]
     std: [0.2761, 0.2584, 0.2705]
     dual_BN: True
-    # use_ssp: False
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
@@ -134,7 +131,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [60, 100, 140, 170, 180]
+    milestones: [60, 120, 160, 180]
     gamma: 0.1
 
     # CosineAnnealingWarmRestarts

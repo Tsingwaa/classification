@@ -135,7 +135,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [60, 100, 140, 170, 180]
+    milestones: [60, 120, 160, 180]
     gamma: 0.1
 
     # CosineAnnealingWarmRestarts
