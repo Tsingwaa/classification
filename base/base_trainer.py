@@ -320,11 +320,9 @@ class BaseTrainer:
             raise AttributeError(f'LR scheduler init failed: {error}')
 
     def init_module(self, module_name, **kwargs):
-        module_params = kwargs.get('params', None)
-
-        module = build_module(module_name, **module_params)
-        module_params.pop('model', None)
-        self.log(f'===> Initialized {module_name}: {module_params}')
+        module = build_module(module_name, **kwargs)
+        kwargs.pop('model', None)
+        self.log(f'===> Initialized {module_name}: {kwargs}')
         return module
 
     def _reduce_loss(self, tensor):
