@@ -15,8 +15,8 @@ class Normalization(nn.Module):
         self.mean = torch.tensor(list(mean)).reshape(
             (1, self.n_channels, 1, 1))
         self.std = torch.tensor(list(std)).reshape((1, self.n_channels, 1, 1))
-        self.mean = nn.Parameter(self.mean)
-        self.std = nn.Parameter(self.std)
+        self.mean = nn.Parameter(self.mean, requires_grad=False)
+        self.std = nn.Parameter(self.std, requires_grad=False)
 
     def forward(self, x):
         y = (x - self.mean / self.std)
