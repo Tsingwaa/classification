@@ -75,8 +75,8 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.loss_params = self.update_class_weight(trainset.img_num,
-                                                    **self.loss_params)
+        self.loss_params = self.update_class_weight(
+            trainset.img_num, **self.loss_params)
         self.criterion = self.init_loss(self.loss_name, **self.loss_params)
 
         #######################################################################
@@ -107,10 +107,10 @@ class Trainer(BaseTrainer):
         best_mr = 0.
         best_epoch = 1
         best_group_recalls = []
-        last_20_mr = []
-        last_20_head_mr = []
-        last_20_mid_mr = []
-        last_20_tail_mr = []
+        last_20_mrs = []
+        last_20_head_mrs = []
+        last_20_mid_mrs = []
+        last_20_tail_mrs = []
         self.final_epoch = self.start_epoch + self.total_epochs
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.lr_scheduler.step()
@@ -135,10 +135,10 @@ class Trainer(BaseTrainer):
                                       num_classes=trainset.cls_num)
 
                 if self.final_epoch - cur_epoch <= 20:
-                    last_20_mr.append(val_mr)
-                    last_20_head_mr.append(val_group_recalls[0])
-                    last_20_mid_mr.append(val_group_recalls[1])
-                    last_20_tail_mr.append(val_group_recalls[2])
+                    last_20_mrs.append(val_mr)
+                    last_20_head_mrs.append(val_group_recalls[0])
+                    last_20_mid_mrs.append(val_group_recalls[1])
+                    last_20_tail_mrs.append(val_group_recalls[2])
                 self.log(f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                          f"Trainset Loss={train_loss:.4f} MR={train_mr:.2%}"
                          f"Head={train_group_recalls[0]:.2%} "
@@ -190,10 +190,10 @@ class Trainer(BaseTrainer):
                                          prefix=None,
                                          save_dir=self.save_dir)
 
-        final_mr = np.around(np.mean(last_20_mr), decimals=4)
-        final_head_mr = np.around(np.mean(last_20_head_mr), decimals=4)
-        final_mid_mr = np.around(np.mean(last_20_mid_mr), decimals=4)
-        final_tail_mr = np.around(np.mean(last_20_tail_mr), decimals=4)
+        final_mr = np.around(np.mean(last_20_mrs), decimals=4)
+        final_head_mr = np.around(np.mean(last_20_head_mrs), decimals=4)
+        final_mid_mr = np.around(np.mean(last_20_mid_mrs), decimals=4)
+        final_tail_mr = np.around(np.mean(last_20_tail_mrs), decimals=4)
 
         if self.local_rank in [-1, 0]:
             self.log(
