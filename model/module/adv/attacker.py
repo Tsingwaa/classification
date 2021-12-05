@@ -113,12 +113,12 @@ class LinfPGD(nn.Module):
 
 @Modules.register_module('AdaptLinfPGD')
 class AdaptLinfPGD(LinfPGD):
-    """以最小类epsilon=7/255为基准, 逐类线性减小, 最大类为7/255 * 1/20"""
+    """以最小类epsilon=8/255为基准, 样本越多epsilon越小, 最大类为8/255 * 1/2"""
 
     def project(self, perturbation, use_target, target):
         if use_target:
             batch_size = target.shape[0]
-            adapt_ratio = (target + 1) / 20
+            adapt_ratio = (target + 1) / 40 + 1/2
             epsilon = self.epsilon * adapt_ratio
             epsilon = epsilon.view(batch_size, 1, 1, 1)
             perturbation_min = torch.min(perturbation, epsilon)
