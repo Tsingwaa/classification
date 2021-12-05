@@ -31,8 +31,8 @@ class BaseTrainer:
         # Device setting
         #######################################################################
         assert torch.cuda.is_available()
-        torch.backends.cudnn.benchmark = True
         torch.backends.cudnn.enable = True
+        torch.backends.cudnn.benchmark = True
 
         self.local_rank = local_rank
         if self.local_rank != -1:
@@ -44,42 +44,41 @@ class BaseTrainer:
         #######################################################################
         # Experiment setting
         #######################################################################
-        self.experiment_config = config['experiment']
-        self.exp_name = self.experiment_config['name']
+        self.exp_config = config['experiment']
+        self.exp_name = self.exp_config['name']
         self.user_root = os.environ['HOME']
-        self.start_epoch = self.experiment_config['start_epoch']
-        self.total_epochs = self.experiment_config['total_epochs']
-        self.resume = self.experiment_config['resume']
-        if '/' in self.experiment_config['resume_fpath']:
-            self.resume_fpath = self.experiment_config['resume_fpath']
+        self.exp_root = join(self.user_root, 'Experiments')
+
+        self.start_epoch = self.exp_config['start_epoch']
+        self.total_epochs = self.exp_config['total_epochs']
+
+        self.resume = self.exp_config['resume']
+        if '/' in self.exp_config['resume_fpath']:
+            self.resume_fpath = self.exp_config['resume_fpath']
         else:
             self.resume_fpath = join(
                 self.user_root, 'Experiments', self.exp_name,
-                self.experiment_config['resume_fpath']
-            )
+                self.exp_config['resume_fpath'])
 
         if self.resume:
             self.checkpoint, resume_log = self.resume_checkpoint()
             self.start_epoch = self.checkpoint['epoch'] + 1
 
         if self.local_rank in [-1, 0]:
-            self.save_dir = join(
-                self.user_root, 'Experiments', self.exp_name
-            )
-            self.tb_dir = join(
-                self.user_root, 'Experiments', 'Tensorboard', self.exp_name
-            )
-            self.log_fname = self.experiment_config['log_fname']
-            self.log_fpath = join(self.save_dir, self.log_fname)
-            self.save_period = self.experiment_config['save_period']
-            self.eval_period = self.experiment_config['eval_period']
+            self.eval_period = self.exp_config['eval_period']
 
+            # directory to save experiment result
+            self.save_period = self.exp_config['save_period']
+            self.save_dir = join(self.exp_root, self.exp_name)
             os.makedirs(self.save_dir, exist_ok=True)
-            os.makedirs(self.tb_dir, exist_ok=True)
 
+            # directory to save tensorboard record
+            self.tb_dir = join(self.exp_root, 'Tensorboard', self.exp_name)
+            os.makedirs(self.tb_dir, exist_ok=True)
             self.writer = SummaryWriter(log_dir=self.tb_dir)
 
-            # Set logger to save .log file and output to screen.
+            # path to save logging record
+            self.log_fpath = join(self.save_dir, self.exp_config['log_fname'])
             self.logger = self.init_logger(self.log_fpath)
 
             exp_init_log = f'\n****************************************'\
@@ -105,93 +104,91 @@ class BaseTrainer:
         #######################################################################
         # Dataset setting
         #######################################################################
-        self.train_transform_config = config['train_transform']
-        self.trainset_config = config['train_dataset']
-        self.val_transform_config = config['val_transform']
-        self.valset_config = config['val_dataset']
+        train_transform_config = config['train_transform']
+        self.train_transform_name = train_transform_config['name']
+        self.train_transform_params = train_transform_config['param']
+
+        trainset_config = config['train_dataset']
+        self.trainset_name = trainset_config['name']
+        self.trainset_params = trainset_config['param']
+
+        val_transform_config = config['val_transform']
+        self.val_transform_name = val_transform_config['name']
+        self.val_transform_params = val_transform_config['param']
+
+        valset_config = config['val_dataset']
+        self.valset_name = valset_config['name']
+        self.valset_params = valset_config['param']
 
         #######################################################################
         # Dataloader setting
         #######################################################################
-        self.trainloader_config = config['trainloader']
-        self.trainloader_name = self.trainloader_config['name']
-        self.trainloader_param = self.trainloader_config['param']
-        self.train_sampler_name = self.trainloader_param['sampler']
-        self.train_batch_size = self.trainloader_param['batch_size']
-        self.train_num_workers = self.trainloader_param['num_workers']
+        self.trainloader_params = config['trainloader']
+        self.train_batchsize = self.trainloader_params['batch_size']
+        self.train_workers = self.trainloader_params['num_workers']
+        self.train_sampler_name = self.trainloader_params['sampler']
 
-        self.valloader_config = config['valloader']
-        self.valloader_name = self.valloader_config['name']
-        self.valloader_param = self.valloader_config['param']
-        self.val_batch_size = self.valloader_param['batch_size']
-        self.val_num_workers = self.valloader_param['num_workers']
+        self.valloader_params = config['valloader']
+        self.val_batchsize = self.valloader_params['batch_size']
+        self.val_workers = self.valloader_params['num_workers']
 
         #######################################################################
         # Network setting
         #######################################################################
-        self.network_config = config['network']
-        self.network_name = self.network_config['name']
-        self.network_param = self.network_config['param']
+        network_config = config['network']
+        self.network_name = network_config['name']
+        self.network_params = network_config['param']
 
         #######################################################################
         # Loss setting
         #######################################################################
-        self.loss_config = config['loss']
-        self.loss_name = self.loss_config['name']
-        self.loss_param = self.loss_config['param']
+        loss_config = config['loss']
+        self.loss_name = loss_config['name']
+        self.loss_params = loss_config['param']
 
         #######################################################################
         # Optimizer setting
         #######################################################################
-        self.optimizer_config = config['optimizer']
-        self.optimizer_name = self.optimizer_config['name']
-        self.optimizer_param = self.optimizer_config['param']
-        self.weight_decay = self.optimizer_param['weight_decay']
+        opt_config = config['optimizer']
+        self.opt_name = opt_config['name']
+        self.opt_params = opt_config['param']
 
         #######################################################################
         # LR scheduler setting
         #######################################################################
-        self.warmup_lr_scheduler_config = config['warmup_lr_scheduler']
-        self.warmup = self.warmup_lr_scheduler_config['warmup']
-        self.warmup_param = self.warmup_lr_scheduler_config['param']
-        self.lr_scheduler_config = config['lr_scheduler']
-        self.lr_scheduler_name = self.lr_scheduler_config['name']
-        self.lr_scheduler_param = self.lr_scheduler_config['param']
-        self.lr_scheduler_mode = 'epoch' \
-            if self.lr_scheduler_name != "CyclicLR" else 'iterations'
+        scheduler_config = config['lr_scheduler']
+        self.scheduler_name = scheduler_config['name']
+        self.scheduler_params = scheduler_config['param']
 
-    def init_transform(self, transform_config=None, log_level='default'):
-        transform_name = transform_config['name']
-        transform_param = transform_config['param']
-        transform = build_transform(transform_name, **transform_param)
-        transform_init_log = f'===> Initialized {transform_name}: '\
-                             f'{transform_param}'
+    def init_transform(self, transform_name, **kwargs):
+        log_level = kwargs.get('log_level', 'default')
+        kwargs.pop('log_level', None)
+
+        transform = build_transform(transform_name, **kwargs)
+        transform_init_log = f'===> Initialized {transform_name}: {kwargs}'
         self.log(transform_init_log, log_level)
         return transform
 
-    def init_dataset(self, dataset_config=None, transform=None,
-                     log_level='default'):
-        dataset_name = dataset_config['name']
-        dataset_param = dataset_config['param']
-        dataset_param['data_root'] = join(self.user_root, 'Data',
-                                          dataset_param['data_root'])
-        dataset_param['transform'] = transform
-        dataset = build_dataset(dataset_name, **dataset_param)
+    def init_dataset(self, dataset_name, **kwargs):
+        log_level = kwargs.get('log_level', 'default')
+        kwargs.pop('log_level', None)
 
-        dataset_init_log = f'===> Initialized {dataset_param["phase"]}'\
-            f' {dataset_name}: size={len(dataset)},'\
-            f' classes={dataset.cls_num}'
-        if dataset_param['phase'] == 'train':
+        kwargs['data_root'] = join(self.user_root, 'Data', kwargs['data_root'])
+        dataset = build_dataset(dataset_name, **kwargs)
+
+        dataset_init_log = f'===> Initialized {kwargs["phase"]} '\
+            f'{dataset_name}: size={len(dataset)}, '\
+            f'classes={dataset.cls_num}'
+        if kwargs['phase'] == 'train':
             self.train_size = len(dataset)
             dataset_init_log += f'\nimgs_per_cls={dataset.img_num}'
         self.log(dataset_init_log, log_level)
         return dataset
 
-    def init_sampler(self, dataset=None, sampler_param=None,
-                     log_level='default'):
-        if sampler_param is None:
-            sampler_param = self.trainloader_param
-        sampler_name = sampler_param['sampler']
+    def init_sampler(self, sampler_name, dataset, **kwargs):
+        log_level = kwargs.get('log_level', 'default')
+        kwargs.pop('log_level', None)
+
         if sampler_name in {'None', ''}:
             sampler = None
             sampler_init_log = '===> Initialized default sampler'
@@ -199,41 +196,34 @@ class BaseTrainer:
             sampler = DistributedSampler(dataset)
             sampler_init_log = '===> Initialized DistributedSampler'
         else:
-            sampler_param['dataset'] = dataset
-            sampler = build_sampler(sampler_name, **sampler_param)
+            kwargs['dataset'] = dataset
+            sampler = build_sampler(sampler_name, **kwargs)
             sampler_init_log = f'===> Initialized {sampler_name} with'\
                 f' resampled size={len(sampler)}'
         self.log(sampler_init_log, log_level)
         return sampler
 
-    def init_model(self, network_name=None, network_param=None,
-                   log_level='default'):
-        if network_name is None:
-            network_name = self.network_name
-        if network_param is None:
-            network_param = self.network_param
+    def init_model(self, network_name, **kwargs):
+        log_level = kwargs.get('log_level', 'default')
+        kwargs.pop('log_level', None)
 
-        model = build_network(network_name, **network_param)
-
-        # Count the total amount of parameters with gradient.
-        total_params = 0.
-        for x in filter(lambda p: p.requires_grad, model.parameters()):
-            total_params += np.prod(x.data.numpy().shape)
-        total_params /= 10 ** 6
+        model = build_network(network_name, **kwargs)
+        total_params = self.count_model_params(model)
         model.cuda()
 
-        init = 'Initialized'
-        if self.resume:
-            model.load_state_dict(self.checkpoint['model'])
-            init = 'Resumed'
-        elif network_param['pretrained']:
-            state_dict = torch.load(network_param['pretrained_fpath'],
+        prefix = 'Initialized'
+        if kwargs.get('resume', False):
+            checkpoint = kwargs.get('checkpoint', None)
+            model.load_state_dict(checkpoint['model'])
+            prefix = 'Resumed checkpoint params to'
+        elif kwargs.get('pretrained', False):
+            state_dict = torch.load(kwargs['pretrained_fpath'],
                                     map_location='cpu')
             model.load_state_dict(state_dict, strict=False)
-            init = 'Resumed pretrained'
+            prefix = 'Resumed pretrained params to'
 
-        model_init_log = f"===> {init} {network_name}(total_params"\
-            f"={total_params:.2f}m): {network_param}"
+        model_init_log = f"===> {prefix} {network_name}(total_params"\
+            f"={total_params:.2f}m): {kwargs}"
         self.log(model_init_log, log_level)
         return model
 
@@ -247,79 +237,7 @@ class BaseTrainer:
             else:
                 var.requires_grad = False
 
-    def init_optimizer(self, model, optimizer_name, optimizer_param=None,
-                       checkpoint=None, resume=True):
-        # model_params = [
-        #     {
-        #         'params': [p for n, p in self.model.named_parameters()
-        #                    if not any(nd in n for nd in ['bias', 'bn'])],
-        #         'weight_decay': self.weight_decay
-        #     },
-        #     {
-        #         'params': [p for n, p in self.model.named_parameters()
-        #                    if any(nd in n for nd in ['bias', 'bn'])],
-        #         'weight_decay': 0.0
-        #     }
-        # ]
-        if optimizer_name is None:
-            optimizer_name = self.optimizer_name
-        if optimizer_param is None:
-            optimizer_param = self.optimizer_param
-        try:
-            optimizer = getattr(torch.optim, optimizer_name)(
-                model.parameters(), **optimizer_param)
-            if resume and self.resume:
-                if checkpoint is None:
-                    checkpoint = self.checkpoint
-                if 'optimizer' in checkpoint:
-                    optimizer.load_state_dict(checkpoint['optimizer'])
-            if self.local_rank in [-1, 0]:
-                self.log(f'===> Initialized {optimizer_name}: '
-                         f'{optimizer_param}')
-            return optimizer
-        except Exception as error:
-            raise AttributeError(f'Optimizer initialize failed: {error} !')
-
-    def init_lr_scheduler(self, optimizer, warmup=True):
-        lrs_param = self.lr_scheduler_param
-        if not warmup:
-            self.warmup = False
-        if self.lr_scheduler_name == 'CyclicLR':
-            self.iter_num = math.ceil(self.train_size / self.train_batch_size)
-            lrs_param['step_size_up'] *= self.iter_num
-            lrs_param['step_size_down'] *= self.iter_num
-        try:
-            lr_scheduler = getattr(torch.optim.lr_scheduler,
-                                   self.lr_scheduler_name)(
-                                       optimizer, **lrs_param)
-            self.log(
-                f"===> Initialized {self.lr_scheduler_name}: {lrs_param}")
-            if self.warmup:
-                lr_scheduler = GradualWarmupScheduler(
-                    optimizer,
-                    multiplier=self.warmup_param['multiplier'],
-                    warmup_epochs=self.warmup_param['warmup_epochs'],
-                    after_scheduler=lr_scheduler,)
-                self.log(f'===> Initialized warmup scheduler: '
-                         f'{self.warmup_param}')
-            return lr_scheduler
-        except Exception as error:
-            raise AttributeError(f'LR scheduler initial failed: {error} !')
-
-    def init_module(self, module_name=None, module_param=None):
-        module = build_module(module_name, **module_param)
-        module_param.pop('model', None)
-        self.log(f'===> Initialized {module_name}: {module_param}')
-        return module
-
-    def init_loss(self, loss_name=None, **kwargs):
-        if loss_name is None:
-            loss_name = self.loss_name
-        loss = build_loss(loss_name, **self.loss_param)
-        self.log(f'===> Initialized {loss_name}: {self.loss_param}')
-        return loss
-
-    def compute_class_weight(self, imgs_per_cls, **kwargs):
+    def update_class_weight(self, imgs_per_cls, **kwargs):
         """
         Args:
             imgs_per_class(List): imgs of each class
@@ -327,7 +245,7 @@ class BaseTrainer:
         Return:
             weight(Tensor): 1-D torch.Tensor
         """
-        weight_type = self.loss_param['weight_type']
+        weight_type = kwargs['weight_type']
         if not isinstance(imgs_per_cls, torch.Tensor):
             imgs_per_cls = torch.FloatTensor(imgs_per_cls)
 
@@ -337,7 +255,7 @@ class BaseTrainer:
             weight = num_img / (num_cls * imgs_per_cls)
             weight /= torch.sum(weight)
         elif weight_type == 'CB':
-            beta = self.loss_param['beta']
+            beta = kwargs['beta']
             weight = (1.0 - beta) / (1.0 - torch.pow(beta, imgs_per_cls))
             weight /= torch.sum(weight)
         else:
@@ -346,41 +264,100 @@ class BaseTrainer:
         if weight is not None:
             display_weight = weight.numpy().round(2)
             self.log(f'===> Computed class_weight:\n{display_weight}')
+        kwargs.update({'weight': weight})
+        return kwargs
 
-        self.loss_param.update({'weight': weight})
+    def init_loss(self, loss_name, **kwargs):
+        log_level = kwargs.get('log_level', 'default')
+        kwargs.pop('log_level', None)
+
+        loss = build_loss(loss_name, **kwargs)
+        self.log(f'===> Initialized {loss_name}: {kwargs}', log_level)
+        return loss
+
+    def init_optimizer(self, opt_name, model, **kwargs):
+        # model_params = [
+        #     {'params': [p for n, p in self.model.named_parameters()
+        #                    if not any(nd in n for nd in ['bias', 'bn'])],
+        #      'weight_decay': self.weight_decay},
+        #     {'params': [p for n, p in self.model.named_parameters()
+        #                    if any(nd in n for nd in ['bias', 'bn'])],
+        #      'weight_decay': 0.0}]
+        log_level = kwargs.get('log_level', 'default')
+        kwargs.pop('log_level', None)
+
+        try:
+            optimizer = getattr(torch.optim, opt_name)(
+                model.parameters(), **kwargs)
+            prefix = 'Initialized'
+            if kwargs.get('resume', False):
+                checkpoint = kwargs.get('checkpoint', None)
+                optimizer.load_state_dict(checkpoint['optimizer'])
+                prefix = "Resumed"
+
+            self.log(f'===> {prefix} {opt_name}: {kwargs}',
+                     log_level)
+            return optimizer
+        except Exception as error:
+            raise AttributeError(f'Optimizer init failed: {error}')
+
+    def init_lr_scheduler(self, scheduler_name, optimizer, **kwargs):
+        warmup_epochs = kwargs.pop('warmup_epochs', 10)
+        try:
+            lr_scheduler = getattr(torch.optim.lr_scheduler,
+                                   scheduler_name)(optimizer, **kwargs)
+            self.log(f"===> Initialized {scheduler_name}: {kwargs}")
+
+            lr_scheduler = GradualWarmupScheduler(
+                optimizer,
+                multiplier=1,
+                warmup_epochs=warmup_epochs,
+                after_scheduler=lr_scheduler,)
+            self.log(f'===> Initialized gradual warmup scheduler: '
+                     f'warmup_epochs={warmup_epochs}')
+            return lr_scheduler
+        except Exception as error:
+            raise AttributeError(f'LR scheduler init failed: {error}')
+
+    def init_module(self, module_name, **kwargs):
+        module_params = kwargs.get('params', None)
+
+        module = build_module(module_name, **module_params)
+        module_params.pop('model', None)
+        self.log(f'===> Initialized {module_name}: {module_params}')
+        return module
 
     def _reduce_loss(self, tensor):
         with torch.no_grad():
             dist.reduce(tensor, dst=0)
-            if self.local_rank == 0:
+            if not self.local_rank:
                 tensor /= self.world_size
 
-    def resume_checkpoint(self, resume_fpath=None):
-        if resume_fpath in {None, ''}:
-            resume_fpath = self.resume_fpath
+    def resume_checkpoint(self, resume, **kwargs):
+        resume_fpath = kwargs.get('resume_fpath', None)
+
         checkpoint = torch.load(resume_fpath, map_location='cpu')
         mr = checkpoint['mr']
         recalls = checkpoint.get('group_recalls', None)
+
         resume_log = f'===> Resume checkpoint from "{resume_fpath}".\n'\
             f'Mean recall:{mr:.2%}\nGroup recalls:{recalls}\n'
         return checkpoint, resume_log
 
-    def save_checkpoint(self, epoch, is_best=False, mr=None, ap=None,
-                        group_recalls=[], prefix=None):
-        if (not epoch % self.save_period) or is_best:
-            checkpoint = {'model': self.model.state_dict()
-                          if self.local_rank == -1 else
-                          self.model.module.state_dict(),
-                          'optimizer': self.optimizer.state_dict(),
-                          'best': is_best,
-                          'epoch': epoch,
-                          'mr': mr,
-                          'group_recalls': group_recalls}
-            save_fname = 'best.pth.tar' if is_best else 'last.pth.tar'
-            if prefix is not None:
-                save_fname = prefix + save_fname
-            save_path = join(self.save_dir, save_fname)
-            torch.save(checkpoint, save_path)
+    def save_checkpoint(self, epoch, model, optimizer, is_best, mr,
+                        group_recalls, prefix, save_dir):
+        checkpoint = {'model': model.state_dict() if self.local_rank == -1 else
+                      model.module.state_dict(),
+                      'optimizer': optimizer.state_dict(),
+                      'best': is_best,
+                      'epoch': epoch,
+                      'mr': mr,
+                      'group_recalls': group_recalls}
+        save_fname = 'best.pth.tar' if is_best else 'last.pth.tar'
+        if prefix is not None:
+            save_fname = prefix + save_fname
+        save_path = join(save_dir, save_fname)
+        torch.save(checkpoint, save_path)
 
     def init_logger(self, log_fpath):
         logger = logging.getLogger()
@@ -415,6 +392,13 @@ class BaseTrainer:
                 print(log)
             elif log_level == 'file':
                 self.logger.debug(log)
+
+    def count_model_params(self, model):
+        total_params = 0.
+        for x in filter(lambda p: p.requires_grad, model.parameters()):
+            total_params += np.prod(x.data.numpy().shape)
+        total_params /= 10 ** 6
+        return total_params
 
     @abc.abstractmethod
     def train(self):
