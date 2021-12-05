@@ -7,7 +7,7 @@ import math
 import torch
 import numpy as np
 import imghdr
-# from pudb import set_trace
+from pudb import set_trace
 from os.path import join
 from PIL import Image
 # from torchvision import transforms
@@ -170,6 +170,64 @@ class ImbalanceMiniImageNet20(ImbalanceMiniImageNet):
     mean = [0.3567, 0.4279, 0.4439]
     std = [0.2761, 0.2584, 0.2705]
     cls_num = 20
+
+
+@Datasets.register_module('imb_miniImageNet20_tail')
+class ImbalanceMiniImageNet20_tail(ImbalanceMiniImageNet):
+    """Select the former 20 classes as a small imbalanced dataset
+    for test use
+    """
+    mean = [0.3567, 0.4279, 0.4439]
+    std = [0.2761, 0.2584, 0.2705]
+    cls_num = 20
+
+    def __init__(self, data_root, phase, img_lst_fpath=None, transform=None,
+                 imb_type='exp', imb_factor=0.1, seed=0, tail_num_classes=0,
+                 **kwargs):
+        self.img_paths = []
+        self.targets = []
+        self.transform = transform
+
+        # build img_path-target pairs
+        if img_lst_fpath is not None and '/' not in img_lst_fpath:
+            img_lst_fpath = join(data_root, img_lst_fpath)
+        else:
+            img_lst_fpath = join(data_root, phase + '.txt')
+        with open(img_lst_fpath) as f:
+            for line in f:
+                img_path = join(data_root, line.split()[0][1:])
+                # line starts with '/', so index by [1:]
+                if imghdr.what(img_path) == '.tiff':
+                    print(img_path)
+                self.img_paths.append(img_path)
+                self.targets.append(int(line.split()[1]))
+
+        self.img_paths = np.array(self.img_paths)
+        self.img_num = []
+
+        if phase == 'train':
+            np.random.seed(seed)
+            # generate imbalance num_samples list
+            img_num_list = self.get_img_num_per_cls(
+                self.cls_num, imb_type, imb_factor
+            )
+            # regenerate self.img_paths and self.targets
+            self.gen_imbalanced_data(img_num_list)
+            self.img_num = img_num_list
+
+        if tail_num_classes:
+            self.targets = np.array(self.targets)
+            self.img_paths = np.array(self.img_paths)
+            tail_indexes = np.where(
+                self.targets >= (self.cls_num - tail_num_classes))
+            self.targets = self.targets[tail_indexes]
+            self.img_paths = self.img_paths[tail_indexes]
+            self.cls_num = tail_num_classes
+        self.labels = self.targets
+        label2ctg = self.get_label2ctg()
+        self.classes = [label2ctg[tail_num_classes+i]
+                        for i in range(self.cls_num)]
+        self.img_num = self.img_num[-tail_num_classes:]
 
 
 @Datasets.register_module("miniImageNet")
