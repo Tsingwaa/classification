@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import torch
-import torchvision.transforms as transforms
+import torchvision.transforms as T
 from PIL import Image
 from data_loader.dataset.builder import Datasets
 
@@ -34,22 +34,22 @@ class SD198(torch.utils.data.Dataset):
         mean = [0.5896185, 0.4765919, 0.45172438]
         std = [0.26626918, 0.24757613, 0.24818243]
 
-        transform_train = transforms.Compose([
-            transforms.Resize(Resize_img),
+        transform_train = T.Compose([
+            T.Resize(Resize_img),
             # transforms.RandomHorizontalFlip(),
             # transforms.RandomVerticalFlip(),
             # transforms.ColorJitter(0.02, 0.02, 0.02, 0.01),
             # transforms.RandomRotation([-180, 180]),
             # transforms.RandomAffine([-180, 180], translate=[0.1, 0.1], scale=[0.7, 1.3]),
-            transforms.RandomCrop(Crop_img),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std)
+            T.RandomCrop(Crop_img),
+            T.ToTensor(),
+            T.Normalize(mean, std)
         ])
-        transform_test = transforms.Compose([
-            transforms.Resize(Resize_img),
-            transforms.CenterCrop(Crop_img),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std)
+        transform_test = T.Compose([
+            T.Resize(Resize_img),
+            T.CenterCrop(Crop_img),
+            T.ToTensor(),
+            T.Normalize(mean, std)
         ])
 
         if transform is not None:
@@ -96,10 +96,10 @@ class SD198(torch.utils.data.Dataset):
 if __name__ == '__main__':
     mean = (0.592, 0.479, 0.451)
     std = (0.265, 0.245, 0.247)
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std)
+    transform = T.Compose([
+        T.Resize((224, 224)),
+        T.ToTensor(),
+        T.Normalize(mean=mean, std=std)
     ])
     trainset = SD198(train=True, transform=transform, fold=1)
 

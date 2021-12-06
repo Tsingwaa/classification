@@ -1,28 +1,29 @@
-#coding=utf-8
+# coding=utf-8
+from common.dataset.builder import Datasets
+import numpy as np
+import random
+import cv2
+from torchvision import datasets
+import torchvision.transforms as T
+from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader
+import torch.utils.data as data
+import torch
+import tqdm
+import msgpack
+import pickle
+import lmdb
+import string
+import six
 import os
 import os.path as osp
-import os, sys
+import os
+import sys
 import os.path as osp
 from PIL import Image
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-import six
-import string
 
-import lmdb
-import pickle
-import msgpack
-import tqdm
-
-import torch
-import torch.utils.data as data
-from torch.utils.data import DataLoader
-from torchvision.datasets import ImageFolder
-from torchvision import transforms, datasets
-import cv2
-import random
-import numpy as np
-from common.dataset.builder import Datasets
 
 @Datasets.register_module("lmdbdataset")
 class ImageFolderLMDB(data.Dataset):
@@ -57,7 +58,8 @@ class ImageFolderLMDB(data.Dataset):
         print('Initialized LMDB dataset.')
 
     def __getitem__(self, index):
-        img_index, label_index = 'image-%09d' % (index+1), 'label-%09d' % (index+1)
+        img_index, label_index = 'image-%09d' % (
+            index+1), 'label-%09d' % (index+1)
         img, label = None, None
         env = self.env
         with env.begin(write=False) as txn:
@@ -113,7 +115,8 @@ def folder2lmdb(dpath, name="train", write_frequency=5000, num_workers=16):
     directory = osp.expanduser(osp.join(dpath, name))
     print("Loading dataset from %s" % directory)
     dataset = ImageFolder(directory, loader=raw_reader)
-    data_loader = DataLoader(dataset, num_workers=num_workers, collate_fn=lambda x: x)
+    data_loader = DataLoader(
+        dataset, num_workers=num_workers, collate_fn=lambda x: x)
 
     lmdb_path = osp.join(dpath, "%s.lmdb" % name)
     isdir = os.path.isdir(lmdb_path)
@@ -128,7 +131,8 @@ def folder2lmdb(dpath, name="train", write_frequency=5000, num_workers=16):
     for idx, data in enumerate(data_loader):
         # print(type(data), data)
         image, label = data[0]
-        txn.put(u'{}'.format(idx).encode('ascii'), dumps_pyarrow((image, label)))
+        txn.put(u'{}'.format(idx).encode('ascii'),
+                dumps_pyarrow((image, label)))
         if idx % write_frequency == 0:
             print("[%d/%d]" % (idx, len(data_loader)))
             txn.commit()
@@ -144,6 +148,7 @@ def folder2lmdb(dpath, name="train", write_frequency=5000, num_workers=16):
     print("Flushing database ...")
     db.sync()
     db.close()
+
 
 if __name__ == '__main__':
     """

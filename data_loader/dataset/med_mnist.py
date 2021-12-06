@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.utils.data as data
 from PIL import Image
-from torchvision import transforms
+from torchvision import transforms as T
 from data_loader.dataset.builder import Datasets
 
 
@@ -86,16 +86,16 @@ class MedMNIST(data.Dataset):
 def get_medmnist_dataset(split='train', imb_factor=0.1, sub='pathmnist'):
     root = '/home/waa/Disk/Warehouse/Datasets/medmnist'
     if split == 'train':
-        transform = transforms.Compose([
-            transforms.Resize(32),
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
+        transform = T.Compose([
+            T.Resize(32),
+            T.RandomCrop(32, padding=4),
+            T.RandomHorizontalFlip(),
+            T.ToTensor(),
         ])
     else:
-        transform = transforms.Compose([
-            transforms.Resize(32),
-            transforms.ToTensor(),
+        transform = T.Compose([
+            T.Resize(32),
+            T.ToTensor(),
         ])
     train_flag = (split == 'train')
     ds = MedMNIST(root, sub, split, transform, imb_factor)

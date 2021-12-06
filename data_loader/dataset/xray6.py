@@ -2,7 +2,7 @@ import json
 import os
 import numpy as np
 import torch
-import torchvision.transforms as transforms
+import torchvision.transforms as T
 from PIL import Image
 from data_loader.dataset.builder import Datasets
 
@@ -68,24 +68,24 @@ def get_xray14_dataset(data_root='Xray14/categories', bs=64, train=True,
     mean = (0.485, 0.456, 0.406)
     std = (0.229, 0.224, 0.225)
     if train:
-        transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.RandomHorizontalFlip(),
+        transform = T.Compose([
+            T.Resize((224, 224)),
+            T.RandomHorizontalFlip(),
             # transforms.RandomCrop(224),
             # transforms.RandomVerticalFlip(),
             # transforms.ColorJitter(0.02, 0.02, 0.02, 0.01),
             # transforms.RandomRotation([-180, 180]),
             # transforms.RandomAffine(
             # [-180, 180], translate=[0.1, 0.1], scale=[0.7, 1.3]),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std),
+            T.ToTensor(),
+            T.Normalize(mean, std),
         ])
     else:
-        transform = transforms.Compose([
-            transforms.Resize((224, 224)),
+        transform = T.Compose([
+            T.Resize((224, 224)),
             #    transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std),
+            T.ToTensor(),
+            T.Normalize(mean, std),
         ])
     dataset = Xray6(data_root, train, transform,
                     fold, select_classes=select_classes)

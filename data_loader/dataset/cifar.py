@@ -4,7 +4,7 @@
 # to produce long-tailed CIFAR datasets.
 
 import torchvision
-import torchvision.transforms as transforms
+from torchvision import transforms
 import numpy as np
 import PIL
 # from pudb import set_trace
