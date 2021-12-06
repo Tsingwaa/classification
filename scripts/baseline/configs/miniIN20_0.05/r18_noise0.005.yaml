@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_r18"
+  name: "miniIN20_0.05_r18_noise0.005"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -39,13 +39,15 @@ finetune:
 
 
 train_transform:
-  name: "BaseTransform"
+  name: "NoiseBaseTransform"
   param:
     phase: "train"
     resize: [224, 224]
+    strong: False
+    sigma: 0.005
 
 val_transform:
-  name: "BaseTransform"
+  name: "NoiseBaseTransform"
   param:
     phase: "val"
     resize: [224, 224]

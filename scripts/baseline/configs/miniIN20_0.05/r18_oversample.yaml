@@ -3,7 +3,7 @@ experiment:
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: True
+  resume: False
   resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
@@ -42,18 +42,14 @@ val_dataset:
     # download: False
 
 trainloader:
-  name: "Dataloader"
-  param:
-    sampler: "BalanceSampler"
-    retain_epoch_size: False
-    batch_size: 64
-    num_workers: 6
+  sampler: "BalanceSampler"
+  retain_epoch_size: False
+  batch_size: 128
+  num_workers: 6
 
 valloader:
-  name: "Dataloader"
-  param:
-    batch_size: 128
-    num_workers: 6
+  batch_size: 128
+  num_workers: 6
 
 network:
   name: "ResNet18"
@@ -77,18 +73,13 @@ optimizer:
     momentum: 0.9
     nesterov: True
 
-warmup_lr_scheduler:
-  warmup: True
-  param:
-    warmup_epochs: 10
-    multiplier: 1
-
 lr_scheduler:
   # name: "CyclicLR"
   # name: "StepLR"
   name: "MultiStepLR"
   # name: "CosineAnnealingWarmRestarts"
   param:
+    warmup_epochs: 10
     # CyclicLR
     # step_size_up: 3  # 3 * iterations
     # step_size_down: 2  # 2 * iterations
@@ -96,7 +87,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [60, 100, 140, 170, 180]
+    milestones: [60, 120, 160, 180]
     gamma: 0.1
 
     # CosineAnnealingWarmRestarts
