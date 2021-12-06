@@ -53,6 +53,7 @@ class BaseTransform:
             ret_transform = T.Compose([
                 T.Resize(self.resize),
                 T.ToTensor(),
+                T.Normalize(mean, std),
             ])
         return ret_transform(x)
 
@@ -97,6 +98,7 @@ class NoiseBaseTransform:
                                   contrast=0.05,
                                   hue=0.05,),
                     T.ToTensor(),
+                    GaussianNoise(self.sigma),
                     T.Normalize(mean, std),
                     # transforms.RandomErasing(),
                 ])
