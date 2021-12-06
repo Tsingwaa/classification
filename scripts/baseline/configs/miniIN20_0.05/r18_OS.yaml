@@ -1,9 +1,9 @@
 experiment:
-  name: "miniIN20_0.05_3step_r18_CB0.9999_focal1"
+  name: "miniIN20_0.05_r18_OS"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
-  resume: True
+  resume: False
   resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
@@ -27,7 +27,7 @@ train_dataset:
     phase: "train"
     img_lst_fpath: "train20.txt"
     # map_fpath: "None"
-    imb_type: 'step'
+    imb_type: 'exp'
     imb_factor: 0.05
     seed: 0
     # download: False
@@ -42,17 +42,14 @@ val_dataset:
     # download: False
 
 trainloader:
-  name: "Dataloader"
-  param:
-    sampler: "None"
-    batch_size: 64
-    num_workers: 6
+  sampler: "BalanceSampler"
+  retain_epoch_size: False
+  batch_size: 128
+  num_workers: 6
 
 valloader:
-  name: "Dataloader"
-  param:
-    batch_size: 128
-    num_workers: 6
+  batch_size: 128
+  num_workers: 6
 
 network:
   name: "ResNet18"
@@ -63,11 +60,9 @@ network:
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
 loss:
-  name: "FocalLoss"
+  name: "CrossEntropyLoss"
   param:
-    weight_type: 'CB'
-    gamma: 1
-    beta: 0.9999
+    weight_type: ''
     label_smoothing: 0.
 
 optimizer:
@@ -78,18 +73,13 @@ optimizer:
     momentum: 0.9
     nesterov: True
 
-warmup_lr_scheduler:
-  warmup: True
-  param:
-    warmup_epochs: 10
-    multiplier: 1
-
 lr_scheduler:
   # name: "CyclicLR"
   # name: "StepLR"
   name: "MultiStepLR"
   # name: "CosineAnnealingWarmRestarts"
   param:
+    warmup_epochs: 10
     # CyclicLR
     # step_size_up: 3  # 3 * iterations
     # step_size_down: 2  # 2 * iterations
@@ -97,7 +87,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [60, 100, 140, 170, 180]
+    milestones: [60, 120, 160, 180]
     gamma: 0.1
 
     # CosineAnnealingWarmRestarts
