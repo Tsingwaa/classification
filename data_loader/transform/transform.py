@@ -115,9 +115,10 @@ class NoiseBaseTransform:
 
     def __call__(self, x, mean=IN_MEAN, std=IN_STD, percent=None):
         if self.phase == 'train':
-            if not percent and not self.sigma_low and not self.sigma_high:
+            if not self.sigma and self.sigma_low:
                 sigma_range = self.sigma_high - self.sigma_low
                 self.sigma = self.sigma_low + percent * sigma_range
+
             if self.strong:
                 ret_transform = transforms.Compose([
                     transforms.RandomHorizontalFlip(0.5),
