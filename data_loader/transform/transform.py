@@ -17,7 +17,7 @@ class BaseTransform:
         self.resize = resize
         self.strong = strong
         if phase == 'train':
-            self.insert_T = kwargs['insert_T']
+            self.insert_T = kwargs.get('insert_T', None)
 
     def __call__(self, x, mean=IN_MEAN, std=IN_STD, **kwargs):
         if self.phase == 'train':
