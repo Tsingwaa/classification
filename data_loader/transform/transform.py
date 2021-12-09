@@ -121,17 +121,19 @@ class NoiseBaseTransform:
             if self.strong:
                 ret_transform = transforms.Compose([
                     transforms.RandomHorizontalFlip(0.5),
-                    transforms.RandomVerticalFlip(0.5),
-                    transforms.RandomAffine(degrees=30,
-                                            translate=(0.2, 0.2),
-                                            scale=(0.5, 1),
-                                            shear=10,
-                                            fillcolor=(127, 127, 127)),
+                    # transforms.RandomVerticalFlip(0.5),
+                    transforms.RandomAffine(
+                        degrees=30,
+                        translate=(0.2, 0.2),
+                        scale=(0.5, 1.5),
+                        shear=30,
+                        # fill=(127, 127, 127)
+                    ),
                     transforms.RandomResizedCrop(self.resize),
-                    transforms.ColorJitter(brightness=0.4,
-                                           saturation=0.4,
-                                           contrast=0.4,
-                                           hue=0.4),
+                    # transforms.ColorJitter(brightness=0.4,
+                    #                        saturation=0.4,
+                    #                        contrast=0.4,
+                    #                        hue=0.4),
                     transforms.ToTensor(),
                     GaussianNoise(self.sigma),
                     transforms.Normalize(mean, std),
@@ -142,10 +144,10 @@ class NoiseBaseTransform:
                     transforms.RandomRotation(30),
                     transforms.RandomResizedCrop(self.resize),
                     transforms.RandomHorizontalFlip(0.5),
-                    transforms.ColorJitter(brightness=0.05,
-                                           saturation=0.05,
-                                           contrast=0.05,
-                                           hue=0.05,),
+                    # transforms.ColorJitter(brightness=0.05,
+                    #                        saturation=0.05,
+                    #                        contrast=0.05,
+                    #                        hue=0.05,),
                     transforms.ToTensor(),
                     GaussianNoise(self.sigma),
                     transforms.Normalize(mean, std),
@@ -410,6 +412,7 @@ class GaussianNoise:
     def __call__(self, img):
         noise = self.sigma * torch.randn_like(img)
         noised_tensor = img + noise
+        noised_tensor = torch.clamp(noised_tensor, min=0., max=1.)
         return noised_tensor
 
 # def cifar_adaptive_transform(phase='train',
