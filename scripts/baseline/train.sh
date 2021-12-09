@@ -23,6 +23,8 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 #         --config_path 'configs/miniIN20_0.05/r18_noise0.005-0.05.yaml'
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
 #         --config_path 'configs/miniIN20_0.05/r18_noise0.005-0.05_OS.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+        --config_path 'configs/miniIN20_0.05/r18_noise0.001-0.01.yaml'
 
 # Baseline
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
@@ -61,5 +63,5 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 #         --config_path 'configs/miniIN20_0.05/augments/r18_tsl.yaml'
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
 #         --config_path 'configs/miniIN20_0.05/augments/r18_scale.yaml'
-CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-        --config_path 'configs/miniIN20_0.05/augments/r18_shear.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+#         --config_path 'configs/miniIN20_0.05/augments/r18_shear.yaml'
