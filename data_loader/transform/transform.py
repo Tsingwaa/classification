@@ -24,17 +24,19 @@ class BaseTransform:
             if self.strong:
                 ret_transform = transforms.Compose([
                     transforms.RandomHorizontalFlip(0.5),
-                    transforms.RandomVerticalFlip(0.5),
-                    transforms.RandomAffine(degrees=30,
-                                            translate=(0.2, 0.2),
-                                            scale=(0.5, 1),
-                                            shear=10,
-                                            fillcolor=(127, 127, 127)),
+                    # transforms.RandomVerticalFlip(0.5),
+                    transforms.RandomAffine(
+                        degrees=40,
+                        translate=(0.4, 0.4),
+                        scale=(0.5, 1.5),
+                        shear=20,
+                        fill=(127, 127, 127),
+                    ),
                     transforms.RandomResizedCrop(self.resize),
-                    transforms.ColorJitter(brightness=0.4,
-                                           saturation=0.4,
-                                           contrast=0.4,
-                                           hue=0.4),
+                    # transforms.ColorJitter(brightness=0.4,
+                    #                        saturation=0.4,
+                    #                        contrast=0.4,
+                    #                        hue=0.4),
                     transforms.ToTensor(),
                     transforms.Normalize(mean, std),
                     # transforms.RandomErasing(),
@@ -56,33 +58,38 @@ class BaseTransform:
                                                             contrast=0.1,
                                                             hue=0.1,))
                 elif self.insert_T == 'rscrop':
-                    T_list.insert(0, transforms.RandomResizedCrop(self.resize))
+                    T_list.insert(0,
+                                  transforms.RandomResizedCrop(self.resize))
                 elif self.insert_T == 'tsl':
                     T_list.insert(0, transforms.RandomAffine(
-                        degrees=30,
+                        degrees=0,
                         translate=(0.2, 0.2)))
                 elif self.insert_T == 'scale':
                     T_list.insert(0, transforms.RandomAffine(
-                        degrees=30,
+                        degrees=0,
                         scale=(0.75, 1.25)))
                 elif self.insert_T == 'shear':
                     T_list.insert(0, transforms.RandomAffine(
-                        degrees=30,
+                        degrees=0,
                         shear=10))
-
                 ret_transform = transforms.Compose(T_list)
-                # ret_transform = T.Compose([
-                #     # T.RandomRotation(30),
-                #     # T.RandomResizedCrop(self.resize),
-                #     # T.RandomHorizontalFlip(0.5),
-                #     # T.RandomVerticalFlip(0.5),
+
+                # ret_transform = transforms.Compose([
+                #     transforms.RandomAffine(
+                #         degrees=30,
+                #         translate=(0.2, 0.2),
+                #         scale=(0.75, 1.25),
+                #         shear=10,
+                #         # fill=(127, 127, 127),
+                #     ),
+                #     transforms.RandomResizedCrop(self.resize),
+                #     transforms.RandomHorizontalFlip(0.5),
                 #     # T.ColorJitter(brightness=0.05,
                 #     #               saturation=0.05,
                 #     #               contrast=0.05,
                 #     #               hue=0.05),
-                #     T.Resize(self.resize),
-                #     T.ToTensor(),
-                #     T.Normalize(mean, std),
+                #     transforms.ToTensor(),
+                #     transforms.Normalize(mean, std),
                 #     # transforms.RandomErasing(),
                 # ])
         else:
