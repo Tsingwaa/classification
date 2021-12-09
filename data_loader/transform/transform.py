@@ -1,6 +1,6 @@
 import torch
 # from pudb import set_trace
-from torchvision import transforms as T
+from torchvision import transforms
 from .randaugment_fixmatch import RandAugmentMC, RandAugmentPC
 from .randaugment import RandAugment
 from data_loader.transform.builder import Transforms
@@ -22,42 +22,55 @@ class BaseTransform:
     def __call__(self, x, mean=IN_MEAN, std=IN_STD, **kwargs):
         if self.phase == 'train':
             if self.strong:
-                ret_transform = T.Compose([
-                    T.RandomHorizontalFlip(0.5),
-                    T.RandomVerticalFlip(0.5),
-                    T.RandomAffine(degrees=30,
-                                   translate=(0.2, 0.2),
-                                   scale=(0.5, 1),
-                                   shear=10,
-                                   fillcolor=(127, 127, 127)),
-                    T.RandomResizedCrop(self.resize),
-                    T.ColorJitter(brightness=0.4,
-                                  saturation=0.4,
-                                  contrast=0.4,
-                                  hue=0.4),
-                    T.ToTensor(),
-                    T.Normalize(mean, std),
+                ret_transform = transforms.Compose([
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.RandomVerticalFlip(0.5),
+                    transforms.RandomAffine(degrees=30,
+                                            translate=(0.2, 0.2),
+                                            scale=(0.5, 1),
+                                            shear=10,
+                                            fillcolor=(127, 127, 127)),
+                    transforms.RandomResizedCrop(self.resize),
+                    transforms.ColorJitter(brightness=0.4,
+                                           saturation=0.4,
+                                           contrast=0.4,
+                                           hue=0.4),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean, std),
                     # transforms.RandomErasing(),
                 ])
             else:
-                T_list = [T.Resize(self.resize),
-                          T.ToTensor(),
-                          T.Normalize(mean, std), ]
-                if self.insert_T == 'rot':
-                    T_list.insert(0, T.RandomRotation(30))
-                elif self.insert_T == 'hlip':
-                    T_list.insert(0, T.RandomHorizontalFlip(0.5))
-                elif self.insert_T == 'vflip':
-                    T_list.insert(0, T.RandomVerticalFlip(0.5))
-                elif self.insert_T == 'cj':
-                    T_list.insert(0, T.ColorJitter(brightness=0.1,
-                                                   saturation=0.1,
-                                                   contrast=0.1,
-                                                   hue=0.1,))
-                elif self.insert_T == 'rscrop':
-                    T_list.insert(0, T.RandomResizedCrop(self.resize))
+                T_list = [transforms.Resize(self.resize),
+                          transforms.ToTensor(),
+                          transforms.Normalize(mean, std), ]
 
-                ret_transform = T.Compose(T_list)
+                if self.insert_T == 'rot':
+                    T_list.insert(0, transforms.RandomRotation(30))
+                elif self.insert_T == 'hlip':
+                    T_list.insert(0, transforms.RandomHorizontalFlip(0.5))
+                elif self.insert_T == 'vflip':
+                    T_list.insert(0, transforms.RandomVerticalFlip(0.5))
+                elif self.insert_T == 'cj':
+                    T_list.insert(0, transforms.ColorJitter(brightness=0.1,
+                                                            saturation=0.1,
+                                                            contrast=0.1,
+                                                            hue=0.1,))
+                elif self.insert_T == 'rscrop':
+                    T_list.insert(0, transforms.RandomResizedCrop(self.resize))
+                elif self.insert_T == 'tsl':
+                    T_list.insert(0, transforms.RandomAffine(
+                        degrees=30,
+                        translate=(0.2, 0.2)))
+                elif self.insert_T == 'scale':
+                    T_list.insert(0, transforms.RandomAffine(
+                        degrees=30,
+                        scale=(0.7, 1)))
+                elif self.insert_T == 'shear':
+                    T_list.insert(0, transforms.RandomAffine(
+                        degrees=30,
+                        shear=10))
+
+                ret_transform = transforms.Compose(T_list)
                 # ret_transform = T.Compose([
                 #     # T.RandomRotation(30),
                 #     # T.RandomResizedCrop(self.resize),
@@ -73,10 +86,10 @@ class BaseTransform:
                 #     # transforms.RandomErasing(),
                 # ])
         else:
-            ret_transform = T.Compose([
-                T.Resize(self.resize),
-                T.ToTensor(),
-                T.Normalize(mean, std),
+            ret_transform = transforms.Compose([
+                transforms.Resize(self.resize),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std),
             ])
         return ret_transform(x)
 
@@ -99,43 +112,43 @@ class NoiseBaseTransform:
                 sigma_range = self.sigma_high - self.sigma_low
                 self.sigma = self.sigma_low + percent * sigma_range
             if self.strong:
-                ret_transform = T.Compose([
-                    T.RandomHorizontalFlip(0.5),
-                    T.RandomVerticalFlip(0.5),
-                    T.RandomAffine(degrees=30,
+                ret_transform = transforms.Compose([
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.RandomVerticalFlip(0.5),
+                    transforms.RandomAffine(degrees=30,
                                    translate=(0.2, 0.2),
                                    scale=(0.5, 1),
                                    shear=10,
                                    fillcolor=(127, 127, 127)),
-                    T.RandomResizedCrop(self.resize),
-                    T.ColorJitter(brightness=0.4,
+                    transforms.RandomResizedCrop(self.resize),
+                    transforms.ColorJitter(brightness=0.4,
                                   saturation=0.4,
                                   contrast=0.4,
                                   hue=0.4),
-                    T.ToTensor(),
+                    transforms.ToTensor(),
                     GaussianNoise(self.sigma),
-                    T.Normalize(mean, std),
+                    transforms.Normalize(mean, std),
                     # transforms.RandomErasing(),
                 ])
             else:
-                ret_transform = T.Compose([
-                    T.RandomRotation(30),
-                    T.RandomResizedCrop(self.resize),
-                    T.RandomHorizontalFlip(0.5),
-                    T.ColorJitter(brightness=0.05,
+                ret_transform = transforms.Compose([
+                    transforms.RandomRotation(30),
+                    transforms.RandomResizedCrop(self.resize),
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.ColorJitter(brightness=0.05,
                                   saturation=0.05,
                                   contrast=0.05,
                                   hue=0.05,),
-                    T.ToTensor(),
+                    transforms.ToTensor(),
                     GaussianNoise(self.sigma),
-                    T.Normalize(mean, std),
+                    transforms.Normalize(mean, std),
                     # transforms.RandomErasing(),
                 ])
         else:
-            ret_transform = T.Compose([
-                T.Resize(self.resize),
-                T.ToTensor(),
-                T.Normalize(mean, std)
+            ret_transform = transforms.Compose([
+                transforms.Resize(self.resize),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std)
             ])
         return ret_transform(x)
 
@@ -161,18 +174,18 @@ class RandTransform:
             m = int(((1 + percent) / 2 * m))
 
         if self.phase == 'train':
-            ret_transform = T.Compose([
+            ret_transform = transforms.Compose([
                 # transforms.RandomHorizontalFlip(),
-                T.RandomResizedCrop(self.resize),
+                transforms.RandomResizedCrop(self.resize),
                 RandAugmentPC(n, m) if self.strong else RandAugmentMC(n, m),
-                T.ToTensor(),
-                T.Normalize(mean, std)])
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std)])
         else:
-            ret_transform = T.Compose([
-                T.Resize(int(self.resize[0] / 0.875)),
-                T.CenterCrop(self.resize),
-                T.ToTensor(),
-                T.Normalize(mean, std)])
+            ret_transform = transforms.Compose([
+                transforms.Resize(int(self.resize[0] / 0.875)),
+                transforms.CenterCrop(self.resize),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std)])
 
         return ret_transform(x)
 
@@ -188,42 +201,42 @@ class AdvTransform:
     def __call__(self, x, mean=IN_MEAN, std=IN_STD):
         if self.phase == 'train':
             if self.strong:
-                ret_transform = T.Compose([
-                    T.RandomHorizontalFlip(0.5),
-                    T.RandomVerticalFlip(0.5),
-                    T.RandomAffine(
+                ret_transform = transforms.Compose([
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.RandomVerticalFlip(0.5),
+                    transforms.RandomAffine(
                         degrees=30,
                         translate=(0.2, 0.2),
                         scale=(0.5, 1),
                         shear=10,
                         fillcolor=(127, 127, 127),
                     ),
-                    T.RandomResizedCrop(self.resize),
-                    T.ColorJitter(
+                    transforms.RandomResizedCrop(self.resize),
+                    transforms.ColorJitter(
                         brightness=0.4,
                         saturation=0.4,
                         contrast=0.4,
                         hue=0.4,
                     ),
-                    T.ToTensor(),
+                    transforms.ToTensor(),
                 ])
             else:
-                ret_transform = T.Compose([
-                    T.RandomRotation(30),
-                    T.RandomResizedCrop(self.resize),
-                    T.RandomHorizontalFlip(0.5),
-                    T.ColorJitter(
+                ret_transform = transforms.Compose([
+                    transforms.RandomRotation(30),
+                    transforms.RandomResizedCrop(self.resize),
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.ColorJitter(
                         brightness=0.05,
                         saturation=0.05,
                         contrast=0.05,
                         hue=0.05,
                     ),
-                    T.ToTensor(),
+                    transforms.ToTensor(),
                 ])
         else:
-            ret_transform = T.Compose([
-                T.Resize(self.resize),
-                T.ToTensor(),
+            ret_transform = transforms.Compose([
+                transforms.Resize(self.resize),
+                transforms.ToTensor(),
             ])
         return ret_transform(x)
 
@@ -237,26 +250,26 @@ class TransformFixMatch(object):
         n = kwargs.get('rand_n', 2)
         m = kwargs.get('rand_m', 10)
         self.is_labeled = kwargs.get('is_labeled', True)
-        self.weakaug = T.Compose([
-            T.RandomHorizontalFlip(),
-            T.Resize(
+        self.weakaug = transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.Resize(
                 size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
-            T.RandomCrop(resize),
-            T.ToTensor(),
-            T.Normalize(mean, std),
+            transforms.RandomCrop(resize),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std),
         ])
-        self.strongaug = T.Compose([
-            T.RandomHorizontalFlip(),
-            T.RandomResizedCrop(resize),
+        self.strongaug = transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomResizedCrop(resize),
             RandAugmentMC(n, m),
-            T.ToTensor(),
-            T.Normalize(mean, std),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std),
         ])
-        self.val_transform = T.Compose([
-            T.Resize(size=(int(resize[0]), int(resize[1]))),
-            T.Resize(resize),
-            T.ToTensor(),
-            T.Normalize(mean, std),
+        self.val_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
+            transforms.Resize(resize),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std),
         ])
 
     def __call__(self, x):
@@ -272,22 +285,22 @@ class TransformFixMatch(object):
 def flower_transform(resize=(224, 224), phase='train',
                      mean=None, std=None, **kwargs):
     if phase == 'train':
-        ret_transform = T.Compose([
-            T.Resize(int(resize[1] / 0.875)),
-            T.RandomCrop(resize),
-            T.RandomHorizontalFlip(0.5),
-            T.RandomRotation(25),
-            T.ColorJitter(brightness=0.126, saturation=0.5),
-            T.ToTensor(),
-            T.Normalize(mean, std),
-            T.RandomErasing()
+        ret_transform = transforms.Compose([
+            transforms.Resize(int(resize[1] / 0.875)),
+            transforms.RandomCrop(resize),
+            transforms.RandomHorizontalFlip(0.5),
+            transforms.RandomRotation(25),
+            transforms.ColorJitter(brightness=0.126, saturation=0.5),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std),
+            transforms.RandomErasing()
         ])
     else:
-        ret_transform = T.Compose([
-            T.Resize(size=(int(resize[0]), int(resize[1]))),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
             # transforms.CenterCrop(resize),
-            T.ToTensor(),
-            T.Normalize(mean, std)
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
         ])
 
     return ret_transform
@@ -297,22 +310,22 @@ def huashu_transform(phase='train', resize=(224, 224),
                      mean=None, std=None, **kwargs):
     if phase == 'train':
         # transforms.RandomOrder
-        ret_transform = T.Compose([
-            T.Resize(size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
-            T.RandomCrop(resize),
-            T.RandomHorizontalFlip(0.5),
-            T.RandomRotation(25),
-            T.ColorJitter(brightness=0.126, saturation=0.5),
-            T.ToTensor(),
-            T.Normalize(mean, std),
-            T.RandomErasing()
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
+            transforms.RandomCrop(resize),
+            transforms.RandomHorizontalFlip(0.5),
+            transforms.RandomRotation(25),
+            transforms.ColorJitter(brightness=0.126, saturation=0.5),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std),
+            transforms.RandomErasing()
         ])
     else:
-        ret_transform = T.Compose([
-            T.Resize(size=(int(resize[0]), int(resize[1]))),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
             # transforms.CenterCrop(resize),
-            T.ToTensor(),
-            T.Normalize(mean, std)
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
         ])
 
     return ret_transform
@@ -321,25 +334,25 @@ def huashu_transform(phase='train', resize=(224, 224),
 def common_transform(phase='train', resize=(224, 224),
                      mean=None, std=None, **kwargs):
     if phase == 'train':
-        ret_transform = T.Compose([
-            T.Resize(size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
-            T.RandomCrop(resize),
-            T.RandomHorizontalFlip(0.5),
-            T.RandomRotation(25),
-            T.ColorJitter(brightness=0.126, saturation=0.5),
-            T.RandomAffine(degrees=(30, 70),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
+            transforms.RandomCrop(resize),
+            transforms.RandomHorizontalFlip(0.5),
+            transforms.RandomRotation(25),
+            transforms.ColorJitter(brightness=0.126, saturation=0.5),
+            transforms.RandomAffine(degrees=(30, 70),
                            translate=(0.1, 0.3),
                            scale=(0.5, 1.25)),
-            T.ToTensor(),
-            T.Normalize(mean, std),
-            T.RandomErasing()
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std),
+            transforms.RandomErasing()
         ])
     else:
-        ret_transform = T.Compose([
-            T.Resize(size=(int(resize[0]), int(resize[1]))),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
             # transforms.CenterCrop(resize),
-            T.ToTensor(),
-            T.Normalize(mean, std)
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
         ])
     return ret_transform
 
@@ -349,18 +362,18 @@ def rand_transform(phase='train', resize=(224, 224),
     if phase == "train":
         n = kwargs.get("rand_n", 2)
         m = kwargs.get("rand_m", 10)
-        ret_transform = T.Compose([
-            T.Resize(size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
-            T.RandomCrop(resize),
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
+            transforms.RandomCrop(resize),
             RandAugment(n, m),
-            T.ToTensor(),
-            T.Normalize(mean, std)
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
         ])
     else:
-        ret_transform = T.Compose([
-            T.Resize(size=(int(resize[0]), int(resize[1]))),
-            T.ToTensor(),
-            T.Normalize(mean, std)
+        ret_transform = transforms.Compose([
+            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
         ])
     return ret_transform
 
@@ -369,16 +382,16 @@ def cifar_transform(phase='train', resize=(32, 32), **kwargs):
     mean = [0.4914, 0.4822, 0.4465]
     std = [0.2023, 0.1994, 0.2010]
     if phase == 'train':
-        ret_transform = T.Compose([
-            T.RandomCrop(resize[1], padding=4),
-            T.RandomHorizontalFlip(),
-            T.ToTensor(),
-            T.Normalize(mean, std),
+        ret_transform = transforms.Compose([
+            transforms.RandomCrop(resize[1], padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std),
         ])
     else:
-        ret_transform = T.Compose([
-            T.ToTensor(),
-            T.Normalize(mean, std)
+        ret_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean, std)
         ])
     return ret_transform
 
