@@ -1,4 +1,5 @@
 import torch
+# from pudb import set_trace
 from torchvision import transforms as T
 from .randaugment_fixmatch import RandAugmentMC, RandAugmentPC
 from .randaugment import RandAugment
@@ -15,8 +16,10 @@ class BaseTransform:
         self.phase = phase
         self.resize = resize
         self.strong = strong
+        if phase == 'train':
+            self.insert_T = kwargs['insert_T']
 
-    def __call__(self, x, mean=IN_MEAN, std=IN_STD):
+    def __call__(self, x, mean=IN_MEAN, std=IN_STD, **kwargs):
         if self.phase == 'train':
             if self.strong:
                 ret_transform = T.Compose([
@@ -37,18 +40,38 @@ class BaseTransform:
                     # transforms.RandomErasing(),
                 ])
             else:
-                ret_transform = T.Compose([
-                    T.RandomRotation(30),
-                    T.RandomResizedCrop(self.resize),
-                    T.RandomHorizontalFlip(0.5),
-                    T.ColorJitter(brightness=0.05,
-                                  saturation=0.05,
-                                  contrast=0.05,
-                                  hue=0.05),
-                    T.ToTensor(),
-                    T.Normalize(mean, std),
-                    # transforms.RandomErasing(),
-                ])
+                T_list = [T.Resize(self.resize),
+                          T.ToTensor(),
+                          T.Normalize(mean, std), ]
+                if self.insert_T == 'rot':
+                    T_list.insert(0, T.RandomRotation(30))
+                elif self.insert_T == 'hlip':
+                    T_list.insert(0, T.RandomHorizontalFlip(0.5))
+                elif self.insert_T == 'vflip':
+                    T_list.insert(0, T.RandomVerticalFlip(0.5))
+                elif self.insert_T == 'cj':
+                    T_list.insert(0, T.ColorJitter(brightness=0.1,
+                                                   saturation=0.1,
+                                                   contrast=0.1,
+                                                   hue=0.1,))
+                elif self.insert_T == 'rscrop':
+                    T_list.insert(0, T.RandomResizedCrop(self.resize))
+
+                ret_transform = T.Compose(T_list)
+                # ret_transform = T.Compose([
+                #     # T.RandomRotation(30),
+                #     # T.RandomResizedCrop(self.resize),
+                #     # T.RandomHorizontalFlip(0.5),
+                #     # T.RandomVerticalFlip(0.5),
+                #     # T.ColorJitter(brightness=0.05,
+                #     #               saturation=0.05,
+                #     #               contrast=0.05,
+                #     #               hue=0.05),
+                #     T.Resize(self.resize),
+                #     T.ToTensor(),
+                #     T.Normalize(mean, std),
+                #     # transforms.RandomErasing(),
+                # ])
         else:
             ret_transform = T.Compose([
                 T.Resize(self.resize),
@@ -61,14 +84,20 @@ class BaseTransform:
 @Transforms.register_module('NoiseBaseTransform')
 class NoiseBaseTransform:
     def __init__(self, phase='train', resize=(224, 224),
-                 strong=False, sigma=0.01, **kwargs):
+                 strong=False, sigma=0.005, sigma_low=None,
+                 sigma_high=None, **kwargs):
         self.phase = phase
         self.resize = resize
         self.strong = strong
         self.sigma = sigma
+        self.sigma_low = sigma_low
+        self.sigma_high = sigma_high
 
-    def __call__(self, x, mean=IN_MEAN, std=IN_STD):
+    def __call__(self, x, mean=IN_MEAN, std=IN_STD, percent=None):
         if self.phase == 'train':
+            if percent is not None:
+                sigma_range = self.sigma_high - self.sigma_low
+                self.sigma = self.sigma_low + percent * sigma_range
             if self.strong:
                 ret_transform = T.Compose([
                     T.RandomHorizontalFlip(0.5),

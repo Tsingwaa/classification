@@ -39,10 +39,13 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
 
     # set_trace()
     def __init__(self, data_root, phase, img_lst_fpath=None, transform=None,
-                 imb_type='exp', imb_factor=0.1, seed=0, **kwargs):
+                 imb_type='exp', imb_factor=0.1, seed=0, adapt=False,
+                 **kwargs):
         self.img_paths = []
         self.targets = []
         self.transform = transform
+        self.adapt = adapt
+        self.phase = phase
 
         # build img_path-target pairs
         if img_lst_fpath is not None and '/' not in img_lst_fpath:
@@ -70,6 +73,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
             # regenerate self.img_paths and self.targets
             self.gen_imbalanced_data(img_num_list)
             self.img_num = img_num_list
+            self.class_weight = self.get_class_weight()
 
         self.labels = self.targets
         label2ctg = self.get_label2ctg()
@@ -132,7 +136,12 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         img = self._check_channel(img)  # 对单通道灰度图复制为三通道
 
         if self.transform is not None:
-            img = self.transform(img, mean=self.mean, std=self.std)
+            if self.adapt and (self.phase == 'train'):
+                percent = np.sum(self.class_weight[:(label+1)])
+            else:
+                percent = None
+            img = self.transform(img, mean=self.mean, std=self.std,
+                                 percent=percent)
 
         return img, label
 
@@ -153,6 +162,12 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
                 category = self.img_paths[i].split('/')[-2]
                 label2ctg[self.labels[i]] = category
         return label2ctg
+
+    def get_class_weight(self):
+        imgs_per_cls = np.array(self.img_num)
+        weight = 1.0 / imgs_per_cls
+        weight /= np.sum(weight)
+        return weight
 
     def _check_channel(self, Image_obj):
         img_arr = np.array(Image_obj)
