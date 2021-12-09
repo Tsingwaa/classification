@@ -123,8 +123,8 @@ class NoiseBaseTransform:
                     transforms.RandomHorizontalFlip(0.5),
                     # transforms.RandomVerticalFlip(0.5),
                     transforms.RandomAffine(
-                        degrees=30,
-                        translate=(0.2, 0.2),
+                        degrees=45,
+                        translate=(0.4, 0.4),
                         scale=(0.5, 1.5),
                         shear=30,
                         # fill=(127, 127, 127)
@@ -141,13 +141,15 @@ class NoiseBaseTransform:
                 ])
             else:
                 ret_transform = transforms.Compose([
-                    transforms.RandomRotation(30),
+                    transforms.RandomAffine(
+                        degrees=30,
+                        translate=(0.2, 0.2),
+                        scale=(0.75, 1.25),
+                        shear=10,
+                        # fill=(127, 127, 127)
+                    ),
                     transforms.RandomResizedCrop(self.resize),
                     transforms.RandomHorizontalFlip(0.5),
-                    # transforms.ColorJitter(brightness=0.05,
-                    #                        saturation=0.05,
-                    #                        contrast=0.05,
-                    #                        hue=0.05,),
                     transforms.ToTensor(),
                     GaussianNoise(self.sigma),
                     transforms.Normalize(mean, std),
