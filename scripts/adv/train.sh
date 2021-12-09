@@ -7,26 +7,25 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 
 # Single-GPU Training
 # clean weight
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
-#         'configs/miniIN20_0.05/r18_LinfPGD_joint0.9.yaml'
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
-#         'configs/miniIN20_0.05/r18_LinfPGD_joint0.7.yaml'
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
-#         'configs/miniIN20_0.05/r18_LinfPGD_joint0.5.yaml'
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
-#         'configs/miniIN20_0.05/r18_LinfPGD_joint0.3.yaml'
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
-#         'configs/miniIN20_0.05/r18_LinfPGD_joint0.1.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+        'configs/miniIN20_0.05/r18_LinfPGD_joint0.9.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+        'configs/miniIN20_0.05/r18_LinfPGD_joint0.7.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+        'configs/miniIN20_0.05/r18_LinfPGD_joint0.5.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+        'configs/miniIN20_0.05/r18_LinfPGD_joint0.3.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+        'configs/miniIN20_0.05/r18_LinfPGD_joint0.1.yaml'
 
 # adapt
-CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
-        'configs/miniIN20_0.05/r18_LinfPGD_joint0.5_adapt.yaml'
-CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
-        'configs/miniIN20_0.05/r18_LinfPGD_joint0.5_adapt2.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+#         'configs/miniIN20_0.05/r18_LinfPGD_joint0.5_adapt.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+#         'configs/miniIN20_0.05/r18_LinfPGD_joint0.5_adapt2.yaml'
 
 # strong augmentation
-CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
-        'configs/miniIN20_0.05/r18_LinfPGD_joint0.5_Strg.yaml'
-CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
-        'configs/miniIN20_0.05/r18_LinfPGD_joint0.5_Strg_RS.yaml'
-
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+#         'configs/miniIN20_0.05/r18_LinfPGD_joint0.5_Strg.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+#         'configs/miniIN20_0.05/r18_LinfPGD_joint0.5_Strg_RS.yaml'

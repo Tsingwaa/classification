@@ -23,28 +23,28 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 #         --config_path 'configs/miniIN20_0.05/r18_noise0.005-0.05.yaml'
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
 #         --config_path 'configs/miniIN20_0.05/r18_noise0.005-0.05_OS.yaml'
-CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-        --config_path 'configs/miniIN20_0.05/r18_noise0.001-0.01.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+#         --config_path 'configs/miniIN20_0.05/r18_noise0.001-0.01.yaml'
 
 # Baseline
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-#         --config_path 'configs/miniIN20_0.05/r18_test.yaml'
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-#         --config_path 'configs/miniIN20_0.05/r18_OS.yaml'
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-#         --config_path 'configs/miniIN20_0.05/r18_RS.yaml'
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-#         --config_path 'configs/miniIN20_0.05/r18_RW.yaml'
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-#         --config_path 'configs/miniIN20_0.05/r34.yaml'
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-#         --config_path 'configs/miniIN20_0.05/r18_CB0.99.yaml'
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-#         --config_path 'configs/miniIN20_0.05/r18_CB0.99_focal1.yaml'
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-#         --config_path 'configs/miniIN20_0.05/r18_focal1.yaml'
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-#         --config_path 'configs/miniIN20_0.05/r18_focal2.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+        --config_path 'configs/miniIN20_0.05/r18.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+        --config_path 'configs/miniIN20_0.05/r18_OS.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+        --config_path 'configs/miniIN20_0.05/r18_RS.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+        --config_path 'configs/miniIN20_0.05/r18_RW.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+        --config_path 'configs/miniIN20_0.05/r34.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+        --config_path 'configs/miniIN20_0.05/r18_CB0.99.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+        --config_path 'configs/miniIN20_0.05/r18_CB0.99_focal1.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+        --config_path 'configs/miniIN20_0.05/r18_focal1.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+        --config_path 'configs/miniIN20_0.05/r18_focal2.yaml'
 
 # Augments
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\

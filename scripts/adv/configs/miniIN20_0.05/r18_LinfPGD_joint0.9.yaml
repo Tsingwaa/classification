@@ -86,7 +86,7 @@ val_dataset:
 
 trainloader:
   sampler: ''
-  batch_size: 128
+  batch_size: 64
   num_workers: 6
 
 valloader:
@@ -131,8 +131,8 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [60, 120, 160, 180]
-    gamma: 0.1
+    milestones: [120, 160, 180]
+    gamma: 0.01
 
     # CosineAnnealingWarmRestarts
     # T_0: 5
