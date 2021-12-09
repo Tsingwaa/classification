@@ -64,7 +64,7 @@ class BaseTransform:
                 elif self.insert_T == 'scale':
                     T_list.insert(0, transforms.RandomAffine(
                         degrees=30,
-                        scale=(0.7, 1)))
+                        scale=(0.75, 1.25)))
                 elif self.insert_T == 'shear':
                     T_list.insert(0, transforms.RandomAffine(
                         degrees=30,
@@ -108,7 +108,7 @@ class NoiseBaseTransform:
 
     def __call__(self, x, mean=IN_MEAN, std=IN_STD, percent=None):
         if self.phase == 'train':
-            if percent is not None:
+            if not percent and not self.sigma_low and not self.sigma_high:
                 sigma_range = self.sigma_high - self.sigma_low
                 self.sigma = self.sigma_low + percent * sigma_range
             if self.strong:
@@ -116,15 +116,15 @@ class NoiseBaseTransform:
                     transforms.RandomHorizontalFlip(0.5),
                     transforms.RandomVerticalFlip(0.5),
                     transforms.RandomAffine(degrees=30,
-                                   translate=(0.2, 0.2),
-                                   scale=(0.5, 1),
-                                   shear=10,
-                                   fillcolor=(127, 127, 127)),
+                                            translate=(0.2, 0.2),
+                                            scale=(0.5, 1),
+                                            shear=10,
+                                            fillcolor=(127, 127, 127)),
                     transforms.RandomResizedCrop(self.resize),
                     transforms.ColorJitter(brightness=0.4,
-                                  saturation=0.4,
-                                  contrast=0.4,
-                                  hue=0.4),
+                                           saturation=0.4,
+                                           contrast=0.4,
+                                           hue=0.4),
                     transforms.ToTensor(),
                     GaussianNoise(self.sigma),
                     transforms.Normalize(mean, std),
@@ -136,9 +136,9 @@ class NoiseBaseTransform:
                     transforms.RandomResizedCrop(self.resize),
                     transforms.RandomHorizontalFlip(0.5),
                     transforms.ColorJitter(brightness=0.05,
-                                  saturation=0.05,
-                                  contrast=0.05,
-                                  hue=0.05,),
+                                           saturation=0.05,
+                                           contrast=0.05,
+                                           hue=0.05,),
                     transforms.ToTensor(),
                     GaussianNoise(self.sigma),
                     transforms.Normalize(mean, std),
@@ -311,7 +311,7 @@ def huashu_transform(phase='train', resize=(224, 224),
     if phase == 'train':
         # transforms.RandomOrder
         ret_transform = transforms.Compose([
-            transforms.Resize(size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
+            transforms.Resize(int(resize[1] / 0.875)),
             transforms.RandomCrop(resize),
             transforms.RandomHorizontalFlip(0.5),
             transforms.RandomRotation(25),
@@ -335,21 +335,21 @@ def common_transform(phase='train', resize=(224, 224),
                      mean=None, std=None, **kwargs):
     if phase == 'train':
         ret_transform = transforms.Compose([
-            transforms.Resize(size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
+            transforms.Resize(int(resize[0] / 0.875)),
             transforms.RandomCrop(resize),
             transforms.RandomHorizontalFlip(0.5),
             transforms.RandomRotation(25),
             transforms.ColorJitter(brightness=0.126, saturation=0.5),
             transforms.RandomAffine(degrees=(30, 70),
-                           translate=(0.1, 0.3),
-                           scale=(0.5, 1.25)),
+                                    translate=(0.1, 0.3),
+                                    scale=(0.5, 1.25)),
             transforms.ToTensor(),
             transforms.Normalize(mean, std),
             transforms.RandomErasing()
         ])
     else:
         ret_transform = transforms.Compose([
-            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
+            transforms.Resize(resize),
             # transforms.CenterCrop(resize),
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
@@ -363,7 +363,7 @@ def rand_transform(phase='train', resize=(224, 224),
         n = kwargs.get("rand_n", 2)
         m = kwargs.get("rand_m", 10)
         ret_transform = transforms.Compose([
-            transforms.Resize(size=(int(resize[0] / 0.875), int(resize[1] / 0.875))),
+            transforms.Resize(int(resize[1] / 0.875)),
             transforms.RandomCrop(resize),
             RandAugment(n, m),
             transforms.ToTensor(),
