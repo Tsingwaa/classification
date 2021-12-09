@@ -53,7 +53,13 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 #         --config_path 'configs/miniIN20_0.05/augments/r18_hflip.yaml'
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
 #         --config_path 'configs/miniIN20_0.05/augments/r18_vflip.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+#         --config_path 'configs/miniIN20_0.05/augments/r18_rscrop.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+#         --config_path 'configs/miniIN20_0.05/augments/r18_rot.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+#         --config_path 'configs/miniIN20_0.05/augments/r18_tsl.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
+#         --config_path 'configs/miniIN20_0.05/augments/r18_scale.yaml'
 CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-        --config_path 'configs/miniIN20_0.05/augments/r18_rscrop.yaml'
-CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-        --config_path 'configs/miniIN20_0.05/augments/r18_rot.yaml'
+        --config_path 'configs/miniIN20_0.05/augments/r18_shear.yaml'
