@@ -1,7 +1,6 @@
 """Base Trainer"""
 # ############# Build-in Package #############
 import os
-import math
 import abc
 # import shutil
 import logging
@@ -53,7 +52,6 @@ class BaseTrainer:
         self.total_epochs = self.exp_config['total_epochs']
 
         self.resume = self.exp_config['resume']
-
         if self.resume:
             if '/' in self.exp_config['resume_fpath']:
                 self.resume_fpath = self.exp_config['resume_fpath']
