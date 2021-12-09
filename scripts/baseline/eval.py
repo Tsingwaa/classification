@@ -1,6 +1,7 @@
 """TRAINING
 """
 import os
+import math
 import warnings
 import argparse
 import torch
@@ -36,97 +37,75 @@ class Validater(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
-        self.experiment_config = config['experiment']
-        self.exp_name = self.experiment_config['name']
+        self.exp_config = config['experiment']
+        self.exp_name = self.exp_config['name']
         self.user_root = os.environ['HOME']
-        self.resume = self.experiment_config['resume']
+        self.exp_root = join(self.user_root, 'Experiments')
 
-        if '/' in self.experiment_config['resume_fpath']:
-            self.resume_fpath = self.experiment_config['resume_fpath']
+        self.resume = self.exp_config['resume']
+        if '/' in self.exp_config['resume_fpath']:
+            self.resume_fpath = self.exp_config['resume_fpath']
         else:
-            self.resume_fpath = join(
-                self.user_root, 'Experiments', self.exp_name,
-                self.experiment_config['resume_fpath'])
+            self.resume_fpath = join(self.exp_root, self.exp_name,
+                                     self.exp_config['resume_fpath'])
 
-        self.checkpoint, resume_log = self.resume_checkpoint()
+        self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
         self.test_epoch = self.checkpoint['epoch']
 
-        self.save_dir = join(self.user_root, 'Experiments', self.exp_name)
+        self.save_dir = join(self.exp_root, self.exp_name)
         os.makedirs(self.save_dir, exist_ok=True)
 
         if 'best' in self.resume_fpath:
-            self.log_fname = f'val_best_epoch{self.test_epoch}.log'
+            self.log_fname = f'eval_best_epoch{self.test_epoch}.log'
         else:
-            self.log_fname = f'val_epoch{self.test_epoch}.log'
+            self.log_fname = f'eval_epoch{self.test_epoch}.log'
         self.log_fpath = join(self.save_dir, self.log_fname)
         self.logger = self.init_logger(self.log_fpath)
-        self.logger.info(resume_log)
+        self.log(resume_log)
 
         exp_init_log = '===> Evaluate experiment "{}" @epoch{}\n'\
-            'Log filepath: "{}"\n'.format(
-                self.exp_name,
-                self.test_epoch,
-                self.log_fpath,
-            )
+            'Log filepath: "{}"\n'.format(self.exp_name,
+                                          self.test_epoch,
+                                          self.log_fpath,)
         self.logger.info(exp_init_log)
 
-        #######################################################################
-        # Dataset setting
-        #######################################################################
-        self.val_transform_config = config['val_transform']
-        self.valset_config = config['val_dataset']
-
-        #######################################################################
-        # Dataloader setting
-        #######################################################################
-        self.valloader_config = config['valloader']
-        self.valloader_name = self.valloader_config['name']
-        self.valloader_param = self.valloader_config['param']
-        self.val_batch_size = self.valloader_param['batch_size']
-        self.val_num_workers = self.valloader_param['num_workers']
-
-        #######################################################################
-        # Network setting
-        #######################################################################
-        self.network_config = config['network']
-        self.network_name = self.network_config['name']
-        self.network_param = self.network_config['param']
+        self._set_configs(config)
 
     def evaluate(self):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
-        val_transform = self.init_transform(self.val_transform_config)
-        valset = self.init_dataset(self.valset_config, val_transform)
-        self.valloader = DataLoaderX(
-            valset,
-            batch_size=self.val_batch_size,
-            shuffle=False,
-            num_workers=self.val_num_workers,
-            pin_memory=True,
-            drop_last=False,
-        )
+        val_transform = self.init_transform(self.val_transform_name,
+                                            **self.val_transform_params)
+        valset = self.init_dataset(self.valset_name,
+                                   transform=val_transform,
+                                   **self.valset_params)
+        num_classes = valset.cls_num
+        valloader = DataLoaderX(valset,
+                                batch_size=self.val_batchsize,
+                                shuffle=False,
+                                num_workers=self.val_workers,
+                                pin_memory=True,
+                                drop_last=False,)
 
         #######################################################################
         # Initialize Network
         #######################################################################
-        self.model = self.init_model()
+        model = self.init_model(self.network_name, **self.network_params)
 
         #######################################################################
         # Start evaluating
         #######################################################################
-        val_pbar = tqdm(total=len(self.valloader), desc='Evaluate')
+        val_pbar = tqdm(total=len(valloader), desc='Evaluate')
 
-        self.model.eval()
+        model.eval()
 
-        all_labels = []
-        all_probs = []
-        all_preds = []
+        all_labels, all_probs, all_preds = [], [], []
         with torch.no_grad():
-            for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
+            for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
-                batch_probs = self.model(batch_imgs)
+                batch_probs = model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]
 
                 all_labels.extend(batch_labels.cpu().numpy().tolist())
@@ -136,22 +115,36 @@ class Validater(BaseTrainer):
                 val_pbar.update()
 
         val_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
-        val_pbar.set_postfix_str('MR:{:.2%}'.format(val_mr))
-        val_pbar.close()
+        val_recalls = metrics.recall_score(all_labels, all_preds, average=None)
 
+        head_classes = math.floor(num_classes / 3)
+        tail_classes = head_classes
+        val_group_recalls = [
+            np.around(
+                np.mean(val_recalls[:head_classes]),
+                decimals=4),
+            np.around(
+                np.mean(val_recalls[head_classes:num_classes-tail_classes]),
+                decimals=4),
+            np.around(
+                np.mean(val_recalls[num_classes-tail_classes:]),
+                decimals=4)]
+
+        val_pbar.set_postfix_str(
+            f"MR:{val_mr:.2%} "
+            f"Head:{val_group_recalls[0]:.2%} "
+            f"Mid:{val_group_recalls[1]:.2%} "
+            f"Tail:{val_group_recalls[2]:.2%}")
+        val_pbar.close()
         classification_report = metrics.classification_report(
             all_labels, all_preds, target_names=valset.classes
         )
 
-        self.logger.info(
-            "===> Classification Report:\n" + classification_report
-        )
+        self.log("===> Classification Report:\n" + classification_report)
 
-        if len(valset.classes) <= 20:
+        if num_classes <= 20:
             cm_df = get_cm_with_labels(all_labels, all_preds, valset.classes)
-            self.logger.info(
-                '===> Confusion Matrix:\n' + cm_df.to_string() + '\n'
-            )
+            self.log('===> Confusion Matrix:\n' + cm_df.to_string() + '\n')
 
         # save true_list and pred_list
         np.save(
@@ -167,12 +160,11 @@ class Validater(BaseTrainer):
             np.array(all_probs)
         )
 
-        save_log = f"Results are saved at '{self.save_dir}'.\n"\
-            f"===> Ended Evaluation of experiment '{self.exp_name}'"\
-            f" @epoch{self.test_epoch}.\n"\
-            f"*********************************************************"\
-            f"*********************************************************\n\n"
-        self.logger.info(save_log)
+        self.log(f"Results are saved at '{self.save_dir}'.\n"
+                 f"===> Ended Evaluation of experiment '{self.exp_name}'"
+                 f" @epoch{self.test_epoch}.\n"
+                 f"*********************************************************"
+                 f"*********************************************************")
 
 
 def parse_args():
