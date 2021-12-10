@@ -39,7 +39,7 @@ class FineTuner(BaseTrainer):
 
         self.local_rank = local_rank
         if self.local_rank != -1:
-            dist.init_process_group(backend='nccl', init_method='env://')
+            dist.init_process_group(backend='nccl')
             torch.cuda.set_device(self.local_rank)
             self.global_rank = dist.get_rank()
             self.world_size = dist.get_world_size()

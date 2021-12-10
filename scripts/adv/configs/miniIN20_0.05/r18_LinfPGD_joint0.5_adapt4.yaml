@@ -1,0 +1,140 @@
+experiment:
+  name: "miniIN20_0.05_r18_LinfPGD_joint0.5_adapt4"
+  start_epoch: 1
+  total_epochs: 200
+  log_fname: "train.log"
+  resume: False
+  resume_fpath: "last.pth.tar"
+  extract_phase: "train"
+  save_period: 10
+  eval_period: 1  # if 0, remove validate process when training.
+
+adv:
+  name: "AdaptLinfPGD4"
+  param:
+    joint_training: True
+    clean_weight: 0.5
+    test_adv: False
+    # iterations: 7  # Default: 7
+    # step: 0.0078  # Default: 2/255
+    # epsilon: 0.0314  # Default: 8/255
+    # random_start: True  # Default: True
+    # targeted: False  # Default: False
+    # clip_min: 0.  # Default: 0.
+    # clip_max: 1.  # Default: 0.
+
+finetune:
+  name: "2RW"
+  total_epochs: 30
+  unfreeze_keys: ["fc"]
+  trainloader:
+    sampler: ""
+    retain_epoch_size: True
+    batch_size: 64
+    num_workers: 6
+  loss:
+    name: "CrossEntropyLoss"
+    param:
+      weight_type: "class_weight"
+      label_smoothing: 0.
+  optimizer:
+    name: "SGD"
+    param:
+      lr: 1.0e-2
+      weight_decay: 1.0e-5
+      momentum: 0.9
+      nesterov: True
+  lr_scheduler:
+    name: 'MultiStepLR'
+    param:
+      warmup_epochs: 0
+      milestones: [5, 10, 15, 20]
+      gamma: 0.1
+
+train_transform:
+  name: "AdvTransform"
+  param:
+    phase: "train"
+    resize: [224, 224]
+
+val_transform:
+  name: "AdvTransform"
+  param:
+    phase: "val"
+    resize: [224, 224]
+
+train_dataset:
+  name: "imb_miniImageNet20"
+  param:
+    data_root: "miniImageNet"
+    phase: "train"
+    img_lst_fpath: "train20.txt"
+    # map_fpath: "None"
+    imb_type: 'exp'
+    imb_factor: 0.05
+    rand_seed: 0
+    # download: False
+
+val_dataset:
+  name: "imb_miniImageNet20"
+  param:
+    data_root: "miniImageNet"
+    phase: "val"
+    img_lst_fpath: "val20.txt"
+    # map_fpath: "None"
+    # download: False
+
+trainloader:
+  sampler: ''
+  batch_size: 64
+  num_workers: 6
+
+valloader:
+  batch_size: 128
+  num_workers: 6
+
+network:
+  name: "NormResNet18"
+  param:
+    num_classes: 20
+    mean: [0.3567, 0.4279, 0.4439]
+    std: [0.2761, 0.2584, 0.2705]
+    dual_BN: True
+    pretrained: False
+    pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
+
+loss:
+  name: "CrossEntropyLoss"
+  param:
+    weight_type: ''
+    label_smoothing: 0.
+
+optimizer:
+  name: "SGD"
+  param:
+    lr: 0.1
+    weight_decay: 1.0e-5
+    momentum: 0.9
+    nesterov: True
+
+lr_scheduler:
+  # name: "CyclicLR"
+  # name: "StepLR"
+  name: "MultiStepLR"
+  # name: "CosineAnnealingWarmRestarts"
+  param:
+    warmup_epochs: 10
+    # CyclicLR
+    # step_size_up: 3  # 3 * iterations
+    # step_size_down: 2  # 2 * iterations
+    # max_lr: 5.0e-2
+    # base_lr: 5.0e-7
+    
+    # MultiStepLR
+    milestones: [120, 160, 180]
+    gamma: 0.01
+
+    # CosineAnnealingWarmRestarts
+    # T_0: 5
+    # T_mult: 1
+    # eta_min: 0
