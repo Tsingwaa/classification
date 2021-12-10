@@ -75,6 +75,9 @@ class BaseTransform:
                 # ret_transform = transforms.Compose(T_list)
 
                 ret_transform = transforms.Compose([
+                    # transforms.Resize(int(self.resize[0] / 0.875)),
+                    # transforms.CenterCrop(self.resize),
+                    # transforms.RandomRotation(30),
                     transforms.RandomAffine(
                         degrees=30,
                         translate=(0.2, 0.2),
