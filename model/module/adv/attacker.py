@@ -113,7 +113,7 @@ class LinfPGD(nn.Module):
 
 @Modules.register_module('AdaptLinfPGD')
 class AdaptLinfPGD(LinfPGD):
-    """以最小类epsilon=8/255为基准, 样本越多epsilon越小, 最大类为8/255 * 1/2"""
+    """最大类->最小类：4/255->8/255"""
 
     def project(self, perturbation, use_target, target):
         if use_target:
@@ -165,13 +165,70 @@ class AdaptLinfPGD(LinfPGD):
 
 @Modules.register_module('AdaptLinfPGD2')
 class AdaptLinfPGD2(AdaptLinfPGD):
-    """以最大类epsilon=8/255为基准, 逐类线性增大, 最小类为16/255"""
+    """最大类->最小类：8/255->16/255"""
 
     def project(self, perturbation, use_target, target):
         if use_target:
             batch_size = target.shape[0]
             adapt_ratio = target / 19
             epsilon = self.epsilon * (1 + adapt_ratio)
+            epsilon = epsilon.view(batch_size, 1, 1, 1)
+            perturbation_min = torch.min(perturbation, epsilon)
+            ret_eps = torch.max(perturbation_min, -epsilon)
+        else:
+            epsilon = self.epsilon
+            ret_eps = torch.clamp(perturbation, -epsilon, epsilon)
+
+        return ret_eps
+
+
+@Modules.register_module('AdaptLinfPGD3')
+class AdaptLinfPGD3(AdaptLinfPGD):
+    """最大类->最小类：4/255->16/255"""
+
+    def project(self, perturbation, use_target, target):
+        if use_target:
+            batch_size = target.shape[0]
+            adapt_ratio = target / 19
+            epsilon = (4 + 12 * adapt_ratio) / 255
+            epsilon = epsilon.view(batch_size, 1, 1, 1)
+            perturbation_min = torch.min(perturbation, epsilon)
+            ret_eps = torch.max(perturbation_min, -epsilon)
+        else:
+            epsilon = self.epsilon
+            ret_eps = torch.clamp(perturbation, -epsilon, epsilon)
+
+        return ret_eps
+
+
+@Modules.register_module('AdaptLinfPGD4')
+class AdaptLinfPGD4(AdaptLinfPGD):
+    """最大类->最小类：8/255->24/255"""
+
+    def project(self, perturbation, use_target, target):
+        if use_target:
+            batch_size = target.shape[0]
+            adapt_ratio = target / 19
+            epsilon = (8 + 16 * adapt_ratio) / 255
+            epsilon = epsilon.view(batch_size, 1, 1, 1)
+            perturbation_min = torch.min(perturbation, epsilon)
+            ret_eps = torch.max(perturbation_min, -epsilon)
+        else:
+            epsilon = self.epsilon
+            ret_eps = torch.clamp(perturbation, -epsilon, epsilon)
+
+        return ret_eps
+
+
+@Modules.register_module('AdaptLinfPGD5')
+class AdaptLinfPGD5(AdaptLinfPGD):
+    """最大类->最小类：4/255->24/255"""
+
+    def project(self, perturbation, use_target, target):
+        if use_target:
+            batch_size = target.shape[0]
+            adapt_ratio = target / 19
+            epsilon = (4 + 20 * adapt_ratio) / 255
             epsilon = epsilon.view(batch_size, 1, 1, 1)
             perturbation_min = torch.min(perturbation, epsilon)
             ret_eps = torch.max(perturbation_min, -epsilon)
