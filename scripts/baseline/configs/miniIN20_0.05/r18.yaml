@@ -11,7 +11,6 @@ experiment:
  
 finetune:
   name: "2RW"
-  log_fname: "finetune.log"
   total_epochs: 30
   unfreeze_keys: ["fc"]
   trainloader:

@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_r18_RS"
+  name: "miniIN20_0.05_r18_RS1"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"

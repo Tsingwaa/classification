@@ -158,14 +158,17 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Initialize Network
         #######################################################################
-        self.model = self.init_model(self.network_name, **self.network_params)
+        self.model = self.init_model(self.network_name,
+                                     resume=True,
+                                     checkpoint=self.checkpoint,
+                                     **self.network_params)
         self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
 
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.loss_params = self.update_class_weight(
-            trainset.img_num, **self.loss_params)
+        self.loss_params = self.update_class_weight(trainset.img_num,
+                                                    **self.loss_params)
         self.criterion = self.init_loss(self.loss_name, **self.loss_params)
 
         #######################################################################
@@ -198,22 +201,22 @@ class FineTuner(BaseTrainer):
             if self.local_rank != -1:
                 train_sampler.set_epoch(cur_epoch)
 
-            train_mr, train_group_recalls, train_loss =\
-                self.train_epoch(cur_epoch,
-                                 self.trainloader,
-                                 self.model,
-                                 self.criterion,
-                                 self.optimizer,
-                                 self.lr_scheduler,
-                                 num_classes=trainset.cls_num)
+            train_mr, train_group_recalls, train_loss = self.train_epoch(
+                cur_epoch,
+                self.trainloader,
+                self.model,
+                self.criterion,
+                self.optimizer,
+                self.lr_scheduler,
+                num_classes=trainset.cls_num)
 
             if self.local_rank in [-1, 0]:
-                val_mr, val_group_recalls, val_loss =\
-                        self.evaluate(cur_epoch,
-                                      self.valloader,
-                                      self.model,
-                                      self.criterion,
-                                      num_classes=trainset.cls_num)
+                val_mr, val_group_recalls, val_loss = self.evaluate(
+                    cur_epoch,
+                    self.valloader,
+                    self.model,
+                    self.criterion,
+                    num_classes=trainset.cls_num)
 
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_mr)
