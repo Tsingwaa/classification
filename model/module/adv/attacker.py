@@ -300,9 +300,9 @@ class L2PGD(nn.Module):
         # Essential: delete the computation graph to save GPU ram
         adv_x.requires_grad = False
 
-        if self.targeted:
+        if self.targeted:  # decrease loss
             adv_x = adv_x.detach() - self.step * grad
-        else:
+        else:  # increase loss
             adv_x = adv_x.detach() + self.step * grad
         perturbation = self.compute_perturbation(adv_x, x)
 
