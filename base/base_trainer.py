@@ -202,7 +202,8 @@ class BaseTrainer:
         self.log(sampler_init_log, log_level)
         return sampler
 
-    def init_model(self, network_name, **kwargs):
+    def init_model(self, network_name, resume=False, checkpoint=None,
+                   **kwargs):
         log_level = kwargs.get('log_level', 'default')
         kwargs.pop('log_level', None)
 
@@ -211,8 +212,7 @@ class BaseTrainer:
         model.cuda()
 
         prefix = 'Initialized'
-        if kwargs.get('resume', False):
-            checkpoint = kwargs['checkpoint']
+        if resume:
             model.load_state_dict(checkpoint['model'])
             prefix = 'Resumed checkpoint params to'
         elif kwargs.get('pretrained', False):
