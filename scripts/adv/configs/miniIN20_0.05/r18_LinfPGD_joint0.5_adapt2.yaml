@@ -24,23 +24,23 @@ adv:
     # clip_max: 1.  # Default: 0.
 
 finetune:
-  name: "2RW"
+  name: "2OS"
   total_epochs: 30
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: ""
-    retain_epoch_size: True
+    sampler: "BalanceSampler"
+    retain_epoch_size: False
     batch_size: 64
     num_workers: 6
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: "class_weight"
+      weight_type: ""
       label_smoothing: 0.
   optimizer:
     name: "SGD"
     param:
-      lr: 1.0e-2
+      lr: 1.0e-1
       weight_decay: 1.0e-5
       momentum: 0.9
       nesterov: True

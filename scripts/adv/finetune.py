@@ -7,7 +7,7 @@ import argparse
 import yaml
 import numpy as np
 import torch
-from pudb import set_trace
+# from pudb import set_trace
 from os.path import join
 from torch.utils.data import DataLoader
 # from torch.utils.tensorboard import SummaryWriter
@@ -39,7 +39,7 @@ class FineTuner(BaseTrainer):
 
         self.local_rank = local_rank
         if self.local_rank != -1:
-            dist.init_process_group(backend='nccl', init_method='env://')
+            dist.init_process_group(backend='nccl')
             torch.cuda.set_device(self.local_rank)
             self.global_rank = dist.get_rank()
             self.world_size = dist.get_world_size()
@@ -159,7 +159,7 @@ class FineTuner(BaseTrainer):
         # Initialize Network
         #######################################################################
         self.model = self.init_model(self.network_name,
-                                     resume=self.resume,
+                                     resume=True,
                                      checkpoint=self.checkpoint,
                                      **self.network_params)
         self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
@@ -167,8 +167,8 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.loss_params = self.update_class_weight(
-            trainset.img_num, **self.loss_params)
+        self.loss_params = self.update_class_weight(trainset.img_num,
+                                                    **self.loss_params)
         self.criterion = self.init_loss(self.loss_name, **self.loss_params)
 
         #######################################################################
@@ -199,26 +199,27 @@ class FineTuner(BaseTrainer):
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             # learning rate decay by epoch
             self.lr_scheduler.step()
-
             if self.local_rank != -1:
                 train_sampler.set_epoch(cur_epoch)
 
-            train_mr, train_group_recalls, train_loss =\
-                self.train_epoch(cur_epoch,
-                                 self.trainloader,
-                                 self.model,
-                                 self.criterion,
-                                 self.optimizer,
-                                 self.lr_scheduler,
-                                 num_classes=trainset.cls_num)
+            train_mr, train_group_recalls, train_loss = self.train_epoch(
+                cur_epoch,
+                self.trainloader,
+                self.model,
+                self.criterion,
+                self.optimizer,
+                self.lr_scheduler,
+                num_classes=trainset.cls_num
+            )
 
             if self.local_rank in [-1, 0]:
-                val_mr, val_group_recalls, val_loss =\
-                        self.evaluate(cur_epoch,
-                                      self.valloader,
-                                      self.model,
-                                      self.criterion,
-                                      num_classes=trainset.cls_num)
+                val_mr, val_group_recalls, val_loss = self.evaluate(
+                    cur_epoch,
+                    self.valloader,
+                    self.model,
+                    self.criterion,
+                    num_classes=trainset.cls_num
+                )
 
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_mr)
@@ -294,15 +295,21 @@ class FineTuner(BaseTrainer):
                 f"*********************************************************\n"
             )
 
-    def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
-                    lr_scheduler, num_classes=None):
+    def train_epoch(self,
+                    cur_epoch,
+                    trainloader,
+                    model,
+                    criterion,
+                    optimizer,
+                    lr_scheduler,
+                    num_classes=None):
+
         model.eval()
         model.apply(switch_clean)
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                desc=f"Train Epoch[{cur_epoch:>3d}/{self.total_epochs}]")
-        set_trace()
+                desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
         all_labels, all_preds = [], []
         train_loss_meter = AverageMeter()
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
@@ -363,7 +370,13 @@ class FineTuner(BaseTrainer):
 
         return train_mr, train_group_recalls, train_loss_meter.avg
 
-    def evaluate(self, cur_epoch, valloader, model, criterion, num_classes):
+    def evaluate(self,
+                 cur_epoch,
+                 valloader,
+                 model,
+                 criterion,
+                 num_classes):
+
         model.eval()
         model.apply(switch_clean)
         if self.local_rank in [-1, 0]:
