@@ -352,7 +352,7 @@ class BaseTrainer:
                       'group_recalls': group_recalls}
         save_fname = 'best.pth.tar' if is_best else 'last.pth.tar'
         if prefix is not None:
-            save_fname = prefix + save_fname
+            save_fname = prefix + '_' + save_fname
         save_path = join(save_dir, save_fname)
         torch.save(checkpoint, save_path)
 
