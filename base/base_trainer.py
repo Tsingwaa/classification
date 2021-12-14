@@ -204,8 +204,7 @@ class BaseTrainer:
 
     def init_model(self, network_name, resume=False, checkpoint=None,
                    **kwargs):
-        log_level = kwargs.get('log_level', 'default')
-        kwargs.pop('log_level', None)
+        log_level = kwargs.pop('log_level', 'default')
 
         model = build_network(network_name, **kwargs)
         total_params = self.count_model_params(model)
@@ -231,11 +230,15 @@ class BaseTrainer:
         """Freeze model parameters except some given keys
         Default: leave fc unfreezed
         """
+        self.log(f"===> Freeze model except for keys{unfreeze_keys}")
         for named_key, var in model.named_parameters():
-            if any(key in named_key for key in unfreeze_keys):
-                var.requires_grad = True
-            else:
+            if unfreeze_keys is None:
                 var.requires_grad = False
+            else:
+                if any(key in named_key for key in unfreeze_keys):
+                    var.requires_grad = True
+                else:
+                    var.requires_grad = False
 
     def update_class_weight(self, imgs_per_cls, **kwargs):
         """
