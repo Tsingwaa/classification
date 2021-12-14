@@ -8,3 +8,4 @@ from .resnet_cifar import *
 from .resnet import *
 from .norm_resnet import *
 from .resnet_ssp import *
+from .mlp import *

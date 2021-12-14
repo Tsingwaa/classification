@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-# from pudb import set_trace
+from pudb import set_trace
 from model.network.builder import Networks
 
 model_urls = {
@@ -196,6 +196,7 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.squeeze = torch.squeeze
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         for m in self.modules():
@@ -231,21 +232,19 @@ class ResNet(nn.Module):
                 norm_layer(planes * block.expansion),
             )
 
-        layers = [
-            block(self.inplanes, planes, stride, downsample, self.groups,
-                  self.base_width, previous_dilation, norm_layer)
-        ]
+        layers = [block(self.inplanes, planes, stride, downsample, self.groups,
+                  self.base_width, previous_dilation, norm_layer)]
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
-            layers.append(
-                block(self.inplanes, planes, groups=self.groups,
-                      base_width=self.base_width, dilation=self.dilation,
-                      norm_layer=norm_layer)
-            )
+            layers.append(block(self.inplanes, planes,
+                                groups=self.groups,
+                                base_width=self.base_width,
+                                dilation=self.dilation,
+                                norm_layer=norm_layer))
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, embedding=False):
+    def forward(self, x, embed_vec=False, embed_map=False):
         # See note [TorchScript super()]
         x = self.conv1(x)
         x = self.bn1(x)
@@ -255,17 +254,23 @@ class ResNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        x = self.layer4(x)
-
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1)
-
-        if embedding:
-            ret = x
+        feat_map = self.layer4[:-1](x)
+        if embed_map:
+            return feat_map
         else:
-            ret = self.fc(x)
+            feat_map = self.layer4[-1](feat_map)
+            feat_vec = self.avgpool(feat_map)
+            feat_vec = self.squeeze(feat_vec)
+            if embed_vec:
+                return feat_vec
+            else:
+                return self.fc(feat_vec)
 
-        return ret
+    def bfc(self, feat_map):
+        feat_map = self.layer4[-1](feat_map)
+        feat_vec = self.avgpool(feat_map)
+        feat_vec = self.squeeze(feat_vec)
+        return self.fc(feat_vec)
 
 
 @Networks.register_module('ResNet18')
