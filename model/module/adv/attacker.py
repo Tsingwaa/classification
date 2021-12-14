@@ -12,7 +12,7 @@ class LinfPGD(nn.Module):
     Can be used to adversarial training.
     """
 
-    def __init__(self, model, epsilon=8/255, step=2/255, iterations=7,
+    def __init__(self, model, eps=8/255, step=2/255, iterations=7,
                  criterion=None, random_start=True, targeted=False,
                  clip_min=0., clip_max=1., **kwargs):
         super(LinfPGD, self).__init__()
@@ -20,7 +20,7 @@ class LinfPGD(nn.Module):
         self.device = next(model.parameters()).device
 
         self.model = model
-        self.epsilon = epsilon
+        self.eps = eps
         self.step = step
         self.iterations = iterations
         self.random_start = random_start
@@ -38,7 +38,7 @@ class LinfPGD(nn.Module):
 
     def project(self, perturbation):
         # Clamp the perturbation to epsilon Lp ball.
-        return torch.clamp(perturbation, -self.epsilon, self.epsilon)
+        return torch.clamp(perturbation, -self.eps, self.eps)
 
     def compute_perturbation(self, adv_x, x):
         # Project the perturbation to Lp ball
@@ -119,12 +119,12 @@ class AdaptLinfPGD(LinfPGD):
         if use_target:
             batch_size = target.shape[0]
             adapt_ratio = (target + 1) / 40 + 1/2
-            epsilon = self.epsilon * adapt_ratio
+            epsilon = self.eps * adapt_ratio
             epsilon = epsilon.view(batch_size, 1, 1, 1)
             perturbation_min = torch.min(perturbation, epsilon)
             ret_eps = torch.max(perturbation_min, -epsilon)
         else:
-            epsilon = self.epsilon
+            epsilon = self.eps
             ret_eps = torch.clamp(perturbation, -epsilon, epsilon)
 
         return ret_eps
@@ -171,12 +171,12 @@ class AdaptLinfPGD2(AdaptLinfPGD):
         if use_target:
             batch_size = target.shape[0]
             adapt_ratio = target / 19
-            epsilon = self.epsilon * (1 + adapt_ratio)
+            epsilon = self.eps * (1 + adapt_ratio)
             epsilon = epsilon.view(batch_size, 1, 1, 1)
             perturbation_min = torch.min(perturbation, epsilon)
             ret_eps = torch.max(perturbation_min, -epsilon)
         else:
-            epsilon = self.epsilon
+            epsilon = self.eps
             ret_eps = torch.clamp(perturbation, -epsilon, epsilon)
 
         return ret_eps
@@ -195,7 +195,7 @@ class AdaptLinfPGD3(AdaptLinfPGD):
             perturbation_min = torch.min(perturbation, epsilon)
             ret_eps = torch.max(perturbation_min, -epsilon)
         else:
-            epsilon = self.epsilon
+            epsilon = self.eps
             ret_eps = torch.clamp(perturbation, -epsilon, epsilon)
 
         return ret_eps
@@ -214,7 +214,7 @@ class AdaptLinfPGD4(AdaptLinfPGD):
             perturbation_min = torch.min(perturbation, epsilon)
             ret_eps = torch.max(perturbation_min, -epsilon)
         else:
-            epsilon = self.epsilon
+            epsilon = self.eps
             ret_eps = torch.clamp(perturbation, -epsilon, epsilon)
 
         return ret_eps
@@ -233,7 +233,7 @@ class AdaptLinfPGD5(AdaptLinfPGD):
             perturbation_min = torch.min(perturbation, epsilon)
             ret_eps = torch.max(perturbation_min, -epsilon)
         else:
-            epsilon = self.epsilon
+            epsilon = self.eps
             ret_eps = torch.clamp(perturbation, -epsilon, epsilon)
 
         return ret_eps
