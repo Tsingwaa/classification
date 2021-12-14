@@ -298,7 +298,7 @@ class FineTuner(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                desc=f"Train Epoch[{cur_epoch:>3d}/{self.total_epochs}]")
+                desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         all_labels, all_preds = [], []
         train_loss_meter = AverageMeter()

@@ -304,7 +304,7 @@ class FineTuner(BaseTrainer):
                     lr_scheduler,
                     num_classes=None):
 
-        model.eval()
+        model.train()
         model.apply(switch_clean)
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
