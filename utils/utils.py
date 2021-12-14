@@ -18,6 +18,14 @@ def count_model_params(net):
     return total_params
 
 
+def label2onehot(targets, num_classes):
+    """Transform label to one-hot vector."""
+    if not isinstance(targets, torch.Tensor):
+        targets = torch.tensor(targets)
+    init_zeros = torch.zeros(len(targets), num_classes)
+    return init_zeros.scatter_(1, targets.view(-1, 1), 1)
+
+
 class TopKAccuracyMetric:
     def __init__(self, topk=(1,)):
         self.name = 'topk_accuracy'
