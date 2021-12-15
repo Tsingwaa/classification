@@ -196,8 +196,14 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.squeeze = torch.squeeze
         self.fc = nn.Linear(512 * block.expansion, num_classes)
+        self.mlp = nn.Sequential(
+            nn.Linear(512 * block.expansion, 256 * block.expansion),
+            nn.ReLU(inplace=True),
+            nn.Linear(256 * block.expansion, 128 * block.expansion),
+            nn.ReLU(inplace=True),
+            nn.Linear(128 * block.expansion, num_classes)
+        )
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -244,7 +250,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, embed_vec=False, embed_map=False):
+    def forward(self, x, out=None):
         # See note [TorchScript super()]
         x = self.conv1(x)
         x = self.bn1(x)
@@ -255,14 +261,16 @@ class ResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         feat_map = self.layer4[:-1](x)
-        if embed_map:
+        if out == 'map':
             return feat_map
         else:
             feat_map = self.layer4[-1](feat_map)
             feat_vec = self.avgpool(feat_map)
-            feat_vec = self.squeeze(feat_vec)
-            if embed_vec:
+            feat_vec = torch.squeeze(feat_vec)
+            if out == 'vec':
                 return feat_vec
+            elif out == 'mlp':
+                return self.mlp(feat_vec)
             else:
                 return self.fc(feat_vec)
 

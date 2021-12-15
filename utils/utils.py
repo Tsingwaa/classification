@@ -7,6 +7,7 @@ import torch
 # import random
 import numpy as np
 # import torch.nn.functional as F
+from matplotlib import pyplot as plt
 
 
 def count_model_params(net):
