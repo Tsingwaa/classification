@@ -1,6 +1,6 @@
 import os
-import io
-import cv2
+# import io
+# import cv2
 import lmdb
 from tqdm import tqdm
 import argparse
