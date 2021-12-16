@@ -279,7 +279,7 @@ class BaseTrainer:
         self.log(f'===> Initialized {loss_name}: {kwargs}', log_level)
         return loss
 
-    def init_optimizer(self, opt_name, model, **kwargs):
+    def init_optimizer(self, opt_name, params, **kwargs):
         # model_params = [
         #     {'params': [p for n, p in self.model.named_parameters()
         #                    if not any(nd in n for nd in ['bias', 'bn'])],
@@ -287,12 +287,11 @@ class BaseTrainer:
         #     {'params': [p for n, p in self.model.named_parameters()
         #                    if any(nd in n for nd in ['bias', 'bn'])],
         #      'weight_decay': 0.0}]
-        log_level = kwargs.get('log_level', 'default')
-        kwargs.pop('log_level', None)
+        log_level = kwargs.pop('log_level', 'default')
 
         try:
             optimizer = getattr(torch.optim, opt_name)(
-                model.parameters(), **kwargs)
+                params, **kwargs)
             prefix = 'Initialized'
             if kwargs.get('resume', False):
                 checkpoint = kwargs.get('checkpoint', None)
