@@ -7,6 +7,7 @@ import torch
 # import random
 import numpy as np
 # import torch.nn.functional as F
+from sklearn.metrics import confusion_matrix
 from matplotlib import pyplot as plt
 
 
@@ -136,7 +137,7 @@ def plot_confusion_matrix(y_true, y_pred, classes,
                           normalize=False,
                           title=None,
                           cmap=plt.cm.Blues):
-    
+
     if not title:
         if normalize:
             title = 'Normalized confusion matrix'
@@ -145,7 +146,7 @@ def plot_confusion_matrix(y_true, y_pred, classes,
 
     # Compute confusion matrix
     cm = confusion_matrix(y_true, y_pred)
-    
+
     fig, ax = plt.subplots()
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
     ax.figure.colorbar(im, ax=ax)

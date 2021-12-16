@@ -40,10 +40,9 @@ class GradualWarmupScheduler(_LRScheduler):
             return [base_lr * (float(self.last_epoch) / self.warmup_epochs)
                     for base_lr in self.base_lrs]
         else:
-            return [
-                base_lr * ((self.multiplier - 1.) * self.last_epoch /
-                           self.warmup_epochs + 1.) for base_lr in self.base_lrs
-            ]
+            return [base_lr * ((self.multiplier - 1.) * self.last_epoch /
+                               self.warmup_epochs + 1.)
+                    for base_lr in self.base_lrs]
 
     def step_ReduceLROnPlateau(self, metrics, epoch=None):
         if epoch is None:
@@ -52,10 +51,9 @@ class GradualWarmupScheduler(_LRScheduler):
         # ReduceLROnPlateau is called at the end of epoch,
         # whereas others are called at beginning
         if self.last_epoch <= self.warmup_epochs:
-            warmup_lr = [
-                base_lr * ((self.multiplier - 1.) * self.last_epoch /
-                           self.warmup_epochs + 1.) for base_lr in self.base_lrs
-            ]
+            warmup_lr = [base_lr * ((self.multiplier - 1.) * self.last_epoch /
+                                    self.warmup_epochs + 1.)
+                         for base_lr in self.base_lrs]
             for param_group, lr in zip(self.optimizer.param_groups, warmup_lr):
                 param_group['lr'] = lr
         else:
