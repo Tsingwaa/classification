@@ -13,7 +13,7 @@ from model.loss.builder import Losses
 @Losses.register_module("CenterLoss")
 class CenterLoss(nn.Module):
 
-    def __init__(self, num_class=10, num_feature=2):
+    def __init__(self, num_class=10, num_feature=2, **kwargs):
         """Initialize class centers
         Args:
             num_classes (int): number of classes.
