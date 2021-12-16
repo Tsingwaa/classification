@@ -277,7 +277,7 @@ class BaseTrainer:
         loss = build_loss(loss_name, **kwargs)
         kwargs.pop('weight', None)
         self.log(f'===> Initialized {loss_name}: {kwargs}', log_level)
-        return loss
+        return loss.cuda()
 
     def init_optimizer(self, opt_name, params, **kwargs):
         # model_params = [
@@ -290,16 +290,14 @@ class BaseTrainer:
         log_level = kwargs.pop('log_level', 'default')
 
         try:
-            optimizer = getattr(torch.optim, opt_name)(
-                params, **kwargs)
+            optimizer = getattr(torch.optim, opt_name)(params, **kwargs)
             prefix = 'Initialized'
             if kwargs.get('resume', False):
-                checkpoint = kwargs.get('checkpoint', None)
+                checkpoint = kwargs.pop('checkpoint', None)
                 optimizer.load_state_dict(checkpoint['optimizer'])
                 prefix = "Resumed"
 
-            self.log(f'===> {prefix} {opt_name}: {kwargs}',
-                     log_level)
+            self.log(f'===> {prefix} {opt_name}: {kwargs}', log_level)
             return optimizer
         except Exception as error:
             raise AttributeError(f'Optimizer init failed: {error}')
@@ -307,8 +305,8 @@ class BaseTrainer:
     def init_lr_scheduler(self, scheduler_name, optimizer, **kwargs):
         warmup_epochs = kwargs.pop('warmup_epochs', 10)
         try:
-            lr_scheduler = getattr(torch.optim.lr_scheduler,
-                                   scheduler_name)(optimizer, **kwargs)
+            lr_scheduler = getattr(torch.optim.lr_scheduler, scheduler_name)(
+                optimizer, **kwargs)
             self.log(f"===> Initialized {scheduler_name}: {kwargs}")
             if warmup_epochs > 0:
                 lr_scheduler = GradualWarmupScheduler(
@@ -337,17 +335,18 @@ class BaseTrainer:
     def resume_checkpoint(self, resume_fpath):
         checkpoint = torch.load(resume_fpath, map_location='cpu')
         mr = checkpoint['mr']
-        recalls = checkpoint.get('group_recalls', None)
+        recalls = checkpoint.get('group_recalls', '-')
 
         resume_log = f'===> Resume checkpoint from "{resume_fpath}".\n'\
             f'Mean recall:{mr:.2%}\nGroup recalls:{recalls}\n'
         return checkpoint, resume_log
 
-    def save_checkpoint(self, epoch, model, optimizer, is_best, mr,
+    def save_checkpoint(self, epoch, model, optimizer, criterion, is_best, mr,
                         group_recalls, prefix, save_dir):
         checkpoint = {'model': model.state_dict() if self.local_rank == -1 else
                       model.module.state_dict(),
                       'optimizer': optimizer.state_dict(),
+                      'criterion': criterion.state_dict(),
                       'best': is_best,
                       'epoch': epoch,
                       'mr': mr,
