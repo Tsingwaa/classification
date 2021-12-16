@@ -8,12 +8,13 @@ from __future__ import absolute_import
 import torch
 from torch import nn
 from model.loss.builder import Losses
+from utils import cos_sim, eu_dist
 
 
 @Losses.register_module("CenterLoss")
 class CenterLoss(nn.Module):
 
-    def __init__(self, num_class=10, num_feature=2, **kwargs):
+    def __init__(self, num_class=10, num_feature=2, alpha=0.001, **kwargs):
         """Initialize class centers
         Args:
             num_classes (int): number of classes.
@@ -23,18 +24,27 @@ class CenterLoss(nn.Module):
         super(CenterLoss, self).__init__()
         self.num_class = num_class
         self.num_feature = num_feature
+        self.alpha = alpha
         self.centers = nn.Parameter(
-            torch.randn(self.num_class, self.num_feature)).cuda()
+            torch.randn(self.num_class, self.num_feature))
 
     def forward(self, x, labels):
         """
         Args:
             x: feature matrix with shape (batch_size, feat_dim).
             labels: ground truth labels with shape (num_classes).
+            constraint: give the centers constraint to push each other away.
         """
         center = self.centers[labels]
         dist = (x - center).pow(2).sum(dim=-1)
         loss = torch.clamp(dist, min=1e-12, max=1e+12).mean(dim=-1)
+
+        if self.alpha > 0:
+            intercenter_dist = eu_dist(self.centers, self.centers)
+            intercenter_dist = torch.triu(intercenter_dist, diagonal=1)
+            # print(torch.sum(intercenter_dist))
+            dist_num = torch.sum(intercenter_dist.ge(0))
+            loss -= self.alpha * torch.sum(intercenter_dist) / dist_num
 
         return loss
 
