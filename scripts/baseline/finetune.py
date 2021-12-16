@@ -185,17 +185,19 @@ class FineTuner(BaseTrainer):
         # Initialize Optimizer
         #######################################################################
         if self.ft_model is not None:
-            self.optimizer = self.init_optimizer(self.opt_name, self.ft_model,
-                                                 **self.opt_params)
+            self.opt = self.init_optimizer(self.opt_name,
+                                           self.ft_model.parameters(),
+                                           **self.opt_params)
         else:
-            self.optimizer = self.init_optimizer(self.opt_name, self.model,
-                                                 **self.opt_params)
+            self.opt = self.init_optimizer(self.opt_name,
+                                           self.model.parameters(),
+                                           **self.opt_params)
 
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
         self.lr_scheduler = self.init_lr_scheduler(self.scheduler_name,
-                                                   self.optimizer,
+                                                   self.opt,
                                                    **self.scheduler_params)
 
         #######################################################################
@@ -220,7 +222,7 @@ class FineTuner(BaseTrainer):
                 self.trainloader,
                 self.model,
                 self.criterion,
-                self.optimizer,
+                self.opt,
                 self.lr_scheduler,
                 ft_model=self.ft_model,
                 num_classes=trainset.cls_num)
@@ -283,7 +285,7 @@ class FineTuner(BaseTrainer):
                 if (not cur_epoch % self.save_period) or is_best:
                     self.save_checkpoint(epoch=cur_epoch,
                                          model=self.model,
-                                         optimizer=self.optimizer,
+                                         optimizer=self.opt,
                                          is_best=is_best,
                                          mr=val_mr,
                                          group_recalls=val_group_recalls,
@@ -330,10 +332,10 @@ class FineTuner(BaseTrainer):
                 batch_feats = model(batch_imgs, embedding=True)
                 batch_probs = ft_model(batch_feats)
             else:
-                batch_probs = model(batch_imgs)
+                batch_probs = model(batch_imgs, out=None)
             avg_loss = criterion(batch_probs, batch_labels)
             if self.local_rank != -1:
-                with amp.scale_loss(avg_loss, self.optimizer) as scaled_loss:
+                with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
                 optimizer.step()
                 self._reduce_loss(avg_loss)
@@ -350,7 +352,7 @@ class FineTuner(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str("LR:{:.1e} Loss:{:.4f}".format(
-                        self.optimizer.param_groups[0]["lr"],
+                        self.opt.param_groups[0]["lr"],
                         train_loss_meter.avg))
 
         train_mr = metrics.balanced_accuracy_score(all_labels, all_preds)
@@ -404,7 +406,7 @@ class FineTuner(BaseTrainer):
                     batch_feats = model(batch_imgs, embedding=True)
                     batch_probs = ft_model(batch_feats)
                 else:
-                    batch_probs = model(batch_imgs)
+                    batch_probs = model(batch_imgs, out=None)
                 batch_preds = batch_probs.max(1)[1]
                 avg_loss = criterion(batch_probs, batch_labels)
                 val_loss_meter.update(avg_loss.item(), 1)
