@@ -14,7 +14,7 @@ from utils import cos_sim, eu_dist
 @Losses.register_module("CenterLoss")
 class CenterLoss(nn.Module):
 
-    def __init__(self, num_class=10, num_feature=2, alpha=0.001, **kwargs):
+    def __init__(self, num_class=10, num_feature=2, alpha=0, **kwargs):
         """Initialize class centers
         Args:
             num_classes (int): number of classes.
