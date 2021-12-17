@@ -29,7 +29,7 @@ class Trainer(BaseTrainer):
         loss2_config = config['loss2']
         self.loss2_name = loss2_config['name']
         self.loss2_params = loss2_config['param']
-        self.lambda_weight = loss2_config.pop('lambda', 0.003)
+        self.lambda_weight = loss2_config.pop('lambda', 0)
 
         opt2_config = config['optimizer2']
         self.opt2_name = opt2_config['name']

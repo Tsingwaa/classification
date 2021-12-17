@@ -19,6 +19,7 @@ class CenterLoss(nn.Module):
         Args:
             num_classes (int): number of classes.
             feat_dim (int): feature dimension.
+            alpha: weight of constraint for inter-centers distance.
         """
 
         super(CenterLoss, self).__init__()
@@ -33,7 +34,6 @@ class CenterLoss(nn.Module):
         Args:
             x: feature matrix with shape (batch_size, feat_dim).
             labels: ground truth labels with shape (num_classes).
-            constraint: give the centers constraint to push each other away.
         """
         center = self.centers[labels]
         dist = (x - center).pow(2).sum(dim=-1)
@@ -42,7 +42,7 @@ class CenterLoss(nn.Module):
         if self.alpha > 0:
             intercenter_dist = eu_dist(self.centers, self.centers)
             intercenter_dist = torch.triu(intercenter_dist, diagonal=1)
-            # print(torch.sum(intercenter_dist))
+            # 严格上三角
             dist_num = torch.sum(intercenter_dist.ge(0))
             loss -= self.alpha * torch.sum(intercenter_dist) / dist_num
 
