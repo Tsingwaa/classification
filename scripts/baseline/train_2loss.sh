@@ -47,7 +47,11 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 #         --config_path 'configs/miniIN20_0.05/r18_focal2.yaml'
 
 CUDA_VISIBLE_DEVICES=$1 python3 train_2loss.py --local_rank -1\
-        --config_path 'configs/miniIN20_0.05/r18_ce_center0.003.yaml'
+        --config_path 'configs/miniIN20_0.05/r18_ce_center0.0001.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train_2loss.py --local_rank -1\
+        --config_path 'configs/miniIN20_0.05/r18_ce_center0.01.yaml'
+CUDA_VISIBLE_DEVICES=$1 python3 train_2loss.py --local_rank -1\
+        --config_path 'configs/miniIN20_0.05/r18_ce_center0.1.yaml'
 
 # Augments
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\

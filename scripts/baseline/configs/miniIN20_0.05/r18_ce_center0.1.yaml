@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_r18_ce_center0.003"
+  name: "miniIN20_0.05_r18_ce_center0.1"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -105,7 +105,7 @@ loss2:
     num_class: 20
     num_feature: 512
     alpha: 0
-    lambda: 0.003
+    lambda: 0.1
 
 optimizer:
   name: "SGD"

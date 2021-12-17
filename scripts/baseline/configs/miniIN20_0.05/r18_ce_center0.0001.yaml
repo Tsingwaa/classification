@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_r18_center0.003_alpha1_eu"
+  name: "miniIN20_0.05_r18_ce_center0.0001"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -93,19 +93,19 @@ network:
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
-# loss:
-#   name: "CrossEntropyLoss"
-#   param:
-#     weight_type: ''
-#     label_smoothing: 0.
-
 loss:
+  name: "CrossEntropyLoss"
+  param:
+    weight_type: ''
+    label_smoothing: 0.
+
+loss2:
   name: "CenterLoss"
   param:
     num_class: 20
     num_feature: 512
-    alpha: 1
-    lambda: 0.003
+    alpha: 0
+    lambda: 0.0001
 
 optimizer:
   name: "SGD"
