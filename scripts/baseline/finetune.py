@@ -55,6 +55,7 @@ class FineTuner(BaseTrainer):
         self.user_root = os.environ['HOME']
         self.exp_root = join(self.user_root, 'Experiments')
         self.total_epochs = self.finetune_config['total_epochs']
+
         self.resume = True
         if '/' in self.exp_config['resume_fpath']:
             self.resume_fpath = self.exp_config['resume_fpath']
@@ -63,6 +64,7 @@ class FineTuner(BaseTrainer):
                                      self.exp_config['resume_fpath'])
         self.checkpoint, resume_log =\
             self.resume_checkpoint(self.resume_fpath)
+
         self.start_epoch = self.checkpoint['epoch'] + 1
         self.final_epoch = self.start_epoch + self.total_epochs
 
@@ -72,13 +74,9 @@ class FineTuner(BaseTrainer):
             self.save_dir = join(self.exp_root, self.exp_name)
             os.makedirs(self.save_dir, exist_ok=True)
 
-            # self.tb_dir = join(self.exp_root, 'Tensorboard', self.exp_name)
-            # os.makedirs(self.tb_dir, exist_ok=True)
-            # self.writer = SummaryWriter(log_dir=self.tb_dir)
-
             # Set logger to save .log file and output to screen.
-            self.log_fpath = join(self.save_dir,
-                                  f'finetune{self.finetune_name}.log')
+            self.log_fpath = join(
+                self.save_dir, f'finetune{self.finetune_name}.log')
             self.logger = self.init_logger(self.log_fpath)
             exp_init_log = f'\n****************************************'\
                 f'****************************************************'\
@@ -104,9 +102,11 @@ class FineTuner(BaseTrainer):
         self.ft_network_params = ft_network_config['param']
 
         self.trainloader_params = self.finetune_config['trainloader']
-        self.train_sampler_name = self.trainloader_params['sampler']
+
+        self.train_sampler_name = self.trainloader_params.pop('sampler', None)
         self.train_batchsize = self.trainloader_params['batch_size']
         self.train_workers = self.trainloader_params['num_workers']
+
         loss_config = self.finetune_config['loss']
         self.loss_name = loss_config['name']
         self.loss_params = loss_config['param']

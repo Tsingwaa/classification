@@ -10,12 +10,12 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
  
 finetune:
-  name: "2RW_fc1"
+  name: "2OS_fc"
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: ""
-    retain_epoch_size: False
+    sampler: "BalanceSampler"
+    retain_epoch_size: True
     batch_size: 64
     num_workers: 6
   network:
@@ -26,21 +26,21 @@ finetune:
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: "class_weight"
+      weight_type: ""
       label_smoothing: 0.
   optimizer:
     name: "SGD"
     param:
-      lr: 1.0e-1
+      lr: 5.0e-1
       weight_decay: 1.0e-5
       momentum: 0.9
       nesterov: True
   lr_scheduler:
-    name: 'StepLR'
+    name: 'MultiStepLR'
     param:
       warmup_epochs: 0
-      step_size: 2
-      # milestones: [5, 10, 15, 20]
+      # step_size: 2
+      milestones: [2, 4, 6, 7, 8, 9]
       gamma: 0.1
 
 
