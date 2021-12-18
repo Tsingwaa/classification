@@ -114,3 +114,9 @@ dmypy.json
 
 # Custom
 .fuse*
+
+# PyCharm cache
+.idea
+
+# Visual Studio Code
+.vscode
