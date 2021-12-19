@@ -41,7 +41,7 @@ class CrossEntropyLabelSmooth(nn.Module):
 
 
 @Losses.register_module("CrossEntropyLoss")
-class CELoss(nn.Module):
+class CELoss(nn.CrossEntropyLoss):
     """This criterion computes the cross entropy loss between input and target.
 
     It is useful when training a classification problem with `C` classes.
@@ -66,20 +66,33 @@ class CELoss(nn.Module):
             Default: :math:`0.0`.
     """
 
-    def __init__(self, weight=None, reduction='mean', label_smoothing=0.,
+    def __init__(self,
+                 weight=None,
+                 size_average=None,
+                 ignore_index=-100,
+                 reduce=None,
+                 reduction='mean',
+                 label_smoothing=0.0,
                  **kwargs):
-        super(CELoss, self).__init__()
-        self.weight = weight
-        self.reduction = reduction
-        self.label_smoothing = label_smoothing
+        super(CELoss, self).__init__(
+            weight=weight,
+            size_average=size_average,
+            ignore_index=ignore_index,
+            reduce=reduce,
+            reduction=reduction,
+            label_smoothing=label_smoothing
+        )
+        # self.weight = weight
+        # self.reduction = reduction
+        # self.label_smoothing = label_smoothing
 
-    def forward(self, input_, target):
-        if self.weight is not None:
-            self.weight = self.weight.cuda()
-        return F.cross_entropy(input_, target,
-                               weight=self.weight,
-                               reduction=self.reduction,
-                               label_smoothing=self.label_smoothing)
+    # def forward(self, input_, target):
+        # if self.weight is not None:
+        #     self.weight = self.weight.cuda()
+        # return F.cross_entropy(input_, target,
+        #                        weight=self.weight,
+        #                        reduction=self.reduction,
+        #                        label_smoothing=self.label_smoothing)
 
 
 @Losses.register_module("BCEwithLogitsLoss")
