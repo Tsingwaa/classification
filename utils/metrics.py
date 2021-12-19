@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def eu_dist(A, B, sqrt=True, device=None):
+def eu_dist(A, B, sqrt=False, device='cuda'):
     """Euclidean Distance
     A: m*d
     B: n*d
@@ -21,7 +21,7 @@ def eu_dist(A, B, sqrt=True, device=None):
 
     if device == 'cpu':
         dist_mat = dist_mat.cpu()
-    elif device == 'cuda':
+    else:
         dist_mat = dist_mat.cuda()
 
     return dist_mat
