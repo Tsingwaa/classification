@@ -238,8 +238,8 @@ class Trainer(BaseTrainer):
             opt.zero_grad()
             opt2.zero_grad()
 
-            batch_imgs = batch_imgs.cuda(non_blocking=True)
-            batch_labels = batch_labels.cuda(non_blocking=True)
+            batch_imgs = batch_imgs.cuda()
+            batch_labels = batch_labels.cuda()
             # batch_probs = model(batch_imgs)
             # avg_loss = criterion(batch_probs, batch_labels)
             batch_vecs = model(batch_imgs, out='vec')
@@ -291,8 +291,8 @@ class Trainer(BaseTrainer):
         val_stat = ExpStat(num_classes)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
-                batch_imgs = batch_imgs.cuda(non_blocking=True)
-                batch_labels = batch_labels.cuda(non_blocking=True)
+                batch_imgs = batch_imgs.cuda()
+                batch_labels = batch_labels.cuda()
 
                 # batch_probs = model(batch_imgs, out='mlp')
                 # batch_preds = batch_probs.max(1)[1]

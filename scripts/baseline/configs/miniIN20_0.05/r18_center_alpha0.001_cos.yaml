@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_r18_center0.003_alpha1"
+  name: "miniIN20_0.05_r18_center_alpha0.001_cos"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -102,10 +102,11 @@ network:
 loss:
   name: "CenterLoss"
   param:
-    num_class: 20
-    num_feature: 512
-    alpha: 1
-    lambda: 0.003
+    num_classes: 20
+    feat_dim: 512
+    alpha: 0.001
+    alpha_dist: 'cos'
+    # lambda: 0.003
 
 optimizer:
   name: "SGD"

@@ -48,9 +48,9 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 
 # Center Loss
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-#         --config_path 'configs/miniIN20_0.05/r18_center0.003_alpha1.yaml'
+        # --config_path 'configs/miniIN20_0.05/r18_center_alpha0.001_cos.yaml'
 CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
-        --config_path 'configs/miniIN20_0.05/r18_center0.003_alpha1_eu.yaml'
+        --config_path 'configs/miniIN20_0.05/r18_center_alpha0.001_eu.yaml'
 
 # Augments
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1\
