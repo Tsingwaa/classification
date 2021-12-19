@@ -1,3 +1,14 @@
+###############################################################################
+# Copyright (C) 2021 All rights reserved.
+# Filename: train.py
+# Author: Tsingwaa
+# Email: zengchh3@gmail.com
+# Created Time : 2021-12-19 15:32 Sunday
+# Last modified: 2021-12-19 15:32 Sunday
+# Description:
+#
+###############################################################################
+
 """trainer script """
 import math
 import random
