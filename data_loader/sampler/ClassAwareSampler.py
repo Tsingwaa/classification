@@ -78,7 +78,7 @@ class ClassAwareSampler (Sampler):
             dataset: 数据集对象，使用其labels对象
             num_samples_each_cls_draw: 每类每次抽取的样本数量
         """
-        num_classes = len(np.unique(dataset.labels))
+        num_classes = dataset.num_classes
         self.class_iter = RandomCycleIter(range(num_classes))
 
         # turn list [0,..., num_classes-1] to RandomCycleIterator
@@ -125,17 +125,16 @@ def get_balanced_samper(dataset):
 class BalancedSampler(Sampler):
     def __init__(self, dataset, retain_epoch_size=False, **kwargs):
         self.retain_epoch_size = retain_epoch_size
-        self.unique_labels = np.unique(dataset.labels)
-        self.num_buckets = len(self.unique_labels)
-        self.buckets = {uq_label: [] for uq_label in self.unique_labels}
-        for idx, label in enumerate(dataset.labels):
-            self.buckets[label].append(idx)
+        self.num_buckets = dataset.num_classes
+        self.buckets = {bucket: [] for bucket in range(self.num_buckets)}
+        for index, target in enumerate(dataset.targets):
+            self.buckets[target].append(index)
 
         # Pointer for each class to mark which index we should choose next.
         # Initialize pointer as the first one (index = 0)
-        self.bucket_pointers = {uq_label: 0 for uq_label in self.unique_labels}
-        self.max_bucket_size = max([len(bucket) for bucket in
-                                    self.buckets.values()])
+        self.bucket_pointers = [0] * self.num_buckets
+        self.max_bucket_size = max([len(bucket)
+                                    for bucket in self.buckets.values()])
 
     def __iter__(self):
         count = self.__len__()
@@ -145,7 +144,7 @@ class BalancedSampler(Sampler):
 
     def _next_item(self):
         # Randomly choose one class
-        bucket_idx = random.choice(self.unique_labels)
+        bucket_idx = random.choice(list(range(self.num_buckets)))
         # get indexes of corresponding class
         bucket = self.buckets[bucket_idx]
         # choose the pointed item
