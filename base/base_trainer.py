@@ -1,6 +1,7 @@
 """Base Trainer"""
 # ############# Build-in Package #############
 import os
+import math
 import abc
 # import shutil
 import logging
@@ -47,18 +48,17 @@ class BaseTrainer:
         self.exp_name = self.exp_config['name']
         self.user_root = os.environ['HOME']
         self.exp_root = join(self.user_root, 'Experiments')
-
         self.start_epoch = self.exp_config['start_epoch']
         self.total_epochs = self.exp_config['total_epochs']
 
+        self._set_configs(config)  # set common configs
         self.resume = self.exp_config['resume']
         if self.resume:
             if '/' in self.exp_config['resume_fpath']:
                 self.resume_fpath = self.exp_config['resume_fpath']
             else:
-                self.resume_fpath = join(
-                    self.user_root, 'Experiments', self.exp_name,
-                    self.exp_config['resume_fpath'])
+                self.resume_fpath = join(self.exp_root, self.exp_name,
+                                         self.exp_config['resume_fpath'])
             self.checkpoint, resume_log =\
                 self.resume_checkpoint(self.resume_fpath)
             self.start_epoch = self.checkpoint['epoch'] + 1
@@ -68,8 +68,8 @@ class BaseTrainer:
 
             # directory to save experiment result
             self.save_period = self.exp_config['save_period']
-            self.save_dir = join(self.exp_root, self.exp_name)
-            os.makedirs(self.save_dir, exist_ok=True)
+            self.exp_dir = join(self.exp_root, self.exp_name)
+            os.makedirs(self.exp_dir, exist_ok=True)
 
             # directory to save tensorboard record
             self.tb_dir = join(self.exp_root, 'Tensorboard', self.exp_name)
@@ -77,7 +77,7 @@ class BaseTrainer:
             self.writer = SummaryWriter(log_dir=self.tb_dir)
 
             # path to save logging record
-            self.log_fpath = join(self.save_dir, self.exp_config['log_fname'])
+            self.log_fpath = join(self.exp_dir, self.exp_config['log_fname'])
             self.logger = self.init_logger(self.log_fpath)
 
             exp_init_log = f'\n****************************************'\
@@ -85,7 +85,7 @@ class BaseTrainer:
                 f'\nExperiment: {self.exp_name}\n'\
                 f'Start_epoch: {self.start_epoch}\n'\
                 f'Total_epochs: {self.total_epochs}\n'\
-                f'Save dir: {self.save_dir}\n'\
+                f'Save dir: {self.exp_dir}\n'\
                 f'Tensorboard dir: {self.tb_dir}\n'\
                 f'Save peroid: {self.save_period}\n'\
                 f'Resume Training: {self.resume}\n'\
@@ -93,11 +93,10 @@ class BaseTrainer:
                 f'{True if self.local_rank != -1 else False}\n'\
                 f'**********************************************'\
                 f'**********************************************\n'
+
             self.log(exp_init_log)
             if self.resume:
                 self.log(resume_log)
-
-        self._set_configs(config)
 
     def _set_configs(self, config):
         #######################################################################
@@ -212,12 +211,12 @@ class BaseTrainer:
 
         prefix = 'Initialized'
         if resume:
-            model.load_state_dict(checkpoint['model'])
+            model = self.update_state_dict(model, checkpoint['model'])
             prefix = 'Resumed checkpoint params to'
         elif kwargs.get('pretrained', False):
             state_dict = torch.load(kwargs['pretrained_fpath'],
                                     map_location='cpu')
-            model.load_state_dict(state_dict, strict=False)
+            model = self.update_state_dict(model, state_dict)
             prefix = 'Resumed pretrained params to'
 
         kwargs.pop('checkpoint', None)
@@ -294,7 +293,8 @@ class BaseTrainer:
             prefix = 'Initialized'
             if kwargs.get('resume', False):
                 checkpoint = kwargs.pop('checkpoint', None)
-                optimizer.load_state_dict(checkpoint['optimizer'])
+                optimizer = self.update_state_dict(optimizer,
+                                                   checkpoint['optimizer'])
                 prefix = "Resumed"
 
             self.log(f'===> {prefix} {opt_name}: {kwargs}', log_level)
@@ -397,6 +397,19 @@ class BaseTrainer:
             total_params += np.prod(x.data.numpy().shape)
         total_params /= 10 ** 6
         return total_params
+
+    def update_state_dict(self, module, checkpoint_state_dict):
+        """Only update state dict that the module needs and output those
+        unupdated keys of the module"""
+        module_state_dict = module.state_dict()
+        update_items = {k: v for k, v in checkpoint_state_dict.items()
+                        if k in module_state_dict.keys()}
+        unupdated_keys = [k for k in module_state_dict.keys()
+                          if k not in update_items.keys()]
+        self.log(f'Found unused keys from checkpoint: {unupdated_keys}')
+        module_state_dict.update(update_items)
+        module.load_state_dict(module_state_dict)
+        return module
 
     @abc.abstractmethod
     def train(self):
