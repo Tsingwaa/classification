@@ -9,7 +9,7 @@ from data_loader.dataset.builder import Datasets
 
 @Datasets.register_module("Xray6")
 class Xray6(torch.utils.data.Dataset):
-    cls_num = 6
+    num_classes = 6
 
     def __init__(self, data_root, train, transform=None,
                  fold=0, select_classes=[0, 1, 5, 7, 9, 11]):

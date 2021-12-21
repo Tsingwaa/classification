@@ -31,7 +31,7 @@ def make_dataset(fold, data_root):
 @Datasets.register_module("Skin7")
 class Skin7(torch.utils.data.Dataset):
     ''' 原图大小（3， 450， 600） '''
-    cls_num = 7
+    num_classes = 7
     mean = [0.7626, 0.5453, 0.5714]
     std = [0.1404, 0.1519, 0.1685]
 
@@ -45,7 +45,7 @@ class Skin7(torch.utils.data.Dataset):
         if self.train:
             self.labels = [data[1] for data in self.train_data]
             self.img_num_per_cls = [self.labels.count(i)
-                                    for i in range(self.cls_num)]
+                                    for i in range(self.num_classes)]
         else:
             self.labels = [data[1] for data in self.test_data]
 

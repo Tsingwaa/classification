@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_r32_lr0.001"
+  name: "CF10_0.01_r32_wd2"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -68,8 +68,8 @@ loss:
 optimizer:
   name: "SGD"
   param:
-    lr: 0.001
-    weight_decay: 2.0e-4
+    lr: 0.1
+    weight_decay: 1.0e-2
     momentum: 0.9
     nesterov: True
 
@@ -79,7 +79,7 @@ lr_scheduler:
   name: "MultiStepLR"
   # name: "CosineAnnealingWarmRestarts"
   param:
-    warmup_epochs: 10
+    warmup_epochs: 5
     # CyclicLR
     # step_size_up: 3  # 3 * iterations
     # step_size_down: 2  # 2 * iterations
@@ -87,8 +87,8 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [80, 120, 150, 170, 180]
-    gamma: 0.1
+    milestones: [120, 160, 180]
+    gamma: 0.01
 
     # CosineAnnealingWarmRestarts
     # T_0: 5
