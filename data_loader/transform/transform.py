@@ -104,6 +104,52 @@ class BaseTransform:
         return ret_transform(x)
 
 
+@Transforms.register_module('CifarTransform')
+class CifarTransform:
+    def __init__(self, phase='train', resize=(32, 32),
+                 strong=False, **kwargs):
+        self.phase = phase
+        self.resize = resize
+        self.strong = strong
+
+    def __call__(self, x, mean=IN_MEAN, std=IN_STD, **kwargs):
+        if self.phase == 'train':
+            if self.strong:
+                ret_transform = transforms.Compose([
+                    transforms.RandomHorizontalFlip(0.5),
+                    # transforms.RandomVerticalFlip(0.5),
+                    transforms.RandomAffine(
+                        degrees=45,
+                        translate=(0.4, 0.4),
+                        scale=(0.5, 1.5),
+                        shear=20,
+                        fill=(127, 127, 127),
+                    ),
+                    transforms.RandomResizedCrop(self.resize),
+                    # transforms.ColorJitter(brightness=0.4,
+                    #                        saturation=0.4,
+                    #                        contrast=0.4,
+                    #                        hue=0.4),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean, std),
+                    # transforms.RandomErasing(),
+                ])
+            else:
+                ret_transform = transforms.Compose([
+                    transforms.RandomCrop(self.resize[1], padding=4),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean, std),
+                ])
+        else:
+            ret_transform = transforms.Compose([
+                transforms.Resize(self.resize),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std),
+            ])
+        return ret_transform(x)
+
+
 @Transforms.register_module('NoiseBaseTransform')
 class NoiseBaseTransform:
     def __init__(self, phase='train', resize=(224, 224),
@@ -384,23 +430,6 @@ def rand_transform(phase='train', resize=(224, 224),
         ])
     return ret_transform
 
-
-def cifar_transform(phase='train', resize=(32, 32), **kwargs):
-    mean = [0.4914, 0.4822, 0.4465]
-    std = [0.2023, 0.1994, 0.2010]
-    if phase == 'train':
-        ret_transform = transforms.Compose([
-            transforms.RandomCrop(resize[1], padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std),
-        ])
-    else:
-        ret_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std)
-        ])
-    return ret_transform
 
 
 class GaussianNoise:
