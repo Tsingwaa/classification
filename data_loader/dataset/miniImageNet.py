@@ -187,6 +187,16 @@ class ImbalanceMiniImageNet20(ImbalanceMiniImageNet):
     cls_num = 20
 
 
+@Datasets.register_module('imb_miniImageNet3')
+class ImbalanceMiniImageNet3(ImbalanceMiniImageNet):
+    """Select the former 20 classes as a small imbalanced dataset
+    for test use
+    """
+    mean = [0.3644, 0.4094, 0.3998]
+    std = [0.2698, 0.2434, 0.2535]
+    cls_num = 3
+
+
 @Datasets.register_module('imb_miniImageNet20_tail')
 class ImbalanceMiniImageNet20_tail(ImbalanceMiniImageNet):
     """Select the former 20 classes as a small imbalanced dataset
