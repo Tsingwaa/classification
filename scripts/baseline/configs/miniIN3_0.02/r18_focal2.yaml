@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_r18_CB0.99"
+  name: "miniIN20_0.05_r18_focal2"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -44,25 +44,26 @@ val_dataset:
 trainloader:
   sampler: ""
   batch_size: 64
-  num_workers: 4
+  num_workers: 6
 
 valloader:
   batch_size: 128
-  num_workers: 4
+  num_workers: 6
 
 network:
   name: "ResNet18"
   param:
     num_classes: 20
+    # use_ssp: False
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
 loss:
-  name: "CrossEntropyLoss"
+  name: "FocalLoss"
   param:
-    weight_type: 'CB'
-    beta: 0.99
+    weight_type: ''
     label_smoothing: 0.
+    gamma: 2
 
 optimizer:
   name: "SGD"

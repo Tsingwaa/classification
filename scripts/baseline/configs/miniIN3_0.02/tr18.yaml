@@ -1,12 +1,48 @@
 experiment:
-  name: "miniIN20_0.05_r18_CB0.99"
+  name: "miniIN3_0.02_tr18_1"
   start_epoch: 1
-  total_epochs: 200
+  total_iters: 10000
   log_fname: "train.log"
   resume: False
   resume_fpath: "last.pth.tar"
+  extract_phase: 'train'
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
+ 
+finetune:
+  name: "2RW_fc1"
+  total_epochs: 10
+  unfreeze_keys: ["fc"]
+  trainloader:
+    sampler: ""
+    retain_epoch_size: False
+    batch_size: 64
+    num_workers: 4
+  network:
+    name: ''
+    param:
+      in_channels: 512
+      num_classes: 3
+  loss:
+    name: "CrossEntropyLoss"
+    param:
+      weight_type: "class_weight"
+      label_smoothing: 0.
+  optimizer:
+    name: "SGD"
+    param:
+      lr: 1.0e-1
+      weight_decay: 1.0e-5
+      momentum: 0.9
+      nesterov: True
+  lr_scheduler:
+    name: 'StepLR'
+    param:
+      warmup_epochs: 0
+      step_size: 2
+      # milestones: [5, 10, 15, 20]
+      gamma: 0.1
+
 
 train_transform:
   name: "BaseTransform"
@@ -21,29 +57,29 @@ val_transform:
     resize: [224, 224]
 
 train_dataset:
-  name: "imb_miniImageNet20"
+  name: "imb_miniImageNet3"
   param:
     data_root: "miniImageNet"
     phase: "train"
-    img_lst_fpath: "train20.txt"
+    img_lst_fpath: "train3.txt"
     # map_fpath: "None"
     imb_type: 'exp'
-    imb_factor: 0.05
+    imb_factor: 0.02
     seed: 0
     # download: False
 
 val_dataset:
-  name: "imb_miniImageNet20"
+  name: "imb_miniImageNet3"
   param:
     data_root: "miniImageNet"
     phase: "val"
-    img_lst_fpath: "val20.txt"
+    img_lst_fpath: "val3.txt"
     # map_fpath: "None"
     # download: False
 
 trainloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 valloader:
@@ -51,23 +87,22 @@ valloader:
   num_workers: 4
 
 network:
-  name: "ResNet18"
+  name: "ToyResNet18"
   param:
-    num_classes: 20
+    num_classes: 3
     pretrained: False
     pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
 
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: 'CB'
-    beta: 0.99
+    weight_type: ''
     label_smoothing: 0.
 
 optimizer:
   name: "SGD"
   param:
-    lr: 0.1
+    lr: 1.0e-1
     weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True
@@ -86,10 +121,9 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [120, 160, 180]
-    gamma: 0.01
+    milestones: [0.4, 0.6, 0.8, 0.85, 0.9, 0.95]
+    gamma: 0.1
 
-    # CosineAnnealingWarmRestarts
-    # T_0: 5
+    # CosineAnnealingWarmRestarts # T_0: 5
     # T_mult: 1
     # eta_min: 0

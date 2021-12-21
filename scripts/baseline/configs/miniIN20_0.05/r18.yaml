@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_r18_test"
+  name: "miniIN20_0.05_r18"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -17,7 +17,7 @@ finetune:
     sampler: ""
     retain_epoch_size: False
     batch_size: 64
-    num_workers: 6
+    num_workers: 4
   network:
     name: ''
     param:
@@ -80,11 +80,11 @@ val_dataset:
 trainloader:
   sampler: ""
   batch_size: 64
-  num_workers: 6
+  num_workers: 4
 
 valloader:
   batch_size: 128
-  num_workers: 6
+  num_workers: 4
 
 network:
   name: "ResNet18"

@@ -207,7 +207,7 @@ class Trainer(BaseTrainer):
                                          mr=val_mr,
                                          group_recalls=val_group_recalls,
                                          prefix=None,
-                                         save_dir=self.save_dir)
+                                         save_dir=self.exp_dir)
 
         final_mr = np.around(np.mean(last_20_mrs), decimals=4)
         final_head_mr = np.around(np.mean(last_20_head_mrs), decimals=4)
@@ -222,7 +222,7 @@ class Trainer(BaseTrainer):
                 f" {final_mr:.2%}\n"
                 f"Average Group mean recalls: [{final_head_mr:.2%}, "
                 f"{final_mid_mr:.2%}, {final_tail_mr:.2%}]\n\n"
-                f"===> Save directory: '{self.save_dir}'\n"
+                f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************"
             )

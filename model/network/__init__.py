@@ -9,3 +9,4 @@ from .resnet import *
 from .norm_resnet import *
 from .resnet_ssp import *
 from .mlp import *
+from .toy_resnet import *

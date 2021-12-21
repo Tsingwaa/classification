@@ -158,12 +158,12 @@ class Bottleneck(nn.Module):
         return out
 
 
-class ResNet(nn.Module):
+class ToyResNet(nn.Module):
     def __init__(self, block, layers, num_classes=1000,
                  zero_init_residual=False, groups=1, width_per_group=64,
                  replace_stride_with_dilation=None, norm_layer=None,
                  **kwargs):
-        super(ResNet, self).__init__()
+        super(ToyResNet, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
@@ -196,14 +196,15 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
-        self.mlp = nn.Sequential(
-            nn.Linear(512 * block.expansion, 256 * block.expansion),
-            nn.ReLU(inplace=True),
-            nn.Linear(256 * block.expansion, 128 * block.expansion),
-            nn.ReLU(inplace=True),
-            nn.Linear(128 * block.expansion, num_classes)
-        )
+        self.fc1 = nn.Linear(512 * block.expansion, 2)
+        self.fc2 = nn.Linear(2, num_classes)
+        # self.mlp = nn.Sequential(
+        #     nn.Linear(512 * block.expansion, 256 * block.expansion),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(256 * block.expansion, 128 * block.expansion),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(128 * block.expansion, num_classes)
+        # )
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -250,7 +251,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, out=None):
+    def forward(self, x, out='fc'):
         # See note [TorchScript super()]
         x = self.conv1(x)
         x = self.bn1(x)
@@ -260,67 +261,33 @@ class ResNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        feat_map = self.layer4[:-1](x)
-        if out == 'map':
-            return feat_map
+        # feat_map = self.layer4[:-1](x)
+        # if out == 'map':
+        #     return feat_map
+        # else:
+        #     feat_map = self.layer4[-1](feat_map)
+        #     feat_vec = self.avgpool(feat_map)
+        #     feat_vec = torch.squeeze(feat_vec)
+        #     if out == 'vec':
+        #         return feat_vec
+        #     elif out == 'mlp':
+        #         return self.mlp(feat_vec)
+        #     else:
+        #         return self.fc(feat_vec)
+        x = self.layer4(x)
+
+        feat_vec = torch.squeeze(self.avgpool(x))
+        plot_vec = self.relu(self.fc1(feat_vec))
+        if out == 'vec':
+            return plot_vec
         else:
-            feat_map = self.layer4[-1](feat_map)
-            feat_vec = self.avgpool(feat_map)
-            feat_vec = torch.squeeze(feat_vec)
-            if out == 'vec':
-                return feat_vec
-            elif out == 'mlp':
-                return self.mlp(feat_vec)
-            else:
-                return self.fc(feat_vec)
-
-    def bfc(self, feat_map):
-        feat_map = self.layer4[-1](feat_map)
-        feat_vec = self.avgpool(feat_map)
-        feat_vec = self.squeeze(feat_vec)
-        return self.fc(feat_vec)
+            return self.fc2(plot_vec)
 
 
-@Networks.register_module('ResNet18')
-class ResNet18(ResNet):
+@Networks.register_module('ToyResNet18')
+class ToyResNet18(ToyResNet):
     def __init__(self, num_classes, **kwargs):
-        super(ResNet18, self).__init__(
+        super(ToyResNet18, self).__init__(
             block=BasicBlock,
             layers=[2, 2, 2, 2],
-            num_classes=num_classes, **kwargs)
-
-
-@Networks.register_module('ResNet34')
-class ResNet34(ResNet):
-    def __init__(self, num_classes, **kwargs):
-        super(ResNet34, self).__init__(
-            block=BasicBlock,
-            layers=[3, 4, 6, 3],
-            num_classes=num_classes, **kwargs)
-
-
-@Networks.register_module('ResNet50')
-class ResNet50(ResNet):
-    def __init__(self, num_classes, **kwargs):
-        super(ResNet50, self).__init__(
-            block=Bottleneck,
-            layers=[3, 4, 6, 3],
-            num_classes=num_classes, **kwargs)
-
-
-@Networks.register_module('ResNet101')
-class ResNet101(ResNet):
-    def __init__(self, num_classes, **kwargs):
-        super(ResNet101, self).__init__(
-            block=Bottleneck,
-            layers=[3, 4, 23, 3],
-            num_classes=num_classes, **kwargs)
-
-
-@Networks.register_module('ResNet152')
-class ResNet152(ResNet):
-    def __init__(self, num_classes, **kwargs):
-        super(ResNet152, self).__init__(
-            block=Bottleneck,
-            layers=[3, 8, 36, 3],
             num_classes=num_classes, **kwargs)

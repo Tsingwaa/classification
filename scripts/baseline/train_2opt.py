@@ -5,7 +5,6 @@ import argparse
 import yaml
 import numpy as np
 import torch
-from datetime import datetime
 # from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -26,11 +25,6 @@ class DataLoaderX(DataLoader):
 class Trainer(BaseTrainer):
     def __init__(self, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
-
-        loss2_config = config['loss2']
-        self.loss2_name = loss2_config['name']
-        self.loss2_params = loss2_config['param']
-        self.lambda_weight = self.loss2_params.get('lambda', 0)
 
         opt2_config = config['optimizer2']
         self.opt2_name = opt2_config['name']
@@ -87,27 +81,25 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.loss_params = self.update_class_weight(
-            trainset.img_num, **self.loss_params)
+        # self.loss_params = self.update_class_weight(
+        #     trainset.img_num, **self.loss_params)
         self.criterion = self.init_loss(self.loss_name, **self.loss_params)
-        self.criterion2 = self.init_loss(self.loss2_name, **self.loss2_params)
 
         #######################################################################
         # Initialize Optimizer
         #######################################################################
-        self.opt = self.init_optimizer(self.opt_name,
-                                       self.model.parameters(),
+        self.opt = self.init_optimizer(self.opt_name, self.model.parameters(),
                                        **self.opt_params)
         self.opt2 = self.init_optimizer(self.opt2_name,
-                                        self.criterion2.parameters(),
+                                        self.criterion.parameters(),
                                         **self.opt2_params)
 
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
         if self.local_rank != -1:
-            self.model, self.opt = amp.initialize(self.model, self.opt,
-                                                  opt_level="O1")
+            self.model, self.opt = amp.initialize(
+                self.model, self.opt, opt_level="O1")
             self.model = DistributedDataParallel(self.model,
                                                  device_ids=[self.local_rank],
                                                  output_device=self.local_rank,
@@ -131,7 +123,6 @@ class Trainer(BaseTrainer):
         last_mid_mrs = []
         last_tail_mrs = []
         self.final_epoch = self.start_epoch + self.total_epochs
-        start_time = datetime.now()
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.scheduler.step()
             self.scheduler2.step()
@@ -144,9 +135,8 @@ class Trainer(BaseTrainer):
                 self.model,
                 self.criterion,
                 self.opt,
-                criterion2=self.criterion2,
-                optimizer2=self.opt2,
-                num_classes=trainset.cls_num
+                trainset.cls_num,
+                opt2=self.opt2,
             )
 
             if self.local_rank in [-1, 0]:
@@ -155,7 +145,7 @@ class Trainer(BaseTrainer):
                     self.valloader,
                     self.model,
                     self.criterion,
-                    num_classes=trainset.cls_num
+                    trainset.cls_num
                 )
 
                 if self.final_epoch - cur_epoch <= 10:
@@ -164,9 +154,7 @@ class Trainer(BaseTrainer):
                     last_mid_mrs.append(val_stat.group_mr['mid'])
                     last_tail_mrs.append(val_stat.group_mr['tail'])
                 self.log(f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
-                         f"Trainset Total Loss={train_loss['total']:.1f} "
-                         f"Loss1={train_loss[1]:.1f} "
-                         f"Loss2={train_loss[2]:.1f} "
+                         f"Trainset Loss={train_loss:.4f} "
                          f"MR={train_stat.mr:.2%} "
                          f"Head={train_stat.group_mr['head']:.2%} "
                          f"Mid={train_stat.group_mr['mid']:.2%} "
@@ -177,23 +165,19 @@ class Trainer(BaseTrainer):
                          f"Mid={val_stat.group_mr['mid']:.2%} "
                          f"Tail={val_stat.group_mr['tail']:.2%}",
                          log_level='file')
-                # if len(val_recalls) <= 20 and cur_epoch == self.total_epochs:
-                #     self.logger.info(f"Class recalls: {val_recalls}\n")
 
                 # Save log by tensorboard
-                self.writer.add_scalar(
-                    f"{self.exp_name}/LR",
-                    self.opt.param_groups[-1]["lr"], cur_epoch)
-                self.writer.add_scalars(
-                    f"{self.exp_name}/Loss",
-                    {"train_totalloss": train_loss['total'],
-                     "train_loss1": train_loss[1],
-                     "train_loss2": train_loss[2],
-                     "val_loss": val_loss}, cur_epoch)
-                self.writer.add_scalars(
-                    f"{self.exp_name}/Recall",
-                    {"train_mr": train_stat.mr,
-                     "val_mr": val_stat.mr}, cur_epoch)
+                self.writer.add_scalar(f"{self.exp_name}/LR",
+                                       self.opt.param_groups[-1]["lr"],
+                                       cur_epoch)
+                self.writer.add_scalars(f"{self.exp_name}/Loss",
+                                        {"train_loss": train_loss,
+                                         "val_loss": val_loss},
+                                        cur_epoch)
+                self.writer.add_scalars(f"{self.exp_name}/Recall",
+                                        {"train_mr": train_stat.mr,
+                                         "val_mr": val_stat.mr},
+                                        cur_epoch)
                 self.writer.add_scalars(
                     f"{self.exp_name}/TrainGroupRecall",
                     {"head_mr": train_stat.group_mr['head'],
@@ -204,6 +188,7 @@ class Trainer(BaseTrainer):
                     {"head_mr": val_stat.group_mr['head'],
                      "mid_mr": val_stat.group_mr['mid'],
                      "tail_mr": val_stat.group_mr['tail']}, cur_epoch)
+
                 is_best = val_stat.mr > best_mr
                 if is_best:
                     best_mr = val_stat.mr
@@ -213,14 +198,12 @@ class Trainer(BaseTrainer):
                     self.save_checkpoint(epoch=cur_epoch,
                                          model=self.model,
                                          optimizer=self.opt,
-                                         criterion=self.criterion2,
+                                         criterion=self.criterion,
                                          is_best=is_best,
                                          mr=val_stat.mr,
                                          group_recalls=val_stat.group_mr,
                                          prefix=None,
                                          save_dir=self.exp_dir)
-        end_time = datetime.now()
-        dur_time = str(end_time - start_time)[:-7]  # 取到秒
 
         final_mr = np.around(np.mean(last_mrs), decimals=4)
         final_head_mr = np.around(np.mean(last_head_mrs), decimals=4)
@@ -229,8 +212,7 @@ class Trainer(BaseTrainer):
 
         if self.local_rank in [-1, 0]:
             self.log(
-                f"\n===> Total Runtime: {dur_time}\n\n"
-                f"===> Best mean recall: {best_mr:.2%} (epoch{best_epoch})\n"
+                f"\n===> Best mean recall: {best_mr:.2%} (epoch{best_epoch})\n"
                 f"Group recalls: {best_group_mr}\n\n"
                 f"===> Final average mean recall of last 10 epochs:"
                 f" {final_mr:.2%}\n"
@@ -241,94 +223,85 @@ class Trainer(BaseTrainer):
                 f"*********************************************************\n"
             )
 
-    def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
-                    criterion2=None, optimizer2=None, num_classes=None):
+    def train_epoch(self, cur_epoch, trainloader, model, criterion, opt,
+                    num_classes, **kwargs):
+        # opt2 = kwargs['opt2']
         model.train()
+        # criterion.train()
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        loss1_meter = AverageMeter()
-        loss2_meter = AverageMeter()
         train_stat = ExpStat(num_classes)
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
-            optimizer.zero_grad()
-            optimizer2.zero_grad()
+            opt.zero_grad()
+            # opt2.zero_grad()
 
-            batch_imgs = batch_imgs.cuda(non_blocking=True)
-            batch_labels = batch_labels.cuda(non_blocking=True)
-            batch_fvecs = model(batch_imgs, out='vec')
-            batch_probs = model.fc(batch_fvecs)
-            loss1 = criterion(batch_probs, batch_labels)
-            loss2 = criterion2(batch_fvecs, batch_labels)
-            avg_loss = loss1 + loss2 * self.lambda_weight
+            batch_imgs = batch_imgs.cuda()
+            batch_labels = batch_labels.cuda()
+            batch_probs = model(batch_imgs)
+            avg_loss = criterion(batch_probs, batch_labels)
+            # batch_vecs = model(batch_imgs, out='vec')
+            # avg_loss = criterion(batch_vecs, batch_labels)
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
-                optimizer.step()
+                opt.step()
                 self._reduce_loss(avg_loss)
             else:
                 avg_loss.backward()
-                optimizer.step()
-                for param in criterion2.parameters():
-                    param.grad.data *= (1. / self.lambda_weight)
-                optimizer2.step()
-
-            train_loss_meter.update(avg_loss.item(), 1)
-            loss1_meter.update(loss1.item(), 1)
-            loss2_meter.update(loss2.item(), 1)
+                # opt2.step()
+                opt.step()
 
             batch_preds = batch_probs.max(1)[1]
+            # batch_preds = train_stat.get_preds_by_eudist(
+            #     batch_vecs, criterion.centers.detach())
+            train_loss_meter.update(avg_loss.item(), 1)
             train_stat.update(batch_labels, batch_preds)
 
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str(
-                    f"Total Loss: {train_loss_meter.avg:.2f} "
-                    f"Loss1[LR:{optimizer.param_groups[0]['lr']:.1e} "
-                    f"Loss:{loss1_meter.avg:.2f}] "
-                    f"Loss2[LR:{optimizer2.param_groups[0]['lr']:.1e} "
-                    f"Loss:{loss2_meter.avg:.2f}] "
+                    f"LR:{opt.param_groups[0]['lr']:.1e} "
+                    f"Loss:{train_loss_meter.avg:.4f}"
                 )
-
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(
-                f"LR:{optimizer.param_groups[0]['lr']:.1e} "
+                f"LR:{opt.param_groups[0]['lr']:.1e} "
                 f"Loss:{train_loss_meter.avg:.2f} "
-                f"L1:{loss1_meter.avg:.1f} "
-                f"L2:{loss2_meter.avg:.1f} "
                 f"MR:{train_stat.mr:.2%} "
                 f"Head:{train_stat.group_mr['head']:.0%} "
                 f"Mid:{train_stat.group_mr['mid']:.0%} "
                 f"Tail:{train_stat.group_mr['tail']:.0%}")
+
             train_pbar.close()
 
-        train_loss = {
-            'total': train_loss_meter.avg,
-            1: loss1_meter.avg,
-            2: loss2_meter.avg
-        }
-
-        return train_stat, train_loss
+        return train_stat, train_loss_meter.avg
 
     def evaluate(self, cur_epoch, valloader, model, criterion, num_classes):
         model.eval()
+        criterion.eval()
 
         if self.local_rank in [-1, 0]:
             val_pbar = tqdm(total=len(valloader), ncols=0,
                             desc="                 Val")
+
         val_loss_meter = AverageMeter()
         val_stat = ExpStat(num_classes)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
-                batch_imgs = batch_imgs.cuda(non_blocking=True)
-                batch_labels = batch_labels.cuda(non_blocking=True)
+                batch_imgs = batch_imgs.cuda()
+                batch_labels = batch_labels.cuda()
 
-                batch_probs = model(batch_imgs)
+                batch_probs = model(batch_imgs, out='mlp')
                 batch_preds = batch_probs.max(1)[1]
                 avg_loss = criterion(batch_probs, batch_labels)
+                # batch_vecs = model(batch_imgs, out='vec')
+                # batch_preds = val_stat.get_preds_by_eudist(
+                #     batch_vecs, criterion.centers.detach())
+                # avg_loss = criterion(batch_vecs, batch_labels)
 
                 val_loss_meter.update(avg_loss.item(), 1)
                 val_stat.update(batch_labels, batch_preds)
@@ -339,10 +312,9 @@ class Trainer(BaseTrainer):
                 f"Loss:{val_loss_meter.avg:.2f} "
                 f"MR:{val_stat.mr:.2%} "
                 f"Head:{val_stat.group_mr['head']:.0%} "
-                f"Mid:{val_stat.group_mr['head']:.0%} "
+                f"Mid:{val_stat.group_mr['mid']:.0%} "
                 f"Tail:{val_stat.group_mr['tail']:.0%}")
             val_pbar.close()
-
         return val_stat, val_loss_meter.avg
 
 

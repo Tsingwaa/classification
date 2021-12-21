@@ -1,12 +1,48 @@
 experiment:
-  name: "miniIN20_0.05_r18_CB0.99"
+  name: "miniIN20_0.05_r18_ce_center0.1"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
   resume: False
   resume_fpath: "last.pth.tar"
+  extract_phase: 'train'
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
+ 
+finetune:
+  name: "2RW_fc1"
+  total_epochs: 10
+  unfreeze_keys: ["fc"]
+  trainloader:
+    sampler: ""
+    retain_epoch_size: False
+    batch_size: 64
+    num_workers: 6
+  network:
+    name: ''
+    param:
+      in_channels: 512
+      num_classes: 20
+  loss:
+    name: "CrossEntropyLoss"
+    param:
+      weight_type: "class_weight"
+      label_smoothing: 0.
+  optimizer:
+    name: "SGD"
+    param:
+      lr: 1.0e-1
+      weight_decay: 1.0e-5
+      momentum: 0.9
+      nesterov: True
+  lr_scheduler:
+    name: 'StepLR'
+    param:
+      warmup_epochs: 0
+      step_size: 2
+      # milestones: [5, 10, 15, 20]
+      gamma: 0.1
+
 
 train_transform:
   name: "BaseTransform"
@@ -44,11 +80,11 @@ val_dataset:
 trainloader:
   sampler: ""
   batch_size: 64
-  num_workers: 4
+  num_workers: 6
 
 valloader:
   batch_size: 128
-  num_workers: 4
+  num_workers: 6
 
 network:
   name: "ResNet18"
@@ -60,14 +96,29 @@ network:
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: 'CB'
-    beta: 0.99
+    weight_type: ''
     label_smoothing: 0.
+
+loss2:
+  name: "CenterLoss"
+  param:
+    num_class: 20
+    num_feature: 512
+    alpha: 0
+    lambda: 0.1
 
 optimizer:
   name: "SGD"
   param:
     lr: 0.1
+    weight_decay: 1.0e-5
+    momentum: 0.9
+    nesterov: True
+
+optimizer2:
+  name: "SGD"
+  param:
+    lr: 0.5
     weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True
@@ -93,3 +144,20 @@ lr_scheduler:
     # T_0: 5
     # T_mult: 1
     # eta_min: 0
+
+lr_scheduler2:
+  # name: "CyclicLR"
+  # name: "StepLR"
+  name: "MultiStepLR"
+  # name: "CosineAnnealingWarmRestarts"
+  param:
+    warmup_epochs: 10
+    # CyclicLR
+    # step_size_up: 3  # 3 * iterations
+    # step_size_down: 2  # 2 * iterations
+    # max_lr: 5.0e-2
+    # base_lr: 5.0e-7
+    
+    # MultiStepLR
+    milestones: [120, 160]
+    gamma: 0.1

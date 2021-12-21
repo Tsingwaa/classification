@@ -1,12 +1,42 @@
 experiment:
-  name: "miniIN20_0.05_r18_CB0.99"
+  name: "miniIN20_0.05_r18_test"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
   resume: False
   resume_fpath: "last.pth.tar"
+  extract_phase: 'train'
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
+ 
+finetune:
+  name: "2RW"
+  log_fname: "finetune.log"
+  total_epochs: 30
+  unfreeze_keys: ["fc"]
+  trainloader:
+    sampler: ""
+    retain_epoch_size: True
+    batch_size: 64
+    num_workers: 6
+  loss:
+    name: "CrossEntropyLoss"
+    param:
+      weight_type: "class_weight"
+      label_smoothing: 0.
+  optimizer:
+    name: "SGD"
+    param:
+      lr: 1.0e-2
+      weight_decay: 1.0e-5
+      momentum: 0.9
+      nesterov: True
+  lr_scheduler:
+    name: 'MultiStepLR'
+    param:
+      milestones: [5, 10, 15, 20]
+      gamma: 0.1
+
 
 train_transform:
   name: "BaseTransform"
@@ -44,11 +74,11 @@ val_dataset:
 trainloader:
   sampler: ""
   batch_size: 64
-  num_workers: 4
+  num_workers: 6
 
 valloader:
   batch_size: 128
-  num_workers: 4
+  num_workers: 6
 
 network:
   name: "ResNet18"
@@ -60,8 +90,7 @@ network:
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: 'CB'
-    beta: 0.99
+    weight_type: ''
     label_smoothing: 0.
 
 optimizer:
