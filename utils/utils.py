@@ -2,11 +2,13 @@
 Created: Nov 11,2019 - Yuchong Gu
 Revised: Dec 03,2019 - Yuchong Gu
 """
+import os
 import math
 import torch
 # import random
 import numpy as np
 # import torch.nn.functional as F
+from os.path import join, exists
 from sklearn.metrics import confusion_matrix
 from matplotlib import pyplot as plt
 
@@ -173,3 +175,28 @@ def plot_confusion_matrix(y_true, y_pred, classes,
                     color="white" if cm[i, j] > thresh else "black")
     fig.tight_layout()
     return ax
+
+
+def plot_features(features, labels, save_dir, num_classes, epoch, prefix):
+    """Plot features on 2D plane.
+
+    Args:
+        features: (N, num_features).
+        labels: (N).
+    """
+
+    colors = ['C' + str(i) for i in range(num_classes)]
+    for label_idx in range(num_classes):
+        plt.scatter(
+            features[labels == label_idx, 0],
+            features[labels == label_idx, 1],
+            c=colors[label_idx],
+            s=1,
+        )
+    plt.legend(list(range(num_classes)), loc='upper right')
+    dirname = join(save_dir, prefix)
+    if not exists(dirname):
+        os.mkdir(dirname)
+    save_name = join(dirname, 'epoch_' + str(epoch+1) + '.png')
+    plt.savefig(save_name, bbox_inches='tight')
+    plt.close()
