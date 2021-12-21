@@ -94,14 +94,14 @@ valloader:
   num_workers: 4
 
 network:
-  name: "NormResNet18"
+  name: "NormResNet32_CIFAR"
   param:
     num_classes: 10
-    mean: [0.3567, 0.4279, 0.4439]
-    std: [0.2761, 0.2584, 0.2705]
+    mean: [0.4914, 0.4822, 0.4465]
+    std: [0.2023, 0.1994, 0.2010]
     dual_BN: True
     pretrained: False
-    pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
+    pretrained_fpath: ""
 
 loss:
   name: "CrossEntropyLoss"
@@ -113,7 +113,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.1
-    weight_decay: 1.0e-3
+    weight_decay: 2.0e-4
     momentum: 0.9
     nesterov: True
 
@@ -123,7 +123,7 @@ lr_scheduler:
   name: "MultiStepLR"
   # name: "CosineAnnealingWarmRestarts"
   param:
-    warmup_epochs: 10
+    warmup_epochs: 5
     # CyclicLR
     # step_size_up: 3  # 3 * iterations
     # step_size_down: 2  # 2 * iterations
@@ -131,8 +131,8 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [80, 120, 150, 170, 180]
-    gamma: 0.1
+    milestones: [120, 160, 180]
+    gamma: 0.01
 
     # CosineAnnealingWarmRestarts
     # T_0: 5

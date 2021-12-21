@@ -119,12 +119,12 @@ class Trainer(BaseTrainer):
 
             train_stat, train_loss = self.train_epoch(
                 cur_epoch, self.trainloader, self.model, self.criterion,
-                self.opt, trainset.cls_num,)
+                self.opt, trainset.num_classes,)
 
             if self.local_rank in [-1, 0]:
                 val_stat, val_loss = self.evaluate(
                     cur_epoch, self.valloader, self.model, self.criterion,
-                    trainset.cls_num)
+                    trainset.num_classes)
 
                 if self.final_epoch - cur_epoch <= 10:
                     last_mrs.append(val_stat.mr)
