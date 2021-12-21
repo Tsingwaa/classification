@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn.functional import cross_entropy
-from pudb import set_trace
+# from pudb import set_trace
 from model.module.builder import Modules
 from utils import switch_adv
 
@@ -30,19 +30,14 @@ class LinfPGD(nn.Module):
 
         self.criterion = criterion
         if self.criterion is None:
-            self.criterion = lambda model, input, target:\
-                    cross_entropy(model.bfc(input), target)
-
-        # Model status
-        self.training = self.model.training
-
-    def project(self, perturbation):
-        # Clamp the perturbation to epsilon Lp ball.
-        return torch.clamp(perturbation, -self.eps, self.eps)
+            # self.criterion = lambda model, input, target:\
+            #         cross_entropy(model.bfc(input), target)
+            self.criterion = cross_entropy
 
     def compute_perturbation(self, adv_x, x):
         # Project the perturbation to Lp ball
-        perturbation = self.project(adv_x - x)
+        # perturbation = self.project(adv_x - x)
+        perturbation = torch.clamp(adv_x - x, -self.eps, self.eps)
         # Clamp the adversarial image to a legal 'image'
         perturbation = torch.clamp(x + perturbation,
                                    self.clip_min,
@@ -56,18 +51,19 @@ class LinfPGD(nn.Module):
         adv_x.requires_grad = True
 
         self.model.apply(switch_adv)
-        atk_loss = self.criterion(self.model, adv_x, target)
+        # atk_loss = self.criterion(self.model(x), adv_x, target)
+        atk_loss = self.criterion(self.model(adv_x), target)
 
         self.model.zero_grad()
         atk_loss.backward()
         grad = adv_x.grad
-        # Essential: delete the computation graph to save GPU ram
+        # Essential: delete the computation graph to save GPU RAM
         adv_x.requires_grad = False
-
         if self.targeted:
             adv_x = adv_x.detach() - self.step * torch.sign(grad)
         else:
             adv_x = adv_x.detach() + self.step * torch.sign(grad)
+
         perturbation = self.compute_perturbation(adv_x, x)
 
         return perturbation
@@ -80,24 +76,18 @@ class LinfPGD(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = True
 
-    def random_perturbation(self, x):
-        perturbation = torch.rand_like(x).to(device=self.device)
-        perturbation = self.compute_perturbation(x + perturbation, x)
-
-        return perturbation
-
     def attack(self, x, target):
+        self.training = self.model.training
         x = x.to(self.device)
         target = target.to(self.device)
-
-        self.training = self.model.training
 
         self.model.eval()
         self._model_freeze()
 
         perturbation = torch.zeros_like(x).to(self.device)
         if self.random_start:
-            perturbation = self.random_perturbation(x)
+            perturbation = torch.rand_like(x).to(device=self.device)
+            perturbation = self.compute_perturbation(x + perturbation, x)
 
         with torch.enable_grad():
             self.model.apply(switch_adv)
@@ -107,7 +97,6 @@ class LinfPGD(nn.Module):
         self._model_unfreeze()
         if self.training:
             self.model.train()
-
         return x + perturbation
 
 

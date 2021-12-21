@@ -33,9 +33,9 @@ import torch.nn.functional as F
 import torch.nn.init as init
 from torch.nn import Parameter
 from model.network.builder import Networks
+from .utils import Normalization, MixBatchNorm2d
 
-__all__ = ['ResNet_CIFAR', 'ResNet20_CIFAR', 'ResNet32_CIFAR',
-           'ResNet56_CIFAR', 'ResNet110_CIFAR']
+__all__ = ['NormResNet_CIFAR', 'NormResNet32_CIFAR']
 
 
 def _weights_init(m):
@@ -107,18 +107,20 @@ class BasicBlock(nn.Module):
         return out
 
 
-class ResNet_CIFAR(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10, use_norm=False,
-                 **kwargs):
-        super(ResNet_CIFAR, self).__init__()
+class NormResNet_CIFAR(nn.Module):
+    def __init__(self, block, layers, num_classes=10, use_norm=False,
+                 mean=None, std=None, dual_BN=False, **kwargs):
+        super(NormResNet_CIFAR, self).__init__()
         self.in_planes = 16
+
+        self.normalize = Normalization(mean, std)
 
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3,
                                stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(16)
-        self.layer1 = self._make_layer(block, 16, num_blocks[0], stride=1)
-        self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
-        self.layer3 = self._make_layer(block, 64, num_blocks[2], stride=2)
+        self.layer1 = self._make_layer(block, 16, layers[0], stride=1)
+        self.layer2 = self._make_layer(block, 32, layers[1], stride=2)
+        self.layer3 = self._make_layer(block, 64, layers[2], stride=2)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         if use_norm:
             self.linear = NormedLinear(64, num_classes)
@@ -126,8 +128,8 @@ class ResNet_CIFAR(nn.Module):
             self.linear = nn.Linear(64, num_classes)
         self.apply(_weights_init)
 
-    def _make_layer(self, block, planes, num_blocks, stride):
-        strides = [stride] + [1]*(num_blocks-1)
+    def _make_layer(self, block, planes, num_block, stride):
+        strides = [stride] + [1] * (num_block-1)
         layers = []
         for stride in strides:
             layers.append(block(self.in_planes, planes, stride))
@@ -135,71 +137,33 @@ class ResNet_CIFAR(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, embedding=False):
+    def forward(self, x, out='fc'):
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
-        # out = F.avg_pool2d(out, out.size()[3])
         out = self.avgpool(out)
-        # out = out.view(out.size(0), -1)
         out = torch.squeeze(out)
-        if embedding:
-            ret = out
+        if out == 'vec':
+            return out
         else:
-            ret = self.linear(out)
-
-        return ret
+            return self.linear(out)
 
 
-@Networks.register_module("ResNet20_CIFAR")
-class ResNet20_CIFAR(ResNet_CIFAR):
-    def __init__(self, num_classes, num_blocks=[3, 3, 3],
-                 use_norm=False, **kwargs):
-        super(ResNet20_CIFAR, self).__init__(
+@Networks.register_module("NormResNet32_CIFAR")
+class NormResNet32_CIFAR(NormResNet_CIFAR):
+    def __init__(self, num_classes, layers=[5, 5, 5], dual_BN=True,
+                 mean=None, std=None, use_norm=False, **kwargs):
+        norm_layer = MixBatchNorm2d if dual_BN else None
+        super(NormResNet32_CIFAR, self).__init__(
             block=BasicBlock,
             num_classes=num_classes,
-            num_blocks=num_blocks, **kwargs)
-
-
-@Networks.register_module("ResNet32_CIFAR")
-class ResNet32_CIFAR(ResNet_CIFAR):
-    def __init__(self, num_classes, num_blocks=[5, 5, 5],
-                 use_norm=False, **kwargs):
-        super(ResNet32_CIFAR, self).__init__(
-            block=BasicBlock,
-            num_classes=num_classes,
-            num_blocks=num_blocks, **kwargs)
-
-
-@Networks.register_module("ResNet44_CIFAR")
-class ResNet44_CIFAR(ResNet_CIFAR):
-    def __init__(self, num_classes, num_blocks=[7, 7, 7],
-                 use_norm=False, **kwargs):
-        super(ResNet44_CIFAR, self).__init__(
-            block=BasicBlock,
-            num_classes=num_classes,
-            num_blocks=num_blocks, **kwargs)
-
-
-@Networks.register_module("ResNet56_CIFAR")
-class ResNet56_CIFAR(ResNet_CIFAR):
-    def __init__(self, num_classes, num_blocks=[9, 9, 9],
-                 use_norm=False, **kwargs):
-        super(ResNet56_CIFAR, self).__init__(
-            block=BasicBlock,
-            num_classes=num_classes,
-            num_blocks=num_blocks, **kwargs)
-
-
-@Networks.register_module("ResNet110_CIFAR")
-class ResNet110_CIFAR(ResNet_CIFAR):
-    def __init__(self, num_classes, num_blocks=[18, 18, 18],
-                 use_norm=False, **kwargs):
-        super(ResNet110_CIFAR, self).__init__(
-            block=BasicBlock,
-            num_classes=num_classes,
-            num_blocks=num_blocks, **kwargs)
+            layers=layers,
+            mean=mean,
+            std=std,
+            norm_layer=norm_layer,
+            **kwargs,
+        )
 
 
 def test(net):
@@ -211,15 +175,9 @@ def test(net):
     print("Total number of params:", total_params)
     print(
         "Total layers:",
-        len(
-            list(
-                filter(
-                    lambda p: p.requires_grad and len(p.data.size()) > 1,
-                    net.parameters()
-                )
-            )
-        )
-    )
+        len(list(filter(
+            lambda p: p.requires_grad and len(p.data.size()) > 1,
+            net.parameters()))))
 
 
 if __name__ == "__main__":
