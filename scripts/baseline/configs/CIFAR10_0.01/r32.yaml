@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_r32"
+  name: "CF10_0.01_r32_lr0.001"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -68,8 +68,8 @@ loss:
 optimizer:
   name: "SGD"
   param:
-    lr: 0.1
-    weight_decay: 1.0e-3
+    lr: 0.001
+    weight_decay: 2.0e-4
     momentum: 0.9
     nesterov: True
 
