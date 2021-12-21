@@ -1,7 +1,7 @@
 """Base Trainer"""
 # ############# Build-in Package #############
 import os
-import math
+# import math
 import abc
 # import shutil
 import logging
@@ -168,33 +168,28 @@ class BaseTrainer:
         return transform
 
     def init_dataset(self, dataset_name, **kwargs):
-        log_level = kwargs.get('log_level', 'default')
-        kwargs.pop('log_level', None)
-
+        log_level = kwargs.pop('log_level', 'default')
         kwargs['data_root'] = join(self.user_root, 'Data', kwargs['data_root'])
+
         dataset = build_dataset(dataset_name, **kwargs)
 
         dataset_init_log = f'===> Initialized {kwargs["phase"]} '\
             f'{dataset_name}: size={len(dataset)}, '\
-            f'classes={dataset.cls_num}'
-        if kwargs['phase'] == 'train':
-            self.train_size = len(dataset)
-            dataset_init_log += f'\nimgs_per_cls={dataset.img_num}'
+            f'classes={dataset.num_classes}\n'\
+            f'imgs_per_cls={dataset.num_samples_per_cls}'
         self.log(dataset_init_log, log_level)
         return dataset
 
-    def init_sampler(self, sampler_name, dataset, **kwargs):
-        log_level = kwargs.get('log_level', 'default')
-        kwargs.pop('log_level', None)
+    def init_sampler(self, sampler_name, **kwargs):
+        log_level = kwargs.pop('log_level', 'default')
 
         if sampler_name in {None, 'None', ''}:
             sampler = None
-            sampler_init_log = '===> Initialized default sampler'
+            sampler_init_log = '===> Use Default Sampler'
         elif sampler_name == 'DistributedSampler':
-            sampler = DistributedSampler(dataset)
+            sampler = DistributedSampler(kwargs['dataset'])
             sampler_init_log = '===> Initialized DistributedSampler'
         else:
-            kwargs['dataset'] = dataset
             sampler = build_sampler(sampler_name, **kwargs)
             sampler_init_log = f'===> Initialized {sampler_name} with'\
                 f' resampled size={len(sampler)}'
