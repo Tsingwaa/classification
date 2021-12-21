@@ -41,7 +41,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
 
         self.imb_type = imb_type
         self.imb_factor = imb_factor
-        self.class_adapt = kwargs['class_adapt']
+        self.class_adapt = kwargs.get('class_adapt', False)
         self.seed = seed
         np.random.seed(self.seed)
 
