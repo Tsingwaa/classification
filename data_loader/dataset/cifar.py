@@ -13,7 +13,7 @@ from data_loader.dataset.builder import Datasets
 
 @Datasets.register_module("CIFAR10")
 class CIFAR10_(torchvision.datasets.CIFAR10):
-    cls_num = 10
+    num_classes = 10
     mean = [0.4914, 0.4822, 0.4465]
     std = [0.2023, 0.1994, 0.2010]
 
@@ -46,14 +46,14 @@ class CIFAR10_(torchvision.datasets.CIFAR10):
     @property
     def num_samples_per_cls(self):
         if self.train:
-            return [5000] * self.cls_num
+            return [5000] * self.num_classes
         else:
-            return [1000] * self.cls_num
+            return [1000] * self.num_classes
 
 
 @Datasets.register_module("ImbalanceCIFAR10")
 class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
-    cls_num = 10
+    num_classes = 10
     mean = [0.4914, 0.4822, 0.4465]
     std = [0.2023, 0.1994, 0.2010]
 
@@ -77,26 +77,26 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         self.gen_imbalanced_data()
 
     def get_img_num_per_cls(self):
-        max_num_samples = len(self.data) / self.cls_num
+        max_num_samples = len(self.data) / self.num_classes
         num_samples_per_cls = []
         if self.imb_type == 'exp':
-            for cls_idx in range(self.cls_num):
+            for cls_idx in range(self.num_classes):
                 num = max_num_samples * (
-                    self.imb_factor ** (cls_idx / (self.cls_num - 1.0))
+                    self.imb_factor ** (cls_idx / (self.num_classes - 1.0))
                 )
                 num_samples_per_cls.append(int(num))
         elif self.imb_type == 'step':
             # One step: the former half {img_max} imgs,
             # the latter half {img_max * imb_factor} imgs
-            for cls_idx in range(self.cls_num // 2):
+            for cls_idx in range(self.num_classes // 2):
                 num_samples_per_cls.append(int(max_num_samples))
-            for cls_idx in range(self.cls_num // 2):
+            for cls_idx in range(self.num_classes // 2):
                 num_samples_per_cls.append(
                     int(max_num_samples * self.imb_factor)
                 )
         else:
             # Original balance CIFAR dataset.
-            num_samples_per_cls.extend([int(max_num_samples)] * self.cls_num)
+            num_samples_per_cls.extend([int(max_num_samples)] * self.num_classes)
 
         return num_samples_per_cls
 
@@ -157,7 +157,7 @@ class ImbalanceCIFAR100(ImbalanceCIFAR10):
         'key': 'fine_label_names',
         'md5': '7973b15100ade9c7d40fb424638fde48',
     }
-    cls_num = 100
+    num_classes = 100
 
 
 if __name__ == '__main__':

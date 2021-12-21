@@ -136,7 +136,7 @@ class CifarTransform:
                 ])
             else:
                 ret_transform = transforms.Compose([
-                    transforms.RandomCrop(self.resize[1], padding=4),
+                    transforms.RandomCrop(self.resize, padding=4),
                     transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
                     transforms.Normalize(mean, std),
@@ -291,6 +291,44 @@ class AdvTransform:
                 transforms.Resize(self.resize),
                 transforms.ToTensor(),
             ])
+        return ret_transform(x)
+
+
+@Transforms.register_module('AdvCifarTransform')
+class AdvCifarTransform:
+    def __init__(self, phase='train', resize=(32, 32),
+                 strong=False, **kwargs):
+        self.phase = phase
+        self.resize = resize
+        self.strong = strong
+
+    def __call__(self, x, mean=IN_MEAN, std=IN_STD, **kwargs):
+        if self.phase == 'train':
+            if self.strong:
+                ret_transform = transforms.Compose([
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.RandomAffine(
+                        degrees=30,
+                        translate=(0.4, 0.4),
+                        scale=(0.5, 1.5),
+                        shear=30,
+                        fill=(127, 127, 127),
+                    ),
+                    transforms.RandomResizedCrop(self.resize),
+                    transforms.ToTensor(),
+                ])
+            else:
+                ret_transform = transforms.Compose([
+                    transforms.RandomCrop(self.resize, padding=4),
+                    transforms.RandomHorizontalFlip(0.5),
+                    transforms.ToTensor(),
+                ])
+        else:
+            ret_transform = transforms.Compose([
+                transforms.Resize(self.resize),
+                transforms.ToTensor(),
+            ])
+
         return ret_transform(x)
 
 
