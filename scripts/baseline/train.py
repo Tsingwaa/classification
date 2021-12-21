@@ -20,7 +20,7 @@ from utils import AverageMeter, ExpStat
 
 class DataLoaderX(DataLoader):
     def __iter__(self):
-        return BackgroundGenerator(super().__iter__(), max_prefetch=8)
+        return BackgroundGenerator(super().__iter__())
 
 
 class Trainer(BaseTrainer):
@@ -74,8 +74,8 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.loss_params = self.update_class_weight(trainset.img_num,
-                                                    **self.loss_params)
+        self.loss_params = self.update_class_weight(
+            trainset.num_samples_per_cls, **self.loss_params)
         self.criterion = self.init_loss(self.loss_name, **self.loss_params)
 
         #######################################################################

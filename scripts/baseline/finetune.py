@@ -24,7 +24,7 @@ from utils import AverageMeter
 
 class DataLoaderX(DataLoader):
     def __iter__(self):
-        return BackgroundGenerator(super().__iter__(), max_prefetch=8)
+        return BackgroundGenerator(super().__iter__())
 
 
 class FineTuner(BaseTrainer):

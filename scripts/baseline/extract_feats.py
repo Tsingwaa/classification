@@ -19,7 +19,7 @@ from base.base_trainer import BaseTrainer
 
 class DataLoaderX(DataLoader):
     def __iter__(self):
-        return BackgroundGenerator(super().__iter__(), max_prefetch=10)
+        return BackgroundGenerator(super().__iter__())
 
 
 class Extractor(BaseTrainer):
