@@ -12,6 +12,8 @@ from os.path import join, exists
 from sklearn.metrics import confusion_matrix
 from matplotlib import pyplot as plt
 
+__all__ = ['count_model_params', 'label2onehot', 'AverageMeter']
+
 
 def count_model_params(net):
     # Compute the total amount of parameters with gradient.

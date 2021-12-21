@@ -3,6 +3,9 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
+__all__ = ['eu_dist', 'cos_sim', 'get_preds_by_eudist', 'get_preds_by_cossim',
+           'ExpStat']
+
 
 def eu_dist(A, B, sqrt=False, device='cuda'):
     """Euclidean Distance
