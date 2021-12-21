@@ -104,24 +104,18 @@ class LinfPGD(nn.Module):
 class AdaptLinfPGD(LinfPGD):
     """最大类->最小类：4/255->8/255"""
 
-    def project(self, perturbation, use_target, target):
+    def compute_perturbation(self, adv_x, x, use_target=False, target=None):
+        # Project the perturbation to Lp ball
         if use_target:
             batch_size = target.shape[0]
             adapt_ratio = (target + 1) / 40 + 1/2
             epsilon = self.eps * adapt_ratio
             epsilon = epsilon.view(batch_size, 1, 1, 1)
-            perturbation_min = torch.min(perturbation, epsilon)
-            ret_eps = torch.max(perturbation_min, -epsilon)
+            perturbation_min = torch.min(adv_x-x, epsilon)
+            perturbation = torch.max(perturbation_min, -epsilon)
         else:
             epsilon = self.eps
-            ret_eps = torch.clamp(perturbation, -epsilon, epsilon)
-
-        return ret_eps
-
-    def compute_perturbation(self, adv_x, x, use_target=False, target=None):
-        # Project the perturbation to Lp ball
-        perturbation = self.project(adv_x - x, use_target=use_target,
-                                    target=target)
+            perturbation = torch.clamp(adv_x-x, -epsilon, epsilon)
         # Clamp the adversarial image to a legal 'image'
         perturbation = torch.clamp(x + perturbation,
                                    self.clip_min,
@@ -135,7 +129,7 @@ class AdaptLinfPGD(LinfPGD):
         adv_x.requires_grad = True
 
         self.model.apply(switch_adv)
-        atk_loss = self.criterion(self.model, adv_x, target)
+        atk_loss = self.criterion(self.model(adv_x), target)
 
         self.model.zero_grad()
         atk_loss.backward()
