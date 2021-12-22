@@ -32,10 +32,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 from torch.nn import Parameter
+# from pudb import set_trace
 from model.network.builder import Networks
 from .utils import Normalization, MixBatchNorm2d
 
-__all__ = ['NormResNet_CIFAR', 'NormResNet32_CIFAR']
+__all__ = ['NormResNet32_CIFAR']
 
 
 def _weights_init(m):
@@ -69,14 +70,17 @@ class LambdaLayer(nn.Module):
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, in_planes, planes, stride=1, option='A'):
+    def __init__(self, in_planes, planes, stride=1, norm_layer=None,
+                 option='A'):
         super(BasicBlock, self).__init__()
+        if norm_layer is None:
+            norm_layer = nn.BatchNorm2d
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3,
                                stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(planes)
+        self.bn1 = norm_layer(planes)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3,
                                stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(planes)
+        self.bn2 = norm_layer(planes)
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != planes:
@@ -100,8 +104,12 @@ class BasicBlock(nn.Module):
                 )
 
     def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.bn2(self.conv2(out))
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = F.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
         out += self.shortcut(x)
         out = F.relu(out)
         return out
@@ -109,48 +117,65 @@ class BasicBlock(nn.Module):
 
 class NormResNet_CIFAR(nn.Module):
     def __init__(self, block, layers, num_classes=10, use_norm=False,
-                 mean=None, std=None, dual_BN=False, **kwargs):
+                 mean=None, std=None, dual_BN=False, norm_layer=None,
+                 **kwargs):
         super(NormResNet_CIFAR, self).__init__()
         self.in_planes = 16
 
-        self.normalize = Normalization(mean, std)
+        if norm_layer is None:
+            norm_layer = nn.BatchNorm2d
+        self._norm_layer = norm_layer
 
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3,
-                               stride=1, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(16)
+        self.normalize = Normalization(mean, std)
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1,
+                               bias=False)
+        self.bn1 = norm_layer(16)
         self.layer1 = self._make_layer(block, 16, layers[0], stride=1)
         self.layer2 = self._make_layer(block, 32, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 64, layers[2], stride=2)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         if use_norm:
-            self.linear = NormedLinear(64, num_classes)
+            self.fc = NormedLinear(64, num_classes)
         else:
-            self.linear = nn.Linear(64, num_classes)
+            self.fc = nn.Linear(64, num_classes)
+
+        self.fc_2 = nn.Linear(64, 2)
+        self.fc_N = nn.Linear(2, num_classes)
+
         self.apply(_weights_init)
 
-    def _make_layer(self, block, planes, num_block, stride):
-        strides = [stride] + [1] * (num_block-1)
+    def _make_layer(self, block, planes, num_blocks, stride):
+        norm_layer = self._norm_layer
+        stride_list = [stride] + [1] * (num_blocks-1)
         layers = []
-        for stride in strides:
-            layers.append(block(self.in_planes, planes, stride))
+        for stride in stride_list:
+            layers.append(
+                block(self.in_planes, planes, stride, norm_layer))
             self.in_planes = planes * block.expansion
 
         return nn.Sequential(*layers)
 
     def forward(self, x, out='fc'):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.layer1(out)
-        out = self.layer2(out)
-        out = self.layer3(out)
-        out = self.avgpool(out)
-        out = torch.squeeze(out)
-        if out == 'vec':
-            return out
+        # x: (N, 3, 32, 32)
+        x = F.relu(self.bn1(self.conv1(x)))  # (N, 16, 32, 32)
+        x = self.layer1(x)  # (N, 16, 32, 32)
+        x = self.layer2(x)  # (N, 32, 16, 16)
+        x = self.layer3(x)  # (N, 64, 8, 8)
+        x = self.avgpool(x)  # (N, 64, 1, 1)
+        feat = torch.squeeze(x)  # (N, 64)
+        if out == 'feat':
+            return feat  # (N, 64)
+        elif '2' in out:
+            feat_2d = F.relu(self.fc_2(x))  # (N, 2)
+            if out == 'feat_2d':
+                return feat_2d  # (N, 2)
+            else:  # out == 'fc_2d_N'
+                return self.fc_N(feat_2d)  # (N, C)
         else:
-            return self.linear(out)
+            return self.fc(feat)  # (N, C)
 
 
-@Networks.register_module("NormResNet32_CIFAR")
+# @Networks.register_module("NormResNet32_CIFAR")
 class NormResNet32_CIFAR(NormResNet_CIFAR):
     def __init__(self, num_classes, layers=[5, 5, 5], dual_BN=True,
                  mean=None, std=None, use_norm=False, **kwargs):
@@ -181,8 +206,12 @@ def test(net):
 
 
 if __name__ == "__main__":
-    for net_name in __all__:
-        if net_name.startswith('resnet'):
-            print(net_name)
-            test(globals()[net_name]())
-            print()
+    # for net_name in __all__:
+    #     if net_name.startswith('resnet'):
+    #         print(net_name)
+    #         test(globals()[net_name]())
+    #         print()
+    # norm_resnet = NormResNet32_CIFAR(10, mean=[0,]*3, std=[1,]*3)
+    # x = torch.randn(5, 3, 32, 32)
+    # print(norm_resnet)
+    # y_ = norm_resnet(x)

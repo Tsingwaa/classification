@@ -37,28 +37,21 @@ class BasicBlock(nn.Module):
         # downsample the input when stride != 1
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = norm_layer(planes)
-        # self.bn1_adv = norm_layer(planes)
-        # self.bn1_clean = norm_layer(planes)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = conv3x3(planes, planes)
         self.bn2 = norm_layer(planes)
-        # self.bn2_adv = norm_layer(planes)
-        # self.bn2_clean = norm_layer(planes)
         self.downsample = downsample
         self.stride = stride
-        # self.is_clean = True
 
     def forward(self, x):
         identity = x
 
         out = self.conv1(x)
         out = self.bn1(out)
-        # out = self.bn1_clean(out) if self.is_clean else self.bn1_adv(out)
         out = self.relu(out)
 
         out = self.conv2(out)
         out = self.bn2(out)
-        # out = self.bn2_clean(out) if self.is_clean else self.bn2_adv(out)
 
         if self.downsample is not None:
             identity = self.downsample(x)
@@ -91,37 +84,27 @@ class Bottleneck(nn.Module):
         # downsample the input when stride != 1
         self.conv1 = conv1x1(inplanes, width)
         self.bn1 = norm_layer(planes)
-        # self.bn1_adv = norm_layer(planes)
-        # self.bn1_clean = norm_layer(planes)
         self.conv2 = conv3x3(width, width, stride, groups, dilation)
         self.bn2 = norm_layer(planes)
-        # self.bn2_adv = norm_layer(planes)
-        # self.bn2_clean = norm_layer(planes)
         self.conv3 = conv1x1(width, planes * self.expansion)
         self.bn3 = norm_layer(planes * self.expansion)
-        # self.bn3_adv = norm_layer(planes * self.expansion)
-        # self.bn3_clean = norm_layer(planes * self.expansion)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
-        # self.is_clean = True
 
     def forward(self, x):
         identity = x
 
         out = self.conv1(x)
         out = self.bn1(out)
-        # out = self.bn1_clean(out) if self.is_clean else self.bn1_adv(out)
         out = self.relu(out)
 
         out = self.conv2(out)
         out = self.bn2(out)
-        # out = self.bn2_clean(out) if self.is_clean else self.bn2_adv(out)
         out = self.relu(out)
 
         out = self.conv3(out)
         out = self.bn3(out)
-        # out = self.bn3_clean(out) if self.is_clean else self.bn3_adv(out)
 
         if self.downsample is not None:
             identity = self.downsample(x)
