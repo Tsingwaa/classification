@@ -469,7 +469,6 @@ def rand_transform(phase='train', resize=(224, 224),
     return ret_transform
 
 
-
 class GaussianNoise:
     def __init__(self, sigma):
         self.sigma = sigma
