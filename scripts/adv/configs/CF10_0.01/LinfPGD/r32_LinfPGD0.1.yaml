@@ -1,5 +1,5 @@
 experiment:
-  name: "miniIN20_0.05_r18_LinfPGD_joint0.5_1"
+  name: "CF10_0.01_LinfPGD0.1"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -13,7 +13,7 @@ adv:
   name: "LinfPGD"
   param:
     joint_training: True
-    clean_weight: 0.5
+    clean_weight: 0.1
     test_adv: False
     # iterations: 7  # Default: 7
     # step: 0.0078  # Default: 2/255
@@ -24,70 +24,69 @@ adv:
     # clip_max: 1.  # Default: 0.
 
 finetune:
-  name: "2OS"
+  name: "2RW"
   total_epochs: 30
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: "BalanceSampler"
-    retain_epoch_size: False
+    sampler: ""
+    retain_epoch_size: True
     batch_size: 64
     num_workers: 6
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: ""
+      weight_type: "class_weight"
       label_smoothing: 0.
   optimizer:
     name: "SGD"
     param:
-      lr: 1.0e-1
+      lr: 1.0e-2
       weight_decay: 1.0e-5
       momentum: 0.9
       nesterov: True
   lr_scheduler:
     name: 'MultiStepLR'
     param:
-      warmup_epochs: 0
       milestones: [5, 10, 15, 20]
       gamma: 0.1
 
 train_transform:
-  name: "AdvTransform"
+  name: "AdvCifarTransform"
   param:
     phase: "train"
-    resize: [224, 224]
+    resize: [32, 32]
     strong: False
 
 val_transform:
-  name: "AdvTransform"
+  name: "AdvCifarTransform"
   param:
     phase: "val"
-    resize: [224, 224]
+    resize: [32, 32]
 
 train_dataset:
-  name: "imb_miniImageNet20"
+  name: "ImbalanceCIFAR10"
   param:
-    data_root: "miniImageNet"
+    data_root: "cifar10"
     phase: "train"
-    img_lst_fpath: "train20.txt"
+    # img_lst_fpath: "train20.txt"
     # map_fpath: "None"
     imb_type: 'exp'
-    imb_factor: 0.05
+    imb_factor: 0.01
     rand_seed: 0
-    # download: False
+    download: False
 
 val_dataset:
-  name: "imb_miniImageNet20"
+  name: "CIFAR10"
   param:
-    data_root: "miniImageNet"
+    data_root: "cifar10"
     phase: "val"
-    img_lst_fpath: "val20.txt"
+    # img_lst_fpath: "val20.txt"
     # map_fpath: "None"
-    # download: False
+    download: False
 
 trainloader:
   sampler: ''
-  batch_size: 64
+  batch_size: 128
   num_workers: 4
 
 valloader:
@@ -95,9 +94,9 @@ valloader:
   num_workers: 4
 
 network:
-  name: "NormResNet18"
+  name: "NormResNet32_CIFAR"
   param:
-    num_classes: 20
+    num_classes: 10
     dual_BN: True
     pretrained: False
     pretrained_fpath: ""
@@ -122,7 +121,7 @@ lr_scheduler:
   name: "MultiStepLR"
   # name: "CosineAnnealingWarmRestarts"
   param:
-    warmup_epochs: 10
+    warmup_epochs: 5
     # CyclicLR
     # step_size_up: 3  # 3 * iterations
     # step_size_down: 2  # 2 * iterations
@@ -130,7 +129,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [120, 160, 180]
+    milestones: [120, 160]
     gamma: 0.01
 
     # CosineAnnealingWarmRestarts

@@ -8,6 +8,15 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 # Single-GPU Training
 # clean weight
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
-#         'configs/CF10_0.01/r32_LinfPGD0.5.yaml'
+#         'configs/CF10_0.01/LinfPGD/r32_LinfPGD0.1.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+#         'configs/CF10_0.01/LinfPGD/r32_LinfPGD0.3.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+#         'configs/CF10_0.01/LinfPGD/r32_LinfPGD0.5.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+#         'configs/CF10_0.01/LinfPGD/r32_LinfPGD0.7.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+#         'configs/CF10_0.01/LinfPGD/r32_LinfPGD0.9.yaml'
+
 CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
-        'configs/CF10_0.01/r32_LinfPGD0.9.yaml'
+        'configs/miniIN20_0.05/r18_LinfPGD_joint0.5.yaml'

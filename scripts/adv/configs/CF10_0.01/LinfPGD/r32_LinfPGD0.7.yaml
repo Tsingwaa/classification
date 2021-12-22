@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_LinfPGD0.9"
+  name: "CF10_0.01_LinfPGD0.7"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -13,7 +13,7 @@ adv:
   name: "LinfPGD"
   param:
     joint_training: True
-    clean_weight: 0.9
+    clean_weight: 0.7
     test_adv: False
     # iterations: 7  # Default: 7
     # step: 0.0078  # Default: 2/255
@@ -51,14 +51,14 @@ finetune:
       gamma: 0.1
 
 train_transform:
-  name: "AdvTransform"
+  name: "AdvCifarTransform"
   param:
     phase: "train"
     resize: [32, 32]
     strong: False
 
 val_transform:
-  name: "AdvTransform"
+  name: "AdvCifarTransform"
   param:
     phase: "val"
     resize: [32, 32]
@@ -111,7 +111,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.1
-    weight_decay: 2.0e-4
+    weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True
 
@@ -129,7 +129,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [120, 160, 180]
+    milestones: [120, 160]
     gamma: 0.01
 
     # CosineAnnealingWarmRestarts
