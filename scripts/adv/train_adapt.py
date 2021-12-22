@@ -272,7 +272,8 @@ class Trainer(BaseTrainer):
             batch_adv_imgs = torch.zeros_like(batch_imgs)
             for i, (img, label) in enumerate(zip(batch_imgs, batch_labels)):
                 img = torch.unsqueeze(img, 0)
-                adv_img = attackers[label].attack(img, [label, ])
+                target = torch.unsqueeze(label, 0)
+                adv_img = attackers[label].attack(img, target)
                 batch_adv_imgs[i] = adv_img
 
             # Step 2: train with perturbed imgs
