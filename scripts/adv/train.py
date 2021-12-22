@@ -76,7 +76,10 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Network
         #######################################################################
-        self.model = self.init_model(self.network_name, **self.network_params)
+        self.model = self.init_model(self.network_name,
+                                     mean=trainset.mean,
+                                     std=trainset.std,
+                                     **self.network_params)
 
         #######################################################################
         # Initialize Loss
@@ -93,8 +96,9 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Adversarial Training
         #######################################################################
-        self.adv_param.update({"model": self.model})
-        self.attacker = self.init_module(self.adv_name, **self.adv_param)
+        self.attacker = self.init_module(self.adv_name,
+                                         model=self.model,
+                                         **self.adv_param)
 
         #######################################################################
         # Initialize DistributedDataParallel
@@ -145,32 +149,29 @@ class Trainer(BaseTrainer):
 
                 if self.final_epoch - cur_epoch <= 10:
                     last_mrs.append(val_stat.mr)
-                    last_head_mrs.append(val_stat.group_mr['head'])
-                    last_mid_mrs.append(val_stat.group_mr['mid'])
-                    last_tail_mrs.append(val_stat.group_mr['tail'])
+                    last_head_mrs.append(val_stat.group_mr[0])
+                    last_mid_mrs.append(val_stat.group_mr[1])
+                    last_tail_mrs.append(val_stat.group_mr[2])
 
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
-                    f"Trainset Loss={train_loss['final']:.2f} - "
-                    f"La:{train_loss['adv']:.2f} "
-                    f"MR:{adv_stat.mr:.2%} "
-                    f"H:{adv_stat.group_mr['head']:.0%} "
-                    f"M:{adv_stat.group_mr['mid']:.0%} "
-                    f"T:{adv_stat.group_mr['tail']:.0%} - "
-                    f"Lc:{train_loss['cln']:.2f} "
-                    f"MR:{cln_stat.mr:.2%} "
-                    f"H:{cln_stat.group_mr['head']:.0%} "
-                    f"M:{cln_stat.group_mr['mid']:.0%} "
-                    f"T:{cln_stat.group_mr['tail']:.0%} "
-                    f"|| Valset Loss={val_loss:.2f} "
-                    f"MR={val_stat.mr:.2%} "
-                    f"Head={val_stat.group_mr['head']:.0%} "
-                    f"Mid={val_stat.group_mr['mid']:.0%} "
-                    f"Tail={val_stat.group_mr['tail']:.0%}",
+                    f"Train Loss={train_loss['final']:.2f}"
+                    f" | Adv loss:{train_loss['adv']:.2f} "
+                    f"mr:{adv_stat.mr:.2%} "
+                    f"[{adv_stat.group_mr[0]:.0%},"
+                    f"{adv_stat.group_mr[1]:.0%},"
+                    f"{adv_stat.group_mr[2]:.0%}]"
+                    f" | Cln loss:{train_loss['cln']:.2f} "
+                    f"mr:{cln_stat.mr:.2%} "
+                    f"[{cln_stat.group_mr[0]:.0%},"
+                    f"{cln_stat.group_mr[1]:.0%},"
+                    f"{cln_stat.group_mr[2]:.0%}]"
+                    f"|| Val loss={val_loss:.2f} "
+                    f"mr={val_stat.mr:.2%} "
+                    f"[{val_stat.group_mr[0]:.0%},"
+                    f"{val_stat.group_mr[1]:.0%},"
+                    f"{val_stat.group_mr[2]:.0%}]",
                     log_level='file')
-
-                # if len(val_recalls) <= 20 and cur_epoch == self.total_epochs:
-                #     self.logger.info(f"Class recalls: {val_recalls}\n")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(
@@ -189,19 +190,19 @@ class Trainer(BaseTrainer):
                      'val_mr': val_stat.mr}, cur_epoch)
                 self.writer.add_scalars(
                     f"{self.exp_name}/ADVGroupRecall",
-                    {"head_mr": adv_stat.group_mr['head'],
-                     "mid_mr": adv_stat.group_mr['mid'],
-                     "tail_mr": adv_stat.group_mr['tail']}, cur_epoch)
+                    {"head_mr": adv_stat.group_mr[0],
+                     "mid_mr": adv_stat.group_mr[1],
+                     "tail_mr": adv_stat.group_mr[2]}, cur_epoch)
                 self.writer.add_scalars(
                     f"{self.exp_name}/CLNGroupRecall",
-                    {"head_mr": cln_stat.group_mr['head'],
-                     "mid_mr": cln_stat.group_mr['mid'],
-                     "tail_mr": cln_stat.group_mr['tail']}, cur_epoch)
+                    {"head_mr": cln_stat.group_mr[0],
+                     "mid_mr": cln_stat.group_mr[1],
+                     "tail_mr": cln_stat.group_mr[2]}, cur_epoch)
                 self.writer.add_scalars(
                     f"{self.exp_name}/ValGroupRecall",
-                    {"head_mr": val_stat.group_mr['head'],
-                     "mid_mr": val_stat.group_mr['mid'],
-                     "tail_mr": val_stat.group_mr['tail']}, cur_epoch)
+                    {"head_mr": val_stat.group_mr[0],
+                     "mid_mr": val_stat.group_mr[1],
+                     "tail_mr": val_stat.group_mr[2]}, cur_epoch)
                 is_best = val_stat.mr > best_mr
                 if is_best:
                     best_mr = val_stat.mr
@@ -225,7 +226,8 @@ class Trainer(BaseTrainer):
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
                 f"===> Best mean recall: {best_mr:.2%} (epoch{best_epoch})\n"
-                f"Group recalls: {best_group_mr}\n\n"
+                f"Group recalls: [{best_group_mr[0]:.2%}, "
+                f"{best_group_mr[1]:.2%}, {best_group_mr[2]:.2%}]\n\n"
                 f"===> Final average mean recall of last 10 epochs:"
                 f" {final_mr:.2%}\n"
                 f"Average Group mean recalls: [{final_head_mr:.2%}, "
@@ -306,17 +308,17 @@ class Trainer(BaseTrainer):
                           'cln': cln_loss_meter.avg}
             train_pbar.set_postfix_str(
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
-                f"L:{final_loss_meter.avg:.2f} "
-                f"| La:{adv_loss_meter.avg:.2f} "
-                f"MR:{adv_stat.mr:.2%} "
-                f"H:{adv_stat.group_mr['head']:.0%} "
-                f"M:{adv_stat.group_mr['mid']:.0%} "
-                f"T:{adv_stat.group_mr['tail']:.0%}"
-                f"| La:{cln_loss_meter.avg:.2f} "
-                f"MR:{cln_stat.mr:.2%} "
-                f"H:{cln_stat.group_mr['head']:.0%} "
-                f"M:{cln_stat.group_mr['mid']:.0%} "
-                f"T:{cln_stat.group_mr['tail']:.0%}"
+                f"Loss:{final_loss_meter.avg:.1f} "
+                f" | Adv loss={train_loss['adv']:.2f} "
+                f"mr={adv_stat.mr:.2%} "
+                f"[{adv_stat.group_mr[0]:.0%},"
+                f"{adv_stat.group_mr[1]:.0%},"
+                f"{adv_stat.group_mr[2]:.0%}]"
+                f" | Cln loss={train_loss['cln']:.2f} "
+                f"mr={cln_stat.mr:.2%} "
+                f"[{cln_stat.group_mr[0]:.0%},"
+                f"{cln_stat.group_mr[1]:.0%},"
+                f"{cln_stat.group_mr[2]:.0%}]"
             )
 
         return adv_stat, cln_stat, train_loss
@@ -344,11 +346,11 @@ class Trainer(BaseTrainer):
                 val_pbar.update()
 
         val_pbar.set_postfix_str(
-            f"Loss:{val_loss_meter.avg:.2f} "
-            f"MR:{val_stat.mr:.2%} "
-            f"Head:{val_stat.group_mr['head']:.0%} "
-            f"Mid:{val_stat.group_mr['mid']:.0%} "
-            f"Tail:{val_stat.group_mr['tail']:.0%}")
+            f"loss:{val_loss_meter.avg:.1f} "
+            f"mr:{val_stat.mr:.2%} "
+            f"[{val_stat.group_mr[0]:.0%},"
+            f"{val_stat.group_mr[1]:.0%},"
+            f"{val_stat.group_mr[2]:.0%}]")
         val_pbar.close()
 
         return val_stat, val_loss_meter.avg

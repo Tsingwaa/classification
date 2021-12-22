@@ -109,9 +109,9 @@ class ExpStat(object):
         head_mr = np.mean(self.recalls[:head_cls_num])
         mid_mr = np.mean(self.recalls[head_cls_num:self.cls_num-tail_cls_num])
         tail_mr = np.mean(self.recalls[tail_cls_num:])
-        return {'head': np.around(head_mr, decimals=4),
-                'mid': np.around(mid_mr, decimals=4),
-                'tail': np.around(tail_mr, decimals=4)}
+        return [np.around(head_mr, decimals=4),
+                np.around(mid_mr, decimals=4),
+                np.around(tail_mr, decimals=4)]
 
     @property
     def precisions(self):

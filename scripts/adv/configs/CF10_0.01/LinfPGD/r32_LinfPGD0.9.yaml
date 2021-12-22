@@ -1,32 +1,74 @@
 experiment:
-  name: "CF10_0.01_r32_OS"
+  name: "CF10_0.01_LinfPGD0.9"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
   resume: False
   resume_fpath: "last.pth.tar"
+  extract_phase: "train"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
+adv:
+  name: "LinfPGD"
+  param:
+    joint_training: True
+    clean_weight: 0.9
+    test_adv: False
+    # iterations: 7  # Default: 7
+    # step: 0.0078  # Default: 2/255
+    # epsilon: 0.0314  # Default: 8/255
+    # random_start: True  # Default: True
+    # targeted: False  # Default: False
+    # clip_min: 0.  # Default: 0.
+    # clip_max: 1.  # Default: 0.
+
+finetune:
+  name: "2RW"
+  total_epochs: 30
+  unfreeze_keys: ["fc"]
+  trainloader:
+    sampler: ""
+    retain_epoch_size: True
+    batch_size: 64
+    num_workers: 6
+  loss:
+    name: "CrossEntropyLoss"
+    param:
+      weight_type: "class_weight"
+      label_smoothing: 0.
+  optimizer:
+    name: "SGD"
+    param:
+      lr: 1.0e-2
+      weight_decay: 1.0e-5
+      momentum: 0.9
+      nesterov: True
+  lr_scheduler:
+    name: 'MultiStepLR'
+    param:
+      milestones: [5, 10, 15, 20]
+      gamma: 0.1
+
 train_transform:
-  name: "CifarTransform"
+  name: "AdvTransform"
   param:
     phase: "train"
     resize: [32, 32]
+    strong: False
 
 val_transform:
-  name: "CifarTransform"
+  name: "AdvTransform"
   param:
-    phase: "test"
+    phase: "val"
     resize: [32, 32]
 
 train_dataset:
   name: "ImbalanceCIFAR10"
   param:
     data_root: "cifar10"
-    phase: 'train'
-    # train: True
-    # img_lst_fpath: "None"
+    phase: "train"
+    # img_lst_fpath: "train20.txt"
     # map_fpath: "None"
     imb_type: 'exp'
     imb_factor: 0.01
@@ -36,16 +78,14 @@ train_dataset:
 val_dataset:
   name: "CIFAR10"
   param:
-    data_root: "cifar10" # default: same as train_dataset
-    phase: 'val'
-    # train: False
-    # img_lst_fpath: "None"
-    # map_fpath: "None" # default: same as train_dataset
+    data_root: "cifar10"
+    phase: "val"
+    # img_lst_fpath: "val20.txt"
+    # map_fpath: "None"
     download: False
 
 trainloader:
-  sampler: 'BalanceSampler'
-  retain_epoch_size: False
+  sampler: ''
   batch_size: 128
   num_workers: 4
 
@@ -54,9 +94,10 @@ valloader:
   num_workers: 4
 
 network:
-  name: "ResNet32_CIFAR"
+  name: "NormResNet32_CIFAR"
   param:
     num_classes: 10
+    dual_BN: True
     pretrained: False
     pretrained_fpath: ""
 
@@ -70,7 +111,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.1
-    weight_decay: 2.0e-4
+    weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True
 
@@ -88,7 +129,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [120, 160]
+    milestones: [120, 160, 180]
     gamma: 0.01
 
     # CosineAnnealingWarmRestarts

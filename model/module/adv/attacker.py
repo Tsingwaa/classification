@@ -8,9 +8,7 @@ from utils import switch_adv
 
 @Modules.register_module('LinfPGD')
 class LinfPGD(nn.Module):
-    """Projected Gradient Decent(PGD) attack.
-    Can be used to adversarial training.
-    """
+    """Projected Gradient Decent(PGD) attack."""
 
     def __init__(self, model, eps=8/255, step=2/255, iterations=7,
                  criterion=None, random_start=True, targeted=False,
@@ -30,13 +28,10 @@ class LinfPGD(nn.Module):
 
         self.criterion = criterion
         if self.criterion is None:
-            # self.criterion = lambda model, input, target:\
-            #         cross_entropy(model.bfc(input), target)
             self.criterion = cross_entropy
 
     def compute_perturbation(self, adv_x, x):
         # Project the perturbation to Lp ball
-        # perturbation = self.project(adv_x - x)
         perturbation = torch.clamp(adv_x - x, -self.eps, self.eps)
         # Clamp the adversarial image to a legal 'image'
         perturbation = torch.clamp(x + perturbation,
@@ -51,7 +46,6 @@ class LinfPGD(nn.Module):
         adv_x.requires_grad = True
 
         self.model.apply(switch_adv)
-        # atk_loss = self.criterion(self.model(x), adv_x, target)
         atk_loss = self.criterion(self.model(adv_x), target)
 
         self.model.zero_grad()
