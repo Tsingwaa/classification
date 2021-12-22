@@ -43,6 +43,7 @@ class Trainer(BaseTrainer):
         self.clean_weight = adv_config['clean_weight']
         self.iters = adv_config['iter_list']
         self.eps = adv_config['eps_list']
+        self.eps = np.array(self.eps) / 255.
 
     def train(self):
         #######################################################################
