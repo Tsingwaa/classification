@@ -126,7 +126,7 @@ class Trainer(BaseTrainer):
                     cur_epoch, self.valloader, self.model, self.criterion,
                     trainset.num_classes)
 
-                if self.final_epoch - cur_epoch <= 10:
+                if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
                     last_head_mrs.append(val_stat.group_mr['head'])
                     last_mid_mrs.append(val_stat.group_mr['mid'])

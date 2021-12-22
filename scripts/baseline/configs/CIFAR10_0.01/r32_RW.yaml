@@ -69,7 +69,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.1
-    weight_decay: 2.0e-4
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 
@@ -87,7 +87,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
     
     # MultiStepLR
-    milestones: [120, 160, 180]
+    milestones: [120, 160, 190]
     gamma: 0.01
 
     # CosineAnnealingWarmRestarts
