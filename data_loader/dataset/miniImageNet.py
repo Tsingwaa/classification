@@ -73,6 +73,8 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
             # regenerate self.img_paths and self.targets
             self.gen_imbalanced_data(self.num_samples_per_cls)
             self.class_weight = self.get_class_weight()
+        else:
+            self.num_samples_per_cls = [200] * self.num_classes
 
         self.classes = [self.label2ctg[i] for i in range(self.num_classes)]
 
