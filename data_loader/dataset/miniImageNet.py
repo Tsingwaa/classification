@@ -155,8 +155,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
                 label2ctg[self.targets[i]] = category
         return label2ctg
 
-    @property
-    def class_weight(self):
+    def get_class_weight(self):
         samplers_per_cls = np.array(self.num_samplers_per_cls)
         weight = 1.0 / samplers_per_cls
         weight /= np.sum(weight)

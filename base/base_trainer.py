@@ -14,12 +14,12 @@ from torch.utils.tensorboard import SummaryWriter
 from torch import distributed as dist
 from torch.utils.data.distributed import DistributedSampler
 # ############## Custom package ##############
-from data_loader.dataset.builder import build_dataset
-from data_loader.sampler.builder import build_sampler
-from data_loader.transform.builder import build_transform
-from model.loss.builder import build_loss
-from model.module.builder import build_module
-from model.network.builder import build_network
+from data_loader.dataset.builder import Datasets
+from data_loader.sampler.builder import Samplers
+from data_loader.transform.builder import Transforms
+from model.loss.builder import Losses
+from model.module.builder import Modules
+from model.network.builder import Networks
 from utils import GradualWarmupScheduler
 
 
@@ -162,7 +162,7 @@ class BaseTrainer:
         log_level = kwargs.get('log_level', 'default')
         kwargs.pop('log_level', None)
 
-        transform = build_transform(transform_name, **kwargs)
+        transform = Transforms.get(transform_name)(**kwargs)
         transform_init_log = f'===> Initialized {transform_name}: {kwargs}'
         self.log(transform_init_log, log_level)
         return transform
@@ -171,7 +171,7 @@ class BaseTrainer:
         log_level = kwargs.pop('log_level', 'default')
         kwargs['data_root'] = join(self.user_root, 'Data', kwargs['data_root'])
 
-        dataset = build_dataset(dataset_name, **kwargs)
+        dataset = Datasets.get(dataset_name)(**kwargs)
 
         dataset_init_log = f'===> Initialized {kwargs["phase"]} '\
             f'{dataset_name}: size={len(dataset)}, '\
@@ -190,7 +190,7 @@ class BaseTrainer:
             sampler = DistributedSampler(kwargs['dataset'])
             sampler_init_log = '===> Initialized DistributedSampler'
         else:
-            sampler = build_sampler(sampler_name, **kwargs)
+            sampler = Samplers.get(sampler_name)(**kwargs)
             sampler_init_log = f'===> Initialized {sampler_name} with'\
                 f' resampled size={len(sampler)}'
         self.log(sampler_init_log, log_level)
@@ -200,7 +200,7 @@ class BaseTrainer:
                    **kwargs):
         log_level = kwargs.pop('log_level', 'default')
 
-        model = build_network(network_name, **kwargs)
+        model = Networks.get(network_name)(**kwargs)
         total_params = self.count_model_params(model)
         model.cuda()
 
@@ -268,7 +268,7 @@ class BaseTrainer:
         log_level = kwargs.get('log_level', 'default')
         kwargs.pop('log_level', None)
 
-        loss = build_loss(loss_name, **kwargs)
+        loss = Losses.get(loss_name)(**kwargs)
         kwargs.pop('weight', None)
         self.log(f'===> Initialized {loss_name}: {kwargs}', log_level)
         return loss.cuda()
@@ -298,26 +298,24 @@ class BaseTrainer:
             raise AttributeError(f'Optimizer init failed: {error}')
 
     def init_lr_scheduler(self, scheduler_name, optimizer, **kwargs):
-        warmup_epochs = kwargs.pop('warmup_epochs', 10)
-        try:
-            lr_scheduler = getattr(torch.optim.lr_scheduler, scheduler_name)(
-                optimizer, **kwargs)
-            self.log(f"===> Initialized {scheduler_name}: {kwargs}")
-            if warmup_epochs > 0:
-                lr_scheduler = GradualWarmupScheduler(
-                    optimizer,
-                    multiplier=1,
-                    warmup_epochs=warmup_epochs,
-                    after_scheduler=lr_scheduler,)
-                self.log(f'===> Initialized gradual warmup scheduler: '
-                         f'warmup_epochs={warmup_epochs}')
-            return lr_scheduler
-        except Exception as error:
-            raise AttributeError(f'LR scheduler init failed: {error}')
+        warmup_epochs = kwargs.pop('warmup_epochs', 5)
+
+        lr_scheduler = getattr(torch.optim.lr_scheduler, scheduler_name)(
+            optimizer, **kwargs)
+        self.log(f"===> Initialized {scheduler_name}: {kwargs}")
+        if warmup_epochs > 0:
+            lr_scheduler = GradualWarmupScheduler(
+                optimizer,
+                multiplier=1,
+                warmup_epochs=warmup_epochs,
+                after_scheduler=lr_scheduler,)
+            self.log(f'===> Initialized gradual warmup scheduler: '
+                     f'warmup_epochs={warmup_epochs}')
+        return lr_scheduler
 
     def init_module(self, module_name, **kwargs):
-        module = build_module(module_name, **kwargs)
-        kwargs.pop('model', None)
+        module = Modules.get(module_name)(**kwargs)
+        del kwargs['model']
         self.log(f'===> Initialized {module_name}: {kwargs}')
         return module
 
@@ -394,7 +392,7 @@ class BaseTrainer:
         return total_params
 
     def update_state_dict(self, module, checkpoint_state_dict):
-        """Only update state dict that the module needs and output those
+        """Only update state dict that the module needs and print those
         unupdated keys of the module"""
         module_state_dict = module.state_dict()
         update_items = {k: v for k, v in checkpoint_state_dict.items()
