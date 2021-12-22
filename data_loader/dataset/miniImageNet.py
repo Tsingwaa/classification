@@ -62,33 +62,33 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
                 self.targets.append(int(line.split()[1]))
 
         self.img_paths = np.array(self.img_paths)
-        self.num_samplers_per_cls = []
+        self.num_samples_per_cls = []
 
         if phase == 'train':
             np.random.seed(seed)
             # generate imbalance num_samples list
-            img_num_list = self.get_img_num_per_cls(
+            self.num_samples_per_cls = self.get_num_samples_per_cls(
                 self.num_classes, imb_type, imb_factor
             )
             # regenerate self.img_paths and self.targets
-            self.gen_imbalanced_data(img_num_list)
-            self.num_samplers_per_cls = img_num_list
+            self.gen_imbalanced_data(self.num_samples_per_cls)
             self.class_weight = self.get_class_weight()
 
         self.classes = [self.label2ctg[i] for i in range(self.num_classes)]
 
-    def get_img_num_per_cls(self, num_classes, imb_type, imb_factor):
+    def get_num_samples_per_cls(self, num_classes, imb_type, imb_factor):
         """Generate imbalanced num samples by 'exp' or 'step'.
         - imb_type: 'exp' or 'step'
         - imb_factor: (default: 0.1) the largest / the smallest
         - steps: if imb_type is 'step', how many steps.
         """
-        img_max = len(self.img_paths) / num_classes
-        num_samplers_per_cls = []
+        max_num_samples = len(self.img_paths) / num_classes
+        num_samples_per_cls = []
         if imb_type == 'exp':  # exponential moving
             for cls_idx in range(num_classes):
-                img_num = img_max * imb_factor ** (cls_idx / (num_classes - 1))
-                num_samplers_per_cls.append(int(img_num))
+                img_num = max_num_samples * imb_factor ** (
+                    cls_idx / (num_classes - 1))
+                num_samples_per_cls.append(int(img_num))
         elif imb_type == 'step':  # two different num_samples
             head_classes = math.floor(num_classes / 3)  # head=tail
             tail_classes = head_classes
@@ -100,21 +100,21 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
                     step = 1
                 else:
                     step = 2
-                img_num = img_max * imb_factor ** (step / 2)
-                num_samplers_per_cls.append(int(img_num))
+                img_num = max_num_samples * imb_factor ** (step / 2)
+                num_samples_per_cls.append(int(img_num))
         else:
-            num_samplers_per_cls.extend([int(img_max)] * num_classes)
+            num_samples_per_cls.extend([int(max_num_samples)] * num_classes)
 
-        return num_samplers_per_cls
+        return num_samples_per_cls
 
-    def gen_imbalanced_data(self, num_samplers_per_cls):
+    def gen_imbalanced_data(self, num_samples_per_cls):
         new_img_paths = []
         new_targets = []
         targets_np = np.array(self.targets, dtype=np.int64)
         classes = np.unique(targets_np)
 
         self.cls2nsamples = dict()
-        for cls, n_samples in zip(classes, num_samplers_per_cls):
+        for cls, n_samples in zip(classes, num_samples_per_cls):
             self.cls2nsamples[cls] = n_samples
             # random shuffle indexs and select num_samples of the class
             idx = np.where(targets_np == cls)[0]
@@ -129,19 +129,19 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         img_path = self.img_paths[index]
-        label = self.targets[index]
+        target = self.targets[index]
         img = Image.open(img_path).convert('RGB')
         img = self._check_channel(img)  # 对单通道灰度图复制为三通道
 
         if self.transform is not None:
-            if self.adapt and (self.phase == 'train'):
-                percent = np.sum(self.class_weight[:(label+1)])
-            else:
-                percent = None
+            # if self.adapt and (self.phase == 'train'):
+            #     percent = np.sum(self.class_weight[:(target+1)])
+            # else:
+            #     percent = None
             img = self.transform(img, mean=self.mean, std=self.std,
-                                 percent=percent)
+                                 percent=None)
 
-        return img, label
+        return img, target
 
     def __len__(self):
         return len(self.targets)
@@ -156,7 +156,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         return label2ctg
 
     def get_class_weight(self):
-        samplers_per_cls = np.array(self.num_samplers_per_cls)
+        samplers_per_cls = np.array(self.num_samples_per_cls)
         weight = 1.0 / samplers_per_cls
         weight /= np.sum(weight)
         return weight
@@ -225,7 +225,7 @@ class ImbalanceMiniImageNet20_tail(ImbalanceMiniImageNet):
         if phase == 'train':
             np.random.seed(seed)
             # generate imbalance num_samples list
-            img_num_list = self.get_img_num_per_cls(
+            img_num_list = self.get_num_samples_per_cls(
                 self.num_classes, imb_type, imb_factor
             )
             # regenerate self.img_paths and self.targets
