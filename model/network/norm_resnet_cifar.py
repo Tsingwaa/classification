@@ -175,7 +175,7 @@ class NormResNet_CIFAR(nn.Module):
             return self.fc(feat)  # (N, C)
 
 
-# @Networks.register_module("NormResNet32_CIFAR")
+@Networks.register_module("NormResNet32_CIFAR")
 class NormResNet32_CIFAR(NormResNet_CIFAR):
     def __init__(self, num_classes, layers=[5, 5, 5], dual_BN=True,
                  mean=None, std=None, use_norm=False, **kwargs):

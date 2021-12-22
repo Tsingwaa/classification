@@ -206,7 +206,7 @@ class NormResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, embedding=False):
+    def forward(self, x, out='fc'):
         # See note [TorchScript super()]
         x = self.normalize(x)
         x = self.conv1(x)
@@ -220,9 +220,9 @@ class NormResNet(nn.Module):
         x = self.layer4(x)
 
         x = self.avgpool(x)
-        x = torch.flatten(x, 1)
+        x = torch.squeeze(x)
 
-        if embedding:
+        if out == 'feat':
             ret = x
         else:
             ret = self.fc(x)
