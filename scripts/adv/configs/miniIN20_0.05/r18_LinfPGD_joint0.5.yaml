@@ -98,11 +98,9 @@ network:
   name: "NormResNet18"
   param:
     num_classes: 20
-    mean: [0.3567, 0.4279, 0.4439]
-    std: [0.2761, 0.2584, 0.2705]
     dual_BN: True
     pretrained: False
-    pretrained_fpath: "/home/waa/.cache/torch/hub/checkpoints/resnet34-b627a593.pth"
+    pretrained_fpath: ""
 
 loss:
   name: "CrossEntropyLoss"
