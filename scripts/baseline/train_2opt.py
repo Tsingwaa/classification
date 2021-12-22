@@ -150,20 +150,20 @@ class Trainer(BaseTrainer):
 
                 if self.final_epoch - cur_epoch <= 10:
                     last_mrs.append(val_stat.mr)
-                    last_head_mrs.append(val_stat.group_mr['head'])
-                    last_mid_mrs.append(val_stat.group_mr['mid'])
-                    last_tail_mrs.append(val_stat.group_mr['tail'])
+                    last_head_mrs.append(val_stat.group_mr[0])
+                    last_mid_mrs.append(val_stat.group_mr[1])
+                    last_tail_mrs.append(val_stat.group_mr[2])
                 self.log(f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                          f"Trainset Loss={train_loss:.4f} "
                          f"MR={train_stat.mr:.2%} "
-                         f"Head={train_stat.group_mr['head']:.2%} "
-                         f"Mid={train_stat.group_mr['mid']:.2%} "
-                         f"Tail={train_stat.group_mr['tail']:.2%}"
+                         f"Head={train_stat.group_mr[0]:.2%} "
+                         f"Mid={train_stat.group_mr[1]:.2%} "
+                         f"Tail={train_stat.group_mr[2]:.2%}"
                          f" || Valset Loss={val_loss:.4f} "
                          f"MR={val_stat.mr:.2%} "
-                         f"Head={val_stat.group_mr['head']:.2%} "
-                         f"Mid={val_stat.group_mr['mid']:.2%} "
-                         f"Tail={val_stat.group_mr['tail']:.2%}",
+                         f"Head={val_stat.group_mr[0]:.2%} "
+                         f"Mid={val_stat.group_mr[1]:.2%} "
+                         f"Tail={val_stat.group_mr[2]:.2%}",
                          log_level='file')
 
                 # Save log by tensorboard
@@ -180,14 +180,14 @@ class Trainer(BaseTrainer):
                                         cur_epoch)
                 self.writer.add_scalars(
                     f"{self.exp_name}/TrainGroupRecall",
-                    {"head_mr": train_stat.group_mr['head'],
-                     "mid_mr": train_stat.group_mr['mid'],
-                     "tail_mr": train_stat.group_mr['tail']}, cur_epoch)
+                    {"head_mr": train_stat.group_mr[0],
+                     "mid_mr": train_stat.group_mr[1],
+                     "tail_mr": train_stat.group_mr[2]}, cur_epoch)
                 self.writer.add_scalars(
                     f"{self.exp_name}/ValGroupRecall",
-                    {"head_mr": val_stat.group_mr['head'],
-                     "mid_mr": val_stat.group_mr['mid'],
-                     "tail_mr": val_stat.group_mr['tail']}, cur_epoch)
+                    {"head_mr": val_stat.group_mr[0],
+                     "mid_mr": val_stat.group_mr[1],
+                     "tail_mr": val_stat.group_mr[2]}, cur_epoch)
 
                 is_best = val_stat.mr > best_mr
                 if is_best:
@@ -272,9 +272,9 @@ class Trainer(BaseTrainer):
                 f"LR:{opt.param_groups[0]['lr']:.1e} "
                 f"Loss:{train_loss_meter.avg:.2f} "
                 f"MR:{train_stat.mr:.2%} "
-                f"Head:{train_stat.group_mr['head']:.0%} "
-                f"Mid:{train_stat.group_mr['mid']:.0%} "
-                f"Tail:{train_stat.group_mr['tail']:.0%}")
+                f"Head:{train_stat.group_mr[0]:.0%} "
+                f"Mid:{train_stat.group_mr[1]:.0%} "
+                f"Tail:{train_stat.group_mr[2]:.0%}")
 
             train_pbar.close()
 
@@ -311,9 +311,9 @@ class Trainer(BaseTrainer):
             val_pbar.set_postfix_str(
                 f"Loss:{val_loss_meter.avg:.2f} "
                 f"MR:{val_stat.mr:.2%} "
-                f"Head:{val_stat.group_mr['head']:.0%} "
-                f"Mid:{val_stat.group_mr['mid']:.0%} "
-                f"Tail:{val_stat.group_mr['tail']:.0%}")
+                f"Head:{val_stat.group_mr[0]:.0%} "
+                f"Mid:{val_stat.group_mr[1]:.0%} "
+                f"Tail:{val_stat.group_mr[2]:.0%}")
             val_pbar.close()
         return val_stat, val_loss_meter.avg
 

@@ -7,7 +7,7 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 
 # Single-GPU Training
 # clean weight
-CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
-        'configs/CF10_0.01/r32_LinfPGD0.5.yaml'
+# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
+#         'configs/CF10_0.01/r32_LinfPGD0.5.yaml'
 CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path \
         'configs/CF10_0.01/r32_LinfPGD0.9.yaml'
