@@ -205,7 +205,7 @@ def test(net):
             net.parameters()))))
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # for net_name in __all__:
     #     if net_name.startswith('resnet'):
     #         print(net_name)
