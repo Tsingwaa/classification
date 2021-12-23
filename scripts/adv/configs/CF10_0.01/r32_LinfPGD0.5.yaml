@@ -1,44 +1,42 @@
 experiment:
-  name: "CF10_0.01_LinfPGD0.5"
+  name: 'CF10_0.01_LinfPGD0.5'
   start_epoch: 1
   total_epochs: 200
-  log_fname: "train.log"
+  log_fname: 'train.log'
   resume: False
-  resume_fpath: "last.pth.tar"
-  extract_phase: "train"
+  resume_fpath: 'last.pth.tar'
+  extract_phase: 'train'
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 adv:
-  name: "LinfPGD"
-  param:
-    joint_training: True
-    clean_weight: 0.5
-    test_adv: False
-    # iterations: 7  # Default: 7
-    # step: 0.0078  # Default: 2/255
-    # epsilon: 0.0314  # Default: 8/255
-    # random_start: True  # Default: True
-    # targeted: False  # Default: False
-    # clip_min: 0.  # Default: 0.
-    # clip_max: 1.  # Default: 0.
+  name: 'LinfPGD'
+  clean_weight: 0.5
+  test_adv: False
+  num_steps: 7  # Default: 7
+  step_size: 2  # Default: 2/255
+  eps: 8  # Default: 8/255
+# random_start: True  # Default: True
+# targeted: False  # Default: False
+# clip_min: 0.  # Default: 0.
+# clip_max: 1.  # Default: 0.
 
 finetune:
-  name: "2RW"
+  name: '2RW'
   total_epochs: 30
-  unfreeze_keys: ["fc"]
+  unfreeze_keys: ['fc']
   trainloader:
-    sampler: ""
+    sampler: ''
     retain_epoch_size: True
     batch_size: 64
     num_workers: 6
   loss:
-    name: "CrossEntropyLoss"
+    name: 'CrossEntropyLoss'
     param:
-      weight_type: "class_weight"
+      weight_type: 'class_weight'
       label_smoothing: 0.
   optimizer:
-    name: "SGD"
+    name: 'SGD'
     param:
       lr: 1.0e-2
       weight_decay: 1.0e-5
@@ -51,37 +49,37 @@ finetune:
       gamma: 0.1
 
 train_transform:
-  name: "AdvCifarTransform"
+  name: 'AdvCifarTransform'
   param:
-    phase: "train"
+    phase: 'train'
     resize: [32, 32]
     strong: False
 
 val_transform:
-  name: "AdvCifarTransform"
+  name: 'AdvCifarTransform'
   param:
-    phase: "val"
+    phase: 'val'
     resize: [32, 32]
 
 train_dataset:
-  name: "ImbalanceCIFAR10"
+  name: 'ImbalanceCIFAR10'
   param:
-    data_root: "cifar10"
-    phase: "train"
-    # img_lst_fpath: "train20.txt"
-    # map_fpath: "None"
+    data_root: 'cifar10'
+    phase: 'train'
+    # img_lst_fpath: 'train20.txt'
+    # map_fpath: 'None'
     imb_type: 'exp'
     imb_factor: 0.01
     rand_seed: 0
     download: False
 
 val_dataset:
-  name: "CIFAR10"
+  name: 'CIFAR10'
   param:
-    data_root: "cifar10"
-    phase: "val"
-    # img_lst_fpath: "val20.txt"
-    # map_fpath: "None"
+    data_root: 'cifar10'
+    phase: 'val'
+    # img_lst_fpath: 'val20.txt'
+    # map_fpath: 'None'
     download: False
 
 trainloader:
@@ -94,21 +92,21 @@ valloader:
   num_workers: 4
 
 network:
-  name: "NormResNet32_CIFAR"
+  name: 'NormResNet32_CIFAR'
   param:
     num_classes: 10
     dual_BN: True
     pretrained: False
-    pretrained_fpath: ""
+    pretrained_fpath: ''
 
 loss:
-  name: "CrossEntropyLoss"
+  name: 'CrossEntropyLoss'
   param:
     weight_type: ''
     label_smoothing: 0.
 
 optimizer:
-  name: "SGD"
+  name: 'SGD'
   param:
     lr: 0.1
     weight_decay: 1.0e-5
@@ -116,10 +114,10 @@ optimizer:
     nesterov: True
 
 lr_scheduler:
-  # name: "CyclicLR"
-  # name: "StepLR"
-  name: "MultiStepLR"
-  # name: "CosineAnnealingWarmRestarts"
+  # name: 'CyclicLR'
+  # name: 'StepLR'
+  name: 'MultiStepLR'
+  # name: 'CosineAnnealingWarmRestarts'
   param:
     warmup_epochs: 5
     # CyclicLR
@@ -127,7 +125,7 @@ lr_scheduler:
     # step_size_down: 2  # 2 * iterations
     # max_lr: 5.0e-2
     # base_lr: 5.0e-7
-    
+
     # MultiStepLR
     milestones: [120, 160]
     gamma: 0.01

@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_LinfPGD0.9"
+  name: "CF10_0.01_LinfPGD0.5_RS"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -13,11 +13,11 @@ adv:
   name: "LinfPGD"
   param:
     joint_training: True
-    clean_weight: 0.9
+    clean_weight: 0.5
     test_adv: False
-    # iterations: 7  # Default: 7
-    # step: 0.0078  # Default: 2/255
-    # epsilon: 0.0314  # Default: 8/255
+    num_steps: 7  # Default: 7
+    step_size: 2  # Default: 2/255
+    eps: 8  # Default: 8/255
     # random_start: True  # Default: True
     # targeted: False  # Default: False
     # clip_min: 0.  # Default: 0.
@@ -45,20 +45,20 @@ finetune:
       momentum: 0.9
       nesterov: True
   lr_scheduler:
-    name: 'MultiStepLR'
+    name: "MultiStepLR"
     param:
       milestones: [5, 10, 15, 20]
       gamma: 0.1
 
 train_transform:
-  name: "AdvTransform"
+  name: "AdvCifarTransform"
   param:
     phase: "train"
     resize: [32, 32]
     strong: False
 
 val_transform:
-  name: "AdvTransform"
+  name: "AdvCifarTransform"
   param:
     phase: "val"
     resize: [32, 32]
@@ -70,7 +70,7 @@ train_dataset:
     phase: "train"
     # img_lst_fpath: "train20.txt"
     # map_fpath: "None"
-    imb_type: 'exp'
+    imb_type: "exp"
     imb_factor: 0.01
     rand_seed: 0
     download: False
@@ -85,7 +85,8 @@ val_dataset:
     download: False
 
 trainloader:
-  sampler: ''
+  sampler: "BalanceSampler"
+  retain_epoch_size: True
   batch_size: 128
   num_workers: 4
 
@@ -104,7 +105,7 @@ network:
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: ''
+    weight_type: ""
     label_smoothing: 0.
 
 optimizer:
@@ -127,9 +128,9 @@ lr_scheduler:
     # step_size_down: 2  # 2 * iterations
     # max_lr: 5.0e-2
     # base_lr: 5.0e-7
-    
+
     # MultiStepLR
-    milestones: [120, 160, 180]
+    milestones: [120, 160]
     gamma: 0.01
 
     # CosineAnnealingWarmRestarts

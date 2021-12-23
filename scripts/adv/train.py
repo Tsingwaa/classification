@@ -1,5 +1,5 @@
 """trainer script """
-import math
+# import math
 import random
 import warnings
 import argparse
@@ -16,7 +16,7 @@ from apex import amp
 from torch.nn.parallel import DistributedDataParallel
 # Custom Package
 from base.base_trainer import BaseTrainer
-from utils import AverageMeter, switch_adv, switch_clean, switch_mix, ExpStat
+from utils import AverageMeter, switch_clean, switch_mix, ExpStat
 
 
 class DataLoaderX(DataLoader):
@@ -29,9 +29,10 @@ class Trainer(BaseTrainer):
         super(Trainer, self).__init__(local_rank, config)
         adv_config = config['adv']
         self.adv_name = adv_config['name']
-        self.adv_param = adv_config['param']
-        self.joint_training = self.adv_param['joint_training']
-        self.clean_weight = self.adv_param['clean_weight']
+        self.clean_weight = adv_config['clean_weight']
+        self.adv_step_size = torch.tensor(adv_config['step_size']) / 255.
+        self.adv_num_steps = adv_config['num_steps']
+        self.adv_eps = torch.tensor(adv_config['eps']) / 255.
 
     def train(self):
         #######################################################################
@@ -139,7 +140,6 @@ class Trainer(BaseTrainer):
                 cur_epoch, self.trainloader, self.model, self.criterion,
                 self.opt, self.lr_scheduler, self.attacker,
                 num_classes=trainset.num_classes,
-                joint_training=self.joint_training,
                 clean_weight=self.clean_weight)
 
             if self.local_rank in [-1, 0]:
@@ -155,22 +155,22 @@ class Trainer(BaseTrainer):
 
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
-                    f"Train Loss={train_loss['final']:.2f}"
-                    f" | Adv loss:{train_loss['adv']:.2f} "
-                    f"mr:{adv_stat.mr:.2%} "
-                    f"[{adv_stat.group_mr[0]:.0%},"
-                    f"{adv_stat.group_mr[1]:.0%},"
-                    f"{adv_stat.group_mr[2]:.0%}]"
-                    f" | Cln loss:{train_loss['cln']:.2f} "
-                    f"mr:{cln_stat.mr:.2%} "
-                    f"[{cln_stat.group_mr[0]:.0%},"
-                    f"{cln_stat.group_mr[1]:.0%},"
-                    f"{cln_stat.group_mr[2]:.0%}]"
-                    f"|| Val loss={val_loss:.2f} "
-                    f"mr={val_stat.mr:.2%} "
-                    f"[{val_stat.group_mr[0]:.0%},"
-                    f"{val_stat.group_mr[1]:.0%},"
-                    f"{val_stat.group_mr[2]:.0%}]",
+                    f"Train Loss={train_loss['final']:>4.2f}"
+                    f" | Adv loss:{train_loss['adv']:>4.2f} "
+                    f"mr:{adv_stat.mr:>6.2%} "
+                    f"[{adv_stat.group_mr[0]:>3.0%}, "
+                    f"{adv_stat.group_mr[1]:>3.0%}, "
+                    f"{adv_stat.group_mr[2]:>3.0%}]"
+                    f" | Cln loss:{train_loss['cln']:>4.2f} "
+                    f"mr:{cln_stat.mr:>6.2%} "
+                    f"[{cln_stat.group_mr[0]:>3.0%}, "
+                    f"{cln_stat.group_mr[1]:>3.0%}, "
+                    f"{cln_stat.group_mr[2]:>3.0%}]"
+                    f"|| Val loss={val_loss:>4.2f} "
+                    f"mr={val_stat.mr:>6.2%} "
+                    f"[{val_stat.group_mr[0]:>3.0%}, "
+                    f"{val_stat.group_mr[1]:>3.0%}, "
+                    f"{val_stat.group_mr[2]:>3.0%}]",
                     log_level='file')
 
                 # Save log by tensorboard
@@ -225,20 +225,20 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
-                f"===> Best mean recall: {best_mr:.2%} (epoch{best_epoch})\n"
-                f"Group recalls: [{best_group_mr[0]:.2%}, "
-                f"{best_group_mr[1]:.2%}, {best_group_mr[2]:.2%}]\n\n"
+                f"===> Best mean recall: {best_mr:>6.2%} (epoch{best_epoch})\n"
+                f"Group recalls: [{best_group_mr[0]:>6.2%}, "
+                f"{best_group_mr[1]:>6.2%}, {best_group_mr[2]:>6.2%}]\n\n"
                 f"===> Final average mean recall of last 10 epochs:"
-                f" {final_mr:.2%}\n"
-                f"Average Group mean recalls: [{final_head_mr:.2%}, "
-                f"{final_mid_mr:.2%}, {final_tail_mr:.2%}]\n\n"
+                f" {final_mr:>6.2%}\n"
+                f"Average Group mean recalls: [{final_head_mr:>6.2%}, "
+                f"{final_mid_mr:>6.2%}, {final_tail_mr:>6.2%}]\n\n"
                 f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************"
             )
 
     def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
-                    lr_scheduler, attacker, joint_training, clean_weight,
+                    lr_scheduler, attacker, clean_weight,
                     num_classes=None):
         model.train()
         train_pbar = tqdm(
@@ -296,7 +296,7 @@ class Trainer(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str(
-                    "LR:{:.1e} Loss:{:.2f} ADV:{:.2f} CLN:{:.2f}".format(
+                    "LR:{:.1e} Loss:{:>4.2f} ADV:{:>4.2f} CLN:{:>4.2f}".format(
                         optimizer.param_groups[-1]['lr'],
                         final_loss_meter.avg,
                         adv_loss_meter.avg,
@@ -308,17 +308,17 @@ class Trainer(BaseTrainer):
                           'cln': cln_loss_meter.avg}
             train_pbar.set_postfix_str(
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
-                f"Loss:{final_loss_meter.avg:.1f} "
-                f" | Adv loss={train_loss['adv']:.2f} "
-                f"mr={adv_stat.mr:.2%} "
-                f"[{adv_stat.group_mr[0]:.0%},"
-                f"{adv_stat.group_mr[1]:.0%},"
-                f"{adv_stat.group_mr[2]:.0%}]"
-                f" | Cln loss={train_loss['cln']:.2f} "
-                f"mr={cln_stat.mr:.2%} "
-                f"[{cln_stat.group_mr[0]:.0%},"
-                f"{cln_stat.group_mr[1]:.0%},"
-                f"{cln_stat.group_mr[2]:.0%}]"
+                f"Loss:{final_loss_meter.avg:>4.2f} "
+                f" | Adv loss={train_loss['adv']:>4.2f} "
+                f"mr={adv_stat.mr:>6.2%} "
+                f"[{adv_stat.group_mr[0]:>3.0%}, "
+                f"{adv_stat.group_mr[1]:>3.0%}, "
+                f"{adv_stat.group_mr[2]:>3.0%}]"
+                f" | Cln loss={train_loss['cln']:>4.2f} "
+                f"mr={cln_stat.mr:>6.2%} "
+                f"[{cln_stat.group_mr[0]:>3.0%}, "
+                f"{cln_stat.group_mr[1]:>3.0%}, "
+                f"{cln_stat.group_mr[2]:>3.0%}]"
             )
 
         return adv_stat, cln_stat, train_loss
@@ -346,11 +346,11 @@ class Trainer(BaseTrainer):
                 val_pbar.update()
 
         val_pbar.set_postfix_str(
-            f"loss:{val_loss_meter.avg:.1f} "
-            f"mr:{val_stat.mr:.2%} "
-            f"[{val_stat.group_mr[0]:.0%},"
-            f"{val_stat.group_mr[1]:.0%},"
-            f"{val_stat.group_mr[2]:.0%}]")
+            f"loss:{val_loss_meter.avg:4.2f} "
+            f"mr:{val_stat.mr:>6.2%} "
+            f"[{val_stat.group_mr[0]:>3.0%}, "
+            f"{val_stat.group_mr[1]:>3.0%}, "
+            f"{val_stat.group_mr[2]:>3.0%}]")
         val_pbar.close()
 
         return val_stat, val_loss_meter.avg

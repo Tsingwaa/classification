@@ -133,16 +133,16 @@ class Trainer(BaseTrainer):
                     last_tail_mrs.append(val_stat.group_mr[2])
 
                 self.log(f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
-                         f"Trainset Loss={train_loss:.4f} "
-                         f"MR={train_stat.mr:.2%} "
-                         f"Head={train_stat.group_mr[0]:.2%} "
-                         f"Mid={train_stat.group_mr[1]:.2%} "
-                         f"Tail={train_stat.group_mr[2]:.2%}"
-                         f" || Valset Loss={val_loss:.4f} "
-                         f"MR={val_stat.mr:.2%} "
-                         f"Head={val_stat.group_mr[0]:.2%} "
-                         f"Mid={val_stat.group_mr[1]:.2%} "
-                         f"Tail={val_stat.group_mr[2]:.2%}",
+                         f"Trainset Loss={train_loss:>4.2f} "
+                         f"MR={train_stat.mr:>6.2%} "
+                         f"[{train_stat.group_mr[0]:>6.2%}, "
+                         f"{train_stat.group_mr[1]:>6.2%}, "
+                         f"{train_stat.group_mr[2]:>6.2%}"
+                         f" || Valset Loss={val_loss:>4.2f} "
+                         f"MR={val_stat.mr:>6.2%} "
+                         f"[{val_stat.group_mr[0]:>6.2%}, "
+                         f"{val_stat.group_mr[1]:>6.2%}, "
+                         f"{val_stat.group_mr[2]:>6.2%}",
                          log_level='file')
 
                 # Save log by tensorboard
@@ -190,13 +190,13 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
-                f"===> Best mean recall: {best_mr:.2%} (epoch{best_epoch})\n"
-                f"Group recalls: [{best_group_mr[0]:.2%}, "
-                f"{best_group_mr[1]:.2%}, {best_group_mr[2]:.2%}]\n\n"
+                f"===> Best mean recall: {best_mr:>6.2%} (epoch{best_epoch})\n"
+                f"Group recalls: [{best_group_mr[0]:>6.2%}, "
+                f"{best_group_mr[1]:>6.2%}, {best_group_mr[2]:>6.2%}]\n\n"
                 f"===> Final average mean recall of last 10 epochs:"
-                f" {final_mr:.2%}\n"
-                f"Average Group mean recalls: [{final_head_mr:.2%}, "
-                f"{final_mid_mr:.2%}, {final_tail_mr:.2%}]\n\n"
+                f" {final_mr:>6.2%}\n"
+                f"Average Group mean recalls: [{final_head_mr:6.2%}, "
+                f"{final_mid_mr:>6.2%}, {final_tail_mr:>6.2%}]\n\n"
                 f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************\n"
@@ -236,16 +236,16 @@ class Trainer(BaseTrainer):
                 train_pbar.update()
                 train_pbar.set_postfix_str(
                     f"LR:{opt.param_groups[0]['lr']:.1e} "
-                    f"Loss:{train_loss_meter.avg:.4f}"
+                    f"Loss:{train_loss_meter.avg:>4.2f}"
                 )
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(
                 f"LR:{opt.param_groups[0]['lr']:.1e} "
-                f"Loss:{train_loss_meter.avg:.2f} "
-                f"MR:{train_stat.mr:.2%} "
-                f"Head:{train_stat.group_mr[0]:.0%} "
-                f"Mid:{train_stat.group_mr[1]:.0%} "
-                f"Tail:{train_stat.group_mr[2]:.0%}")
+                f"Loss:{train_loss_meter.avg:>4.2f} "
+                f"MR:{train_stat.mr:>6.2%} "
+                f"[{train_stat.group_mr[0]:>3.0%}, "
+                f"{train_stat.group_mr[1]:>3.0%}, "
+                f"{train_stat.group_mr[2]:>3.0%}]")
 
             train_pbar.close()
 
@@ -274,11 +274,11 @@ class Trainer(BaseTrainer):
 
         if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(
-                f"Loss:{val_loss_meter.avg:.2f} "
-                f"MR:{val_stat.mr:.2%} "
-                f"Head:{val_stat.group_mr[0]:.0%} "
-                f"Mid:{val_stat.group_mr[1]:.0%} "
-                f"Tail:{val_stat.group_mr[2]:.0%}")
+                f"Loss:{val_loss_meter.avg:>4.2f} "
+                f"MR:{val_stat.mr:>6.2%} "
+                f"Head:{val_stat.group_mr[0]:>3.0%} "
+                f"Mid:{val_stat.group_mr[1]:>3.0%} "
+                f"Tail:{val_stat.group_mr[2]:>3.0%}")
             val_pbar.close()
 
         return val_stat, val_loss_meter.avg
