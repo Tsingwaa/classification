@@ -276,9 +276,9 @@ class Trainer(BaseTrainer):
             val_pbar.set_postfix_str(
                 f"Loss:{val_loss_meter.avg:>4.2f} "
                 f"MR:{val_stat.mr:>6.2%} "
-                f"Head:{val_stat.group_mr[0]:>3.0%} "
-                f"Mid:{val_stat.group_mr[1]:>3.0%} "
-                f"Tail:{val_stat.group_mr[2]:>3.0%}")
+                f"[{val_stat.group_mr[0]:>3.0%}, "
+                f"{val_stat.group_mr[1]:>3.0%}, "
+                f"{val_stat.group_mr[2]:>3.0%}]")
             val_pbar.close()
 
         return val_stat, val_loss_meter.avg
