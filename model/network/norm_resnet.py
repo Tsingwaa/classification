@@ -220,7 +220,7 @@ class NormResNet(nn.Module):
         x = self.layer4(x)
 
         x = self.avgpool(x)
-        x = torch.squeeze(x)
+        x = torch.flatten(x, 1)
 
         if out == 'feat':
             ret = x

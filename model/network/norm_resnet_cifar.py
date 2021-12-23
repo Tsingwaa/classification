@@ -162,7 +162,7 @@ class NormResNet_CIFAR(nn.Module):
         x = self.layer2(x)  # (N, 32, 16, 16)
         x = self.layer3(x)  # (N, 64, 8, 8)
         x = self.avgpool(x)  # (N, 64, 1, 1)
-        feat = torch.squeeze(x)  # (N, 64)
+        feat = torch.flatten(x, 1)  # (N, 64)
         if out == 'feat':
             return feat  # (N, 64)
         elif '2' in out:
