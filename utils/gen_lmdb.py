@@ -1,20 +1,23 @@
+import argparse
 import os
+
 # import io
 # import cv2
 import lmdb
 from tqdm import tqdm
-import argparse
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--img-lst-path", type=str,
+    parser.add_argument("--img-lst-path",
+                        type=str,
                         help="input list including image name and category")
-    parser.add_argument("--map-lst-path", type=str,
+    parser.add_argument("--map-lst-path",
+                        type=str,
                         help="input list including image category and label")
-    parser.add_argument("--img-dir", type=str,
-                        help="input image dir.")
-    parser.add_argument("--lmdb-dir", type=str,
+    parser.add_argument("--img-dir", type=str, help="input image dir.")
+    parser.add_argument("--lmdb-dir",
+                        type=str,
                         help="directory to save data.mdb and lock.mdb file.")
 
     args = parser.parse_args()
@@ -57,8 +60,9 @@ def gen_lmdb(args):
 
             # Ensure that key and value are both 'Byte'
             lmdb_txn.put(img_key.encode(), img_buffer, overwrite=False)
-            lmdb_txn.put(label_key.encode(), str(
-                label).encode(), overwrite=False)
+            lmdb_txn.put(label_key.encode(),
+                         str(label).encode(),
+                         overwrite=False)
 
             num_samples += 1
 

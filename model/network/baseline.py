@@ -7,15 +7,15 @@ Created: May 04,2019 - Yuchong Gu
 Revised: Dec 03,2019 - Yuchong Gu
 """
 import logging
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-from torch.nn import init
-
 from common.backbone.builder import build_backbone
 from common.network.builder import Networks
 from common.network.layers import ArcMarginProduct
+from torch.nn import init
+
 __all__ = ['BASELINE']
 EPSILON = 1e-12
 
@@ -55,6 +55,7 @@ def weights_init(m):
         init.normal(m.weight, std=0.001)
         if m.bias is not None:
             init.constant(m.bias, 0)
+
 
 # Bilinear Attention Pooling
 
@@ -99,11 +100,12 @@ class BAP(nn.Module):
 
         # feature_matrix: (B, M, C) -> (B, M * C)
         feature_matrix = (torch.einsum('imjk,injk->imn',
-                          (attentions, features)) / float(H * W)).view(B, -1)
+                                       (attentions, features)) /
+                          float(H * W)).view(B, -1)
 
         # sign-sqrt
-        feature_matrix = torch.sign(
-            feature_matrix) * torch.sqrt(torch.abs(feature_matrix) + EPSILON)
+        feature_matrix = torch.sign(feature_matrix) * torch.sqrt(
+            torch.abs(feature_matrix) + EPSILON)
 
         # l2 normalization along dimension M and C
         feature_matrix = F.normalize(feature_matrix, dim=-1)
@@ -143,13 +145,15 @@ class BASELINE(nn.Module):
             self.bn_neck = nn.BatchNorm1d(self.num_features)
             self.bn_neck.bias.requires_grad_(False)  # no shift
         else:
-            self.bn_neck = nn.BatchNorm1d(
-                self.num_features, momentum=0.1, affine=False)
+            self.bn_neck = nn.BatchNorm1d(self.num_features,
+                                          momentum=0.1,
+                                          affine=False)
 
         self.bn_neck.apply(weights_init_kaiming)
         self.embedding_in_planes = 512
-        self.embedding = nn.Linear(
-            self.num_features, self.embedding_in_planes, bias=True)
+        self.embedding = nn.Linear(self.num_features,
+                                   self.embedding_in_planes,
+                                   bias=True)
         self.embedding.apply(weights_init_kaiming_embedding)
 
         has_embedding = True
@@ -165,17 +169,23 @@ class BASELINE(nn.Module):
         if self.has_coslayer:
             if has_embedding:
                 self.cos_layer = ArcMarginProduct(self.embedding_in_planes,
-                                                  self.num_classes, s=scale, m=margin)
+                                                  self.num_classes,
+                                                  s=scale,
+                                                  m=margin)
             else:
                 self.cos_layer = ArcMarginProduct(self.num_features,
-                                                  self.num_classes, s=scale, m=margin)
+                                                  self.num_classes,
+                                                  s=scale,
+                                                  m=margin)
         else:
             if has_embedding:
                 self.fc = nn.Linear(self.embedding_in_planes,
-                                    self.num_classes, bias=False)
+                                    self.num_classes,
+                                    bias=False)
             else:
                 self.fc = nn.Linear(self.num_features,
-                                    self.num_classes, bias=False)
+                                    self.num_classes,
+                                    bias=False)
                 self.fc.apply(weights_init)
 
         logging.info('Baseline: using {} as feature extractor, \
@@ -208,8 +218,11 @@ class BASELINE(nn.Module):
 
     def load_state_dict(self, state_dict, strict=True):
         model_dict = self.state_dict()
-        pretrained_dict = {k: v for k, v in state_dict.items()
-                           if k in model_dict and model_dict[k].size() == v.size()}
+        pretrained_dict = {
+            k: v
+            for k, v in state_dict.items()
+            if k in model_dict and model_dict[k].size() == v.size()
+        }
 
         if len(pretrained_dict) == len(state_dict):
             logging.info('%s: All params loaded' % type(self).__name__)
@@ -217,7 +230,9 @@ class BASELINE(nn.Module):
             logging.info('%s: Some params were not loaded:' %
                          type(self).__name__)
             not_loaded_keys = [
-                k for k in state_dict.keys() if k not in pretrained_dict.keys()]
+                k for k in state_dict.keys()
+                if k not in pretrained_dict.keys()
+            ]
             logging.info(('%s, ' * (len(not_loaded_keys) - 1) + '%s') %
                          tuple(not_loaded_keys))
 

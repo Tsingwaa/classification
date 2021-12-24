@@ -36,7 +36,7 @@ class CrossEntropyLabelSmooth(nn.Module):
         targets = targets.cuda()
         targets = (1 - self.epsilon) * targets +\
             self.epsilon / self.num_classes
-        loss = (- targets * log_probs).mean(0).sum()
+        loss = (-targets * log_probs).mean(0).sum()
         return loss
 
 
@@ -74,25 +74,23 @@ class CELoss(nn.CrossEntropyLoss):
                  reduction='mean',
                  label_smoothing=0.0,
                  **kwargs):
-        super(CELoss, self).__init__(
-            weight=weight,
-            size_average=size_average,
-            ignore_index=ignore_index,
-            reduce=reduce,
-            reduction=reduction,
-            label_smoothing=label_smoothing
-        )
+        super(CELoss, self).__init__(weight=weight,
+                                     size_average=size_average,
+                                     ignore_index=ignore_index,
+                                     reduce=reduce,
+                                     reduction=reduction,
+                                     label_smoothing=label_smoothing)
         # self.weight = weight
         # self.reduction = reduction
         # self.label_smoothing = label_smoothing
 
     # def forward(self, input_, target):
-        # if self.weight is not None:
-        #     self.weight = self.weight.cuda()
-        # return F.cross_entropy(input_, target,
-        #                        weight=self.weight,
-        #                        reduction=self.reduction,
-        #                        label_smoothing=self.label_smoothing)
+    # if self.weight is not None:
+    #     self.weight = self.weight.cuda()
+    # return F.cross_entropy(input_, target,
+    #                        weight=self.weight,
+    #                        reduction=self.reduction,
+    #                        label_smoothing=self.label_smoothing)
 
 
 @Losses.register_module("BCEwithLogitsLoss")

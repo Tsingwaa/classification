@@ -21,8 +21,9 @@ def focal_loss(labels, logits, alpha, gamma):
     Returns:
       focal_loss: A float32 scalar representing normalized total loss.
     """
-    BCLoss = F.binary_cross_entropy_with_logits(
-        input=logits, target=labels, reduction="none")
+    BCLoss = F.binary_cross_entropy_with_logits(input=logits,
+                                                target=labels,
+                                                reduction="none")
 
     if gamma == 0.0:
         modulator = 1.0
@@ -71,23 +72,25 @@ def CB_loss(labels, logits, samples_per_cls, no_of_classes, loss_type, beta,
     if loss_type == "focal":
         cb_loss = focal_loss(labels_one_hot, logits, weights, gamma)
     elif loss_type == "sigmoid":
-        cb_loss = F.binary_cross_entropy_with_logits(
-            input=logits, target=labels_one_hot, weights=weights)
+        cb_loss = F.binary_cross_entropy_with_logits(input=logits,
+                                                     target=labels_one_hot,
+                                                     weights=weights)
     elif loss_type == "softmax":
         pred = logits.softmax(dim=1)
-        cb_loss = F.binary_cross_entropy(
-            input=pred, target=labels_one_hot, weight=weights)
+        cb_loss = F.binary_cross_entropy(input=pred,
+                                         target=labels_one_hot,
+                                         weight=weights)
     return cb_loss
 
 
 if __name__ == '__main__':
     no_of_classes = 5
     logits = torch.rand(10, no_of_classes).float()
-    labels = torch.randint(0, no_of_classes, size=(10,))
+    labels = torch.randint(0, no_of_classes, size=(10, ))
     beta = 0.9999
     gamma = 2.0
     samples_per_cls = [2, 3, 1, 2, 2]
     loss_type = "focal"
-    cb_loss = CB_loss(labels, logits, samples_per_cls,
-                      no_of_classes, loss_type, beta, gamma)
+    cb_loss = CB_loss(labels, logits, samples_per_cls, no_of_classes,
+                      loss_type, beta, gamma)
     print(cb_loss)

@@ -1,19 +1,20 @@
 """TRAINING
 """
-import os
-import math
-import warnings
 import argparse
+import math
+import os
+import warnings
+from os.path import join
+
+import numpy as np
 import torch
 import yaml
-import numpy as np
-# from pudb import set_trace
-from os.path import join
-from torch.utils.data import DataLoader
-from sklearn import metrics
-from tqdm import tqdm
-from prefetch_generator import BackgroundGenerator
 from base.base_trainer import BaseTrainer
+from prefetch_generator import BackgroundGenerator
+# from pudb import set_trace
+from sklearn import metrics
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 from utils.utils import get_cm_with_labels
 
 
@@ -81,12 +82,14 @@ class Validater(BaseTrainer):
                                    transform=val_transform,
                                    **self.valset_params)
         num_classes = valset.cls_num
-        valloader = DataLoaderX(valset,
-                                batch_size=self.val_batchsize,
-                                shuffle=False,
-                                num_workers=self.val_workers,
-                                pin_memory=True,
-                                drop_last=False,)
+        valloader = DataLoaderX(
+            valset,
+            batch_size=self.val_batchsize,
+            shuffle=False,
+            num_workers=self.val_workers,
+            pin_memory=True,
+            drop_last=False,
+        )
 
         #######################################################################
         # Initialize Network
@@ -120,25 +123,21 @@ class Validater(BaseTrainer):
         head_classes = math.floor(num_classes / 3)
         tail_classes = head_classes
         val_group_recalls = [
-            np.around(
-                np.mean(val_recalls[:head_classes]),
-                decimals=4),
-            np.around(
-                np.mean(val_recalls[head_classes:num_classes-tail_classes]),
-                decimals=4),
-            np.around(
-                np.mean(val_recalls[num_classes-tail_classes:]),
-                decimals=4)]
+            np.around(np.mean(val_recalls[:head_classes]), decimals=4),
+            np.around(np.mean(val_recalls[head_classes:num_classes -
+                                          tail_classes]),
+                      decimals=4),
+            np.around(np.mean(val_recalls[num_classes - tail_classes:]),
+                      decimals=4)
+        ]
 
-        val_pbar.set_postfix_str(
-            f"MR:{val_mr:.2%} "
-            f"Head:{val_group_recalls[0]:.2%} "
-            f"Mid:{val_group_recalls[1]:.2%} "
-            f"Tail:{val_group_recalls[2]:.2%}")
+        val_pbar.set_postfix_str(f"MR:{val_mr:.2%} "
+                                 f"Head:{val_group_recalls[0]:.2%} "
+                                 f"Mid:{val_group_recalls[1]:.2%} "
+                                 f"Tail:{val_group_recalls[2]:.2%}")
         val_pbar.close()
         classification_report = metrics.classification_report(
-            all_labels, all_preds, target_names=valset.classes
-        )
+            all_labels, all_preds, target_names=valset.classes)
 
         self.log("===> Classification Report:\n" + classification_report)
 
@@ -149,16 +148,13 @@ class Validater(BaseTrainer):
         # save true_list and pred_list
         np.save(
             join(self.save_dir, f"val_epoch{self.test_epoch}_label_list.npy"),
-            np.array(all_labels)
-        )
+            np.array(all_labels))
         np.save(
             join(self.save_dir, f"val_epoch{self.test_epoch}_pred_list.npy"),
-            np.array(all_preds)
-        )
+            np.array(all_preds))
         np.save(
             join(self.save_dir, f"val_epoch{self.test_epoch}_prob_list.npy"),
-            np.array(all_probs)
-        )
+            np.array(all_probs))
 
         self.log(f"Results are saved at '{self.save_dir}'.\n"
                  f"===> Ended Evaluation of experiment '{self.exp_name}'"
@@ -169,7 +165,9 @@ class Validater(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--local_rank', type=int, help='Local Rank for\
+    parser.add_argument('--local_rank',
+                        type=int,
+                        help='Local Rank for\
                         distributed training. if single-GPU, default: -1')
     parser.add_argument("--config_path", type=str)
     args = parser.parse_args()

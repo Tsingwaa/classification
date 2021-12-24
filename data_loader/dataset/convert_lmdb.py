@@ -2,16 +2,19 @@
 # @Author  : DevinYang(pistonyang@gmail.com)
 """This file should not be included in __init__"""
 
-__all__ = ['get_key', 'load_pyarrow', 'dumps_pyarrow',
-           'generate_lmdb_dataset', 'raw_reader']
+__all__ = [
+    'get_key', 'load_pyarrow', 'dumps_pyarrow', 'generate_lmdb_dataset',
+    'raw_reader'
+]
+
+import os
 
 import lmdb
-import os
 import pyarrow
-from tqdm import tqdm
+from data_loader.dataset.builder import build_dataset
 from pudb import set_trace
 from torch.utils.data import DataLoader, Dataset
-from data_loader.dataset.builder import build_dataset
+from tqdm import tqdm
 
 
 def get_key(index):

@@ -2,15 +2,16 @@
 Created: Nov 11,2019 - Yuchong Gu
 Revised: Dec 03,2019 - Yuchong Gu
 """
-import os
 import math
-import torch
+import os
 # import random
+from os.path import exists, join
+
 import numpy as np
+import torch
 # import torch.nn.functional as F
-from os.path import join, exists
-from sklearn.metrics import confusion_matrix
 from matplotlib import pyplot as plt
+from sklearn.metrics import confusion_matrix
 
 __all__ = ['count_model_params', 'label2onehot', 'AverageMeter']
 
@@ -33,7 +34,7 @@ def label2onehot(targets, num_classes):
 
 
 class TopKAccuracyMetric:
-    def __init__(self, topk=(1,)):
+    def __init__(self, topk=(1, )):
         self.name = 'topk_accuracy'
         self.topk = topk
         self.maxk = max(topk)
@@ -91,8 +92,8 @@ def get_cm_with_labels(targets, preds, classes):
         cm_df.to_string() could be save in .log file.
         cm_df.to_csv() could be saved in .csv file.
     """
-    from sklearn.metrics import confusion_matrix
     import pandas as pd
+    from sklearn.metrics import confusion_matrix
 
     cm = confusion_matrix(targets, preds)
     cm_df = pd.DataFrame(cm, index=classes, columns=classes)
@@ -102,10 +103,9 @@ def get_cm_with_labels(targets, preds, classes):
 
 def rotation(inputs):
     batch = inputs.shape[0]
-    target = torch.Tensor(
-        np.random.permutation([0, 1, 2, 3] * (int(batch / 4) + 1)),
-        device=inputs.device
-    )[:batch]
+    target = torch.Tensor(np.random.permutation([0, 1, 2, 3] *
+                                                (int(batch / 4) + 1)),
+                          device=inputs.device)[:batch]
 
     target = target.long()
     image = torch.zeros_like(inputs)
@@ -120,9 +120,9 @@ def get_weight_scheduler(cur_epoch, total_epoch, weight_scheduler, **kwargs):
     """Return a decaying weight according to epoch"""
 
     if weight_scheduler == 'parabolic_incr':  # lower convex 0->1
-        weight = (cur_epoch / total_epoch) ** 2.
+        weight = (cur_epoch / total_epoch)**2.
     elif weight_scheduler == 'parabolic_decay':  # upper convex 1->0
-        weight = 1. - (cur_epoch / total_epoch) ** 2.
+        weight = 1. - (cur_epoch / total_epoch)**2.
     elif weight_scheduler == 'cosine_decay':  # upper then lower convex 1->0
         weight = math.cos((cur_epoch / total_epoch) * math.pi / 2.)
     elif weight_scheduler == 'linear_decay':  # linear 1->0
@@ -137,7 +137,9 @@ def get_weight_scheduler(cur_epoch, total_epoch, weight_scheduler, **kwargs):
     return weight
 
 
-def plot_confusion_matrix(y_true, y_pred, classes,
+def plot_confusion_matrix(y_true,
+                          y_pred,
+                          classes,
                           normalize=False,
                           title=None,
                           cmap=plt.cm.Blues):
@@ -155,16 +157,20 @@ def plot_confusion_matrix(y_true, y_pred, classes,
     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
     ax.figure.colorbar(im, ax=ax)
     # We want to show all ticks...
-    ax.set(xticks=np.arange(cm.shape[1]),
-           yticks=np.arange(cm.shape[0]),
-           # ... and label them with the respective list entries
-           xticklabels=classes, yticklabels=classes,
-           title=title,
-           ylabel='True label',
-           xlabel='Predicted label')
+    ax.set(
+        xticks=np.arange(cm.shape[1]),
+        yticks=np.arange(cm.shape[0]),
+        # ... and label them with the respective list entries
+        xticklabels=classes,
+        yticklabels=classes,
+        title=title,
+        ylabel='True label',
+        xlabel='Predicted label')
 
     # Rotate the tick labels and set their alignment.
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+    plt.setp(ax.get_xticklabels(),
+             rotation=45,
+             ha="right",
              rotation_mode="anchor")
 
     # Loop over data dimensions and create text annotations.
@@ -172,8 +178,11 @@ def plot_confusion_matrix(y_true, y_pred, classes,
     thresh = cm.max() / 2.
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
-            ax.text(j, i, format(cm[i, j], fmt),
-                    ha="center", va="center",
+            ax.text(j,
+                    i,
+                    format(cm[i, j], fmt),
+                    ha="center",
+                    va="center",
                     color="white" if cm[i, j] > thresh else "black")
     fig.tight_layout()
     return ax
@@ -199,6 +208,6 @@ def plot_features(features, labels, save_dir, num_classes, epoch, prefix):
     dirname = join(save_dir, prefix)
     if not exists(dirname):
         os.mkdir(dirname)
-    save_name = join(dirname, 'epoch_' + str(epoch+1) + '.png')
+    save_name = join(dirname, 'epoch_' + str(epoch + 1) + '.png')
     plt.savefig(save_name, bbox_inches='tight')
     plt.close()

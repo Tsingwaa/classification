@@ -77,13 +77,14 @@ class MixBatchNorm2d(nn.BatchNorm2d):
     should be set as 'adv' while attacking.
     '''
 
-    def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True,
+    def __init__(self,
+                 num_features,
+                 eps=1e-5,
+                 momentum=0.1,
+                 affine=True,
                  track_running_stats=True):
-        super(MixBatchNorm2d, self).__init__(num_features,
-                                             eps,
-                                             momentum,
-                                             affine,
-                                             track_running_stats)
+        super(MixBatchNorm2d, self).__init__(num_features, eps, momentum,
+                                             affine, track_running_stats)
         self.aux_bn = nn.BatchNorm2d(num_features,
                                      eps=eps,
                                      momentum=momentum,

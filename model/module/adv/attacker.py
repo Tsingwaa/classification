@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
-from torch.nn.functional import cross_entropy
 # from pudb import set_trace
 from model.module.builder import Modules
+from torch.nn.functional import cross_entropy
+
 from utils import switch_adv
 
 
@@ -10,9 +11,17 @@ from utils import switch_adv
 class LinfPGD(nn.Module):
     """Projected Gradient Decent(PGD) attack."""
 
-    def __init__(self, model, eps=8, step_size=2, num_steps=7,
-                 criterion=None, random_start=True, targeted=False,
-                 clip_min=0., clip_max=1., **kwargs):
+    def __init__(self,
+                 model,
+                 eps=8,
+                 step_size=2,
+                 num_steps=7,
+                 criterion=None,
+                 random_start=True,
+                 targeted=False,
+                 clip_min=0.,
+                 clip_max=1.,
+                 **kwargs):
 
         super(LinfPGD, self).__init__()
 
@@ -42,8 +51,8 @@ class LinfPGD(nn.Module):
         perturbation = torch.zeros_like(imgs).to(self.device)
         if self.random_start:
             perturbation = torch.rand_like(imgs).to(device=self.device)
-            perturbation = self.compute_perturbation(
-                imgs + perturbation, imgs, targets)
+            perturbation = self.compute_perturbation(imgs + perturbation, imgs,
+                                                     targets)
 
         with torch.enable_grad():
             self.model.apply(switch_adv)
@@ -84,8 +93,7 @@ class LinfPGD(nn.Module):
         # Project the perturbation to Lp ball
         perturbation = torch.clamp(adv_x - x, -self.eps, self.eps)
         # Clamp the adversarial image to a legal 'image'
-        perturbation = torch.clamp(x + perturbation,
-                                   self.clip_min,
+        perturbation = torch.clamp(x + perturbation, self.clip_min,
                                    self.clip_max) - x
 
         return perturbation
@@ -139,7 +147,7 @@ class AdaptLinfPGD(LinfPGD):
 
     def compute_perturbation(self, adv_x, x, targets):
         batch_eps = self.eps[targets].view(targets.shape[0], 1, 1, 1)
-        perturbation = torch.min(adv_x-x, batch_eps)
+        perturbation = torch.min(adv_x - x, batch_eps)
         perturbation = torch.max(perturbation, -batch_eps)
 
         return perturbation
@@ -227,8 +235,16 @@ class L2PGD(nn.Module):
     Can be used to adversarial training.
     """
 
-    def __init__(self, model, epsilon=5, step=1, iterations=20, criterion=None,
-                 random_start=True, targeted=False, clip_min=0., clip_max=1.,
+    def __init__(self,
+                 model,
+                 epsilon=5,
+                 step=1,
+                 iterations=20,
+                 criterion=None,
+                 random_start=True,
+                 targeted=False,
+                 clip_min=0.,
+                 clip_max=1.,
                  **kwargs):
         super(L2PGD, self).__init__()
         # Arguments of PGD
@@ -246,7 +262,7 @@ class L2PGD(nn.Module):
         self.criterion = criterion
         if self.criterion is None:
             self.criterion = lambda model, input, target:\
-                    nn.functional.cross_entropy(model(input), target)
+                nn.functional.cross_entropy(model(input), target)
 
         # Model status
         self.training = self.model.training
@@ -259,8 +275,7 @@ class L2PGD(nn.Module):
         # Project the perturbation to Lp ball
         perturbation = self.project(adv_x - x)
         # Clamp the adversarial image to a legal 'image'
-        perturbation = torch.clamp(x + perturbation,
-                                   self.clip_min,
+        perturbation = torch.clamp(x + perturbation, self.clip_min,
                                    self.clip_max) - x
 
         return perturbation
@@ -275,9 +290,8 @@ class L2PGD(nn.Module):
         self.model.zero_grad()
         atk_loss.backward()
         grad = adv_x.grad
-        g_norm = torch.norm(grad.view(x.shape[0], -1), p=2, dim=1).view(
-            -1, *([1] * (len(x.shape) - 1))
-        )
+        g_norm = torch.norm(grad.view(x.shape[0], -1), p=2,
+                            dim=1).view(-1, *([1] * (len(x.shape) - 1)))
         grad = grad / (g_norm + 1e-10)
         # Essential: delete the computation graph to save GPU ram
         adv_x.requires_grad = False
@@ -300,7 +314,7 @@ class L2PGD(nn.Module):
 
     def random_perturbation(self, x):
         perturbation = torch.rand_like(x).to(device=self.device)
-        perturbation = self.compute_perturbation(x+perturbation, x)
+        perturbation = self.compute_perturbation(x + perturbation, x)
 
         return perturbation
 

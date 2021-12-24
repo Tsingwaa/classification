@@ -13,9 +13,10 @@ All rights reserved.
 """
 
 import random
+
 import numpy as np
-from torch.utils.data.sampler import Sampler
 from data_loader.sampler.builder import Samplers
+from torch.utils.data.sampler import Sampler
 
 
 class RandomCycleIter:
@@ -40,7 +41,9 @@ class RandomCycleIter:
         return self.data_list[self.i]
 
 
-def class_aware_sample_generator(cls_iter, data_iter_list, total_samples,
+def class_aware_sample_generator(cls_iter,
+                                 data_iter_list,
+                                 total_samples,
                                  num_samples_each_cls_draw=1):
     i = 0
     j = 0
@@ -49,10 +52,9 @@ def class_aware_sample_generator(cls_iter, data_iter_list, total_samples,
             j = 0
 
         if j == 0:
-            temp_tuple = next(zip(
-                *[data_iter_list[next(cls_iter)]] *
-                num_samples_each_cls_draw
-            ))
+            temp_tuple = next(
+                zip(*[data_iter_list[next(cls_iter)]] *
+                    num_samples_each_cls_draw))
             """解读上面一行代码:
             data_iter_list[next(cls_iter)]是选定类别的数据迭代器；
             先复制n个迭代器，然后解索引选定n个迭代器，然后zip组合为一起，
@@ -70,8 +72,7 @@ def class_aware_sample_generator(cls_iter, data_iter_list, total_samples,
 
 
 @Samplers.register_module('ClassAwareSampler')
-class ClassAwareSampler (Sampler):
-
+class ClassAwareSampler(Sampler):
     def __init__(self, dataset, num_samples_each_cls_draw=1, **kwargs):
         """根据dataset得到类等价的sampler, 上采样器
         Args:
@@ -133,8 +134,8 @@ class BalancedSampler(Sampler):
         # Pointer for each class to mark which index we should choose next.
         # Initialize pointer as the first one (index = 0)
         self.bucket_pointers = [0] * self.num_buckets
-        self.max_bucket_size = max([len(bucket)
-                                    for bucket in self.buckets.values()])
+        self.max_bucket_size = max(
+            [len(bucket) for bucket in self.buckets.values()])
 
     def __iter__(self):
         count = self.__len__()

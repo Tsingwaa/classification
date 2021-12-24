@@ -3,10 +3,12 @@
 __all__ = ['ImageLMDB']
 
 import os
+
 import lmdb
+from torch.utils.data import Dataset
+
 from ..tools.convert_lmdb import get_key, load_pyarrow
 from .utils import decode_img_from_buf
-from torch.utils.data import Dataset
 
 
 class ImageLMDB(Dataset):
@@ -14,7 +16,11 @@ class ImageLMDB(Dataset):
     LMDB format for image folder.
     """
 
-    def __init__(self, db_path, db_name, transform=None, target_transform=None,
+    def __init__(self,
+                 db_path,
+                 db_name,
+                 transform=None,
+                 target_transform=None,
                  backend='cv2'):
         self.env = lmdb.open(os.path.join(db_path, '{}.lmdb'.format(db_name)),
                              subdir=False,

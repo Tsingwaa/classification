@@ -1,18 +1,15 @@
 """Base Trainer"""
 # ############# Build-in Package #############
-import os
 # import math
 import abc
 # import shutil
 import logging
+import os
 from os.path import join
+
 # ########### Third-Party Package ############
 import numpy as np
 import torch
-# from pudb import set_trace
-from torch.utils.tensorboard import SummaryWriter
-from torch import distributed as dist
-from torch.utils.data.distributed import DistributedSampler
 # ############## Custom package ##############
 from data_loader.dataset.builder import Datasets
 from data_loader.sampler.builder import Samplers
@@ -20,6 +17,10 @@ from data_loader.transform.builder import Transforms
 from model.loss.builder import Losses
 from model.module.builder import Modules
 from model.network.builder import Networks
+from torch import distributed as dist
+from torch.utils.data.distributed import DistributedSampler
+# from pudb import set_trace
+from torch.utils.tensorboard import SummaryWriter
 from utils import GradualWarmupScheduler
 
 
@@ -196,7 +197,10 @@ class BaseTrainer:
         self.log(sampler_init_log, log_level)
         return sampler
 
-    def init_model(self, network_name, resume=False, checkpoint=None,
+    def init_model(self,
+                   network_name,
+                   resume=False,
+                   checkpoint=None,
                    **kwargs):
         log_level = kwargs.pop("log_level", "default")
 
@@ -300,15 +304,16 @@ class BaseTrainer:
     def init_lr_scheduler(self, scheduler_name, optimizer, **kwargs):
         warmup_epochs = kwargs.pop("warmup_epochs", 5)
 
-        lr_scheduler = getattr(torch.optim.lr_scheduler, scheduler_name)(
-            optimizer, **kwargs)
+        lr_scheduler = getattr(torch.optim.lr_scheduler,
+                               scheduler_name)(optimizer, **kwargs)
         self.log(f"===> Initialized {scheduler_name}: {kwargs}")
         if warmup_epochs > 0:
             lr_scheduler = GradualWarmupScheduler(
                 optimizer,
                 multiplier=1,
                 warmup_epochs=warmup_epochs,
-                after_scheduler=lr_scheduler,)
+                after_scheduler=lr_scheduler,
+            )
             self.log(f"===> Initialized gradual warmup scheduler: "
                      f"warmup_epochs={warmup_epochs}")
         return lr_scheduler
@@ -336,14 +341,23 @@ class BaseTrainer:
 
     def save_checkpoint(self, epoch, model, optimizer, criterion, is_best, mr,
                         group_recalls, prefix, save_dir):
-        checkpoint = {"model": model.state_dict() if self.local_rank == -1 else
-                      model.module.state_dict(),
-                      "optimizer": optimizer.state_dict(),
-                      "criterion": criterion.state_dict(),
-                      "best": is_best,
-                      "epoch": epoch,
-                      "mr": mr,
-                      "group_recalls": group_recalls}
+        checkpoint = {
+            "model":
+            model.state_dict()
+            if self.local_rank == -1 else model.module.state_dict(),
+            "optimizer":
+            optimizer.state_dict(),
+            "criterion":
+            criterion.state_dict(),
+            "best":
+            is_best,
+            "epoch":
+            epoch,
+            "mr":
+            mr,
+            "group_recalls":
+            group_recalls
+        }
         save_fname = "best.pth.tar" if is_best else "last.pth.tar"
         if prefix is not None:
             save_fname = prefix + "_" + save_fname
@@ -360,7 +374,8 @@ class BaseTrainer:
         file_handler_formatter = logging.Formatter(
             "%(asctime)s: %(levelname)s:"
             " [%(filename)s:%(lineno)d]: %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",)
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
         file_handler.setFormatter(file_handler_formatter)
 
         # print to the screen
@@ -388,17 +403,22 @@ class BaseTrainer:
         total_params = 0.
         for x in filter(lambda p: p.requires_grad, model.parameters()):
             total_params += np.prod(x.data.numpy().shape)
-        total_params /= 10 ** 6
+        total_params /= 10**6
         return total_params
 
     def update_state_dict(self, module, checkpoint_state_dict):
         """Only update state dict that the module needs and print those
         unupdated keys of the module"""
         module_state_dict = module.state_dict()
-        update_items = {k: v for k, v in checkpoint_state_dict.items()
-                        if k in module_state_dict.keys()}
-        unupdated_keys = [k for k in module_state_dict.keys()
-                          if k not in update_items.keys()]
+        update_items = {
+            k: v
+            for k, v in checkpoint_state_dict.items()
+            if k in module_state_dict.keys()
+        }
+        unupdated_keys = [
+            k for k in module_state_dict.keys()
+            if k not in update_items.keys()
+        ]
         self.log(f"Found unused keys from checkpoint: {unupdated_keys}")
         module_state_dict.update(update_items)
         module.load_state_dict(module_state_dict)

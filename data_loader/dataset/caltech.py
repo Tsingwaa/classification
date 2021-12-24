@@ -1,7 +1,7 @@
 import numpy as np
+from data_loader.dataset.builder import Datasets
 from PIL import Image
 from torchvision.datasets import ImageFolder
-from data_loader.dataset.builder import Datasets
 
 CALTECH256_MEAN_STD_DICT = {
     5: ([0.4790, 0.5033, 0.4997], [0.2800, 0.2621, 0.2794]),
@@ -11,7 +11,6 @@ CALTECH256_MEAN_STD_DICT = {
 
 @Datasets.register_module("Caltech256-Trainset")
 class Train_ImageFolder(ImageFolder):
-
     def __init__(self, data_root=None, transform=None, **kwargs):
         super(Train_ImageFolder, self).__init__(
             root=data_root,

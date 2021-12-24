@@ -1,25 +1,23 @@
 """finetune script """
+import argparse
 import os
-# import math
 import random
 import warnings
-import argparse
-import yaml
+from datetime import datetime
+from os.path import join
+
 import numpy as np
 import torch
-from datetime import datetime
+import yaml
+from apex import amp
+from base.base_trainer import BaseTrainer
+from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
-from os.path import join
+from sklearn import metrics
+from torch import distributed as dist
 from torch.utils.data import DataLoader
 # from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-# from sklearn import metrics
-from prefetch_generator import BackgroundGenerator
-# Distribute Package
-from torch import distributed as dist
-from apex import amp
-# Custom Package
-from base.base_trainer import BaseTrainer
 from utils import AverageMeter, ExpStat
 
 
@@ -78,8 +76,7 @@ class FineTuner(BaseTrainer):
             os.makedirs(self.save_dir, exist_ok=True)
 
             # Set logger to save .log file and output to screen.
-            self.log_fpath = join(
-                self.save_dir, f"{self.finetune_name}.log")
+            self.log_fpath = join(self.save_dir, f"{self.finetune_name}.log")
             self.logger = self.init_logger(self.log_fpath)
             exp_init_log = f"\n****************************************"\
                 f"****************************************************"\
@@ -153,12 +150,14 @@ class FineTuner(BaseTrainer):
             valset = self.init_dataset(self.valset_name,
                                        transform=val_transform,
                                        **self.valset_params)
-            self.valloader = DataLoaderX(valset,
-                                         batch_size=self.val_batchsize,
-                                         shuffle=False,
-                                         num_workers=self.val_workers,
-                                         pin_memory=True,
-                                         drop_last=False,)
+            self.valloader = DataLoaderX(
+                valset,
+                batch_size=self.val_batchsize,
+                shuffle=False,
+                num_workers=self.val_workers,
+                pin_memory=True,
+                drop_last=False,
+            )
 
         #######################################################################
         # Initialize Network
@@ -221,12 +220,20 @@ class FineTuner(BaseTrainer):
                 train_sampler.set_epoch(cur_epoch)
 
             train_stat, train_loss = self.train_epoch(
-                cur_epoch, self.trainloader, self.model, self.criterion,
-                self.opt, self.lr_scheduler, num_classes=trainset.num_classes)
+                cur_epoch,
+                self.trainloader,
+                self.model,
+                self.criterion,
+                self.opt,
+                self.lr_scheduler,
+                num_classes=trainset.num_classes)
 
             if self.local_rank in [-1, 0]:
                 val_stat, val_loss = self.evaluate(
-                    cur_epoch, self.valloader, self.model, self.criterion,
+                    cur_epoch,
+                    self.valloader,
+                    self.model,
+                    self.criterion,
                     num_classes=trainset.num_classes)
 
                 if self.final_epoch - cur_epoch <= 5:
@@ -248,8 +255,7 @@ class FineTuner(BaseTrainer):
                     f"[{val_stat.group_mr[0]:>6.2%}, "
                     f"{val_stat.group_mr[1]:>6.2%}, "
                     f"{val_stat.group_mr[2]:>6.2%}",
-                    log_level="file"
-                )
+                    log_level="file")
 
                 is_best = val_stat.mr > best_mr
                 if is_best:
@@ -286,11 +292,17 @@ class FineTuner(BaseTrainer):
                 f"{final_mid_mr:>6.2%}, {final_tail_mr:>6.2%}]\n\n"
                 f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
-                f"*********************************************************\n"
-            )
+                f"*********************************************************\n")
 
-    def train_epoch(self, cur_epoch, trainloader, model, criterion, opt,
-                    lr_scheduler, ft_model=None, num_classes=None):
+    def train_epoch(self,
+                    cur_epoch,
+                    trainloader,
+                    model,
+                    criterion,
+                    opt,
+                    lr_scheduler,
+                    ft_model=None,
+                    num_classes=None):
 
         model.train()
         if ft_model is not None:
@@ -333,23 +345,26 @@ class FineTuner(BaseTrainer):
                 train_pbar.update()
                 train_pbar.set_postfix_str(
                     f"LR:{opt.param_groups[0]['lr']:.1e} "
-                    f"Loss:{train_loss_meter.avg:>4.2f}"
-                )
+                    f"Loss:{train_loss_meter.avg:>4.2f}")
 
         if self.local_rank in [-1, 0]:
-            train_pbar.set_postfix_str(
-                f"LR:{opt.param_groups[0]['lr']:.1e} "
-                f"Loss:{train_loss_meter.avg:>4.2f} "
-                f"MR:{train_stat.mr:>6.2%} "
-                f"[{train_stat.group_mr[0]:>3.0%}, "
-                f"{train_stat.group_mr[1]:>3.0%}, "
-                f"{train_stat.group_mr[2]:>3.0%}]")
+            train_pbar.set_postfix_str(f"LR:{opt.param_groups[0]['lr']:.1e} "
+                                       f"Loss:{train_loss_meter.avg:>4.2f} "
+                                       f"MR:{train_stat.mr:>6.2%} "
+                                       f"[{train_stat.group_mr[0]:>3.0%}, "
+                                       f"{train_stat.group_mr[1]:>3.0%}, "
+                                       f"{train_stat.group_mr[2]:>3.0%}]")
 
             train_pbar.close()
 
         return train_stat, train_loss_meter.avg
 
-    def evaluate(self, cur_epoch, valloader, model, criterion, ft_model=None,
+    def evaluate(self,
+                 cur_epoch,
+                 valloader,
+                 model,
+                 criterion,
+                 ft_model=None,
                  num_classes=None):
 
         model.eval()
@@ -357,7 +372,8 @@ class FineTuner(BaseTrainer):
             ft_model.eval()
 
         if self.local_rank in [-1, 0]:
-            val_pbar = tqdm(total=len(valloader), ncols=0,
+            val_pbar = tqdm(total=len(valloader),
+                            ncols=0,
                             desc="                 Val")
 
         val_loss_meter = AverageMeter()
@@ -379,12 +395,11 @@ class FineTuner(BaseTrainer):
                 val_pbar.update()
 
         if self.local_rank in [-1, 0]:
-            val_pbar.set_postfix_str(
-                f"Loss:{val_loss_meter.avg:>4.2f} "
-                f"MR:{val_stat.mr:>6.2%} "
-                f"[{val_stat.group_mr[0]:>3.0%}, "
-                f"{val_stat.group_mr[1]:>3.0%}, "
-                f"{val_stat.group_mr[2]:>3.0%}]")
+            val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
+                                     f"MR:{val_stat.mr:>6.2%} "
+                                     f"[{val_stat.group_mr[0]:>3.0%}, "
+                                     f"{val_stat.group_mr[1]:>3.0%}, "
+                                     f"{val_stat.group_mr[2]:>3.0%}]")
             val_pbar.close()
 
         return val_stat, val_loss_meter.avg
@@ -392,7 +407,9 @@ class FineTuner(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank", type=int, help="Local Rank for\
+    parser.add_argument("--local_rank",
+                        type=int,
+                        help="Local Rank for\
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     args = parser.parse_args()

@@ -9,24 +9,23 @@
 #
 ###############################################################################
 
+import argparse
 # import math
 import random
 import warnings
-import argparse
-import yaml
+from datetime import datetime
+
 import numpy as np
 import torch
-from datetime import datetime
+import yaml
+from apex import amp
+from base.base_trainer import BaseTrainer
+from prefetch_generator import BackgroundGenerator
+from torch.nn.parallel import DistributedDataParallel
 # from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from prefetch_generator import BackgroundGenerator
-# Distribute Package
-from apex import amp
-from torch.nn.parallel import DistributedDataParallel
-# Custom Package
-from base.base_trainer import BaseTrainer
-from utils import AverageMeter, switch_clean, switch_mix, ExpStat
+from utils import AverageMeter, ExpStat, switch_clean, switch_mix
 
 
 class DataLoaderX(DataLoader):
@@ -77,12 +76,14 @@ class Trainer(BaseTrainer):
             valset = self.init_dataset(self.valset_name,
                                        transform=val_transform,
                                        **self.valset_params)
-            self.valloader = DataLoaderX(valset,
-                                         batch_size=self.val_batchsize,
-                                         shuffle=False,
-                                         num_workers=self.val_workers,
-                                         pin_memory=True,
-                                         drop_last=False,)
+            self.valloader = DataLoaderX(
+                valset,
+                batch_size=self.val_batchsize,
+                shuffle=False,
+                num_workers=self.val_workers,
+                pin_memory=True,
+                drop_last=False,
+            )
 
         #######################################################################
         # Initialize Network
@@ -97,25 +98,27 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Optimizer
         #######################################################################
-        self.opt = self.init_optimizer(self.opt_name,
-                                       self.model.parameters(),
+        self.opt = self.init_optimizer(self.opt_name, self.model.parameters(),
                                        **self.opt_params)
 
         #######################################################################
         # Initialize Adversarial Training
         #######################################################################
-        attacker = self.init_module(self.adv_name,
-                                    model=self.model,
-                                    eps=self.eps,
-                                    num_steps=self.num_steps,
-                                    step_size=self.step_size,)
+        attacker = self.init_module(
+            self.adv_name,
+            model=self.model,
+            eps=self.eps,
+            num_steps=self.num_steps,
+            step_size=self.step_size,
+        )
 
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
         if self.local_rank != -1:
-            self.model, self.opt = amp.initialize(
-                self.model, self.opt, opt_level='O1')
+            self.model, self.opt = amp.initialize(self.model,
+                                                  self.opt,
+                                                  opt_level='O1')
             self.model = DistributedDataParallel(self.model,
                                                  device_ids=[self.local_rank],
                                                  output_device=self.local_rank,
@@ -124,8 +127,9 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.lr_scheduler = self.init_lr_scheduler(
-            self.scheduler_name, self.opt, **self.scheduler_params)
+        self.lr_scheduler = self.init_lr_scheduler(self.scheduler_name,
+                                                   self.opt,
+                                                   **self.scheduler_params)
 
         #######################################################################
         # Start Training
@@ -146,14 +150,22 @@ class Trainer(BaseTrainer):
                 train_sampler.set_epoch(cur_epoch)
 
             adv_stat, cln_stat, train_loss = self.train_epoch(
-                cur_epoch, self.trainloader, self.model, self.criterion,
-                self.opt, self.lr_scheduler, attacker,
+                cur_epoch,
+                self.trainloader,
+                self.model,
+                self.criterion,
+                self.opt,
+                self.lr_scheduler,
+                attacker,
                 num_classes=trainset.num_classes,
                 clean_weight=self.clean_weight)
 
             if self.local_rank in [-1, 0]:
                 val_stat, val_loss = self.evaluate(
-                    cur_epoch, self.valloader, self.model, self.criterion,
+                    cur_epoch,
+                    self.valloader,
+                    self.model,
+                    self.criterion,
                     num_classes=trainset.num_classes)
 
                 if self.final_epoch - cur_epoch <= 10:
@@ -186,45 +198,55 @@ class Trainer(BaseTrainer):
                 #     self.logger.info(f"Class recalls: {val_recalls}\n")
 
                 # Save log by tensorboard
-                self.writer.add_scalar(
-                    f'{self.exp_name}/LearningRate',
-                    self.opt.param_groups[0]['lr'], cur_epoch)
+                self.writer.add_scalar(f'{self.exp_name}/LearningRate',
+                                       self.opt.param_groups[0]['lr'],
+                                       cur_epoch)
                 self.writer.add_scalars(
-                    f'{self.exp_name}/Loss',
-                    {'train_loss': train_loss['final'],
-                     'adv_loss': train_loss['adv'],
-                     'clean_loss': train_loss['cln'],
-                     'val_loss': val_loss}, cur_epoch)
+                    f'{self.exp_name}/Loss', {
+                        'train_loss': train_loss['final'],
+                        'adv_loss': train_loss['adv'],
+                        'clean_loss': train_loss['cln'],
+                        'val_loss': val_loss
+                    }, cur_epoch)
                 self.writer.add_scalars(
-                    f'{self.exp_name}/Recall',
-                    {'train_adv_mr': adv_stat.mr,
-                     'train_clean_mr': cln_stat.mr,
-                     'val_mr': val_stat.mr}, cur_epoch)
+                    f'{self.exp_name}/Recall', {
+                        'train_adv_mr': adv_stat.mr,
+                        'train_clean_mr': cln_stat.mr,
+                        'val_mr': val_stat.mr
+                    }, cur_epoch)
                 self.writer.add_scalars(
-                    f"{self.exp_name}/ADVGroupRecall",
-                    {"head_mr": adv_stat.group_mr[0],
-                     "mid_mr": adv_stat.group_mr[1],
-                     "tail_mr": adv_stat.group_mr[2]}, cur_epoch)
+                    f"{self.exp_name}/ADVGroupRecall", {
+                        "head_mr": adv_stat.group_mr[0],
+                        "mid_mr": adv_stat.group_mr[1],
+                        "tail_mr": adv_stat.group_mr[2]
+                    }, cur_epoch)
                 self.writer.add_scalars(
-                    f"{self.exp_name}/CLNGroupRecall",
-                    {"head_mr": cln_stat.group_mr[0],
-                     "mid_mr": cln_stat.group_mr[1],
-                     "tail_mr": cln_stat.group_mr[2]}, cur_epoch)
+                    f"{self.exp_name}/CLNGroupRecall", {
+                        "head_mr": cln_stat.group_mr[0],
+                        "mid_mr": cln_stat.group_mr[1],
+                        "tail_mr": cln_stat.group_mr[2]
+                    }, cur_epoch)
                 self.writer.add_scalars(
-                    f"{self.exp_name}/ValGroupRecall",
-                    {"head_mr": val_stat.group_mr[0],
-                     "mid_mr": val_stat.group_mr[1],
-                     "tail_mr": val_stat.group_mr[2]}, cur_epoch)
+                    f"{self.exp_name}/ValGroupRecall", {
+                        "head_mr": val_stat.group_mr[0],
+                        "mid_mr": val_stat.group_mr[1],
+                        "tail_mr": val_stat.group_mr[2]
+                    }, cur_epoch)
                 is_best = val_stat.mr > best_mr
                 if is_best:
                     best_mr = val_stat.mr
                     best_epoch = cur_epoch
                     best_group_mr = val_stat.group_mr
                 if (not cur_epoch % self.save_period) or is_best:
-                    self.save_checkpoint(
-                        cur_epoch, self.model, self.opt, self.criterion,
-                        is_best, val_stat.mr, val_stat.group_mr,
-                        prefix=None, save_dir=self.exp_dir)
+                    self.save_checkpoint(cur_epoch,
+                                         self.model,
+                                         self.opt,
+                                         self.criterion,
+                                         is_best,
+                                         val_stat.mr,
+                                         val_stat.group_mr,
+                                         prefix=None,
+                                         save_dir=self.exp_dir)
 
         end_time = datetime.now()
         dur_time = str(end_time - start_time)[:-7]  # 取到秒
@@ -245,16 +267,22 @@ class Trainer(BaseTrainer):
                 f"{final_mid_mr:>6.2%}, {final_tail_mr:>6.2%}]\n\n"
                 f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
-                f"*********************************************************"
-            )
+                f"*********************************************************")
 
-    def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
-                    lr_scheduler, attacker, clean_weight, num_classes=None):
+    def train_epoch(self,
+                    cur_epoch,
+                    trainloader,
+                    model,
+                    criterion,
+                    optimizer,
+                    lr_scheduler,
+                    attacker,
+                    clean_weight,
+                    num_classes=None):
         model.train()
-        train_pbar = tqdm(
-            total=len(trainloader),
-            desc='Train Epoch[{:>3d}/{}]'.format(cur_epoch, self.final_epoch-1)
-        )
+        train_pbar = tqdm(total=len(trainloader),
+                          desc='Train Epoch[{:>3d}/{}]'.format(
+                              cur_epoch, self.final_epoch - 1))
 
         final_loss_meter = AverageMeter()
         adv_loss_meter = AverageMeter()
@@ -310,12 +338,15 @@ class Trainer(BaseTrainer):
                         optimizer.param_groups[-1]['lr'],
                         final_loss_meter.avg,
                         adv_loss_meter.avg,
-                        cln_loss_meter.avg,))
+                        cln_loss_meter.avg,
+                    ))
 
         if self.local_rank in [-1, 0]:
-            train_loss = {'final': final_loss_meter.avg,
-                          'adv': adv_loss_meter.avg,
-                          'cln': cln_loss_meter.avg}
+            train_loss = {
+                'final': final_loss_meter.avg,
+                'adv': adv_loss_meter.avg,
+                'cln': cln_loss_meter.avg
+            }
             train_pbar.set_postfix_str(
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
                 f"Loss:{final_loss_meter.avg:.1f} "
@@ -328,16 +359,20 @@ class Trainer(BaseTrainer):
                 f"mr={cln_stat.mr:>6.2%} "
                 f"[{cln_stat.group_mr[0]:>3.0%},"
                 f"{cln_stat.group_mr[1]:>3.0%},"
-                f"{cln_stat.group_mr[2]:>3.0%}]"
-            )
+                f"{cln_stat.group_mr[2]:>3.0%}]")
 
         return adv_stat, cln_stat, train_loss
 
-    def evaluate(self, cur_epoch, valloader, model, criterion,
+    def evaluate(self,
+                 cur_epoch,
+                 valloader,
+                 model,
+                 criterion,
                  num_classes=None):
         model.eval()
         model.apply(switch_clean)
-        val_pbar = tqdm(total=len(valloader), ncols=0,
+        val_pbar = tqdm(total=len(valloader),
+                        ncols=0,
                         desc='                 Val')
 
         val_loss_meter = AverageMeter()
@@ -355,12 +390,11 @@ class Trainer(BaseTrainer):
 
                 val_pbar.update()
 
-        val_pbar.set_postfix_str(
-            f"loss:{val_loss_meter.avg:.1f} "
-            f"mr:{val_stat.mr:>6.2%} "
-            f"[{val_stat.group_mr[0]:>3.0%},"
-            f"{val_stat.group_mr[1]:>3.0%},"
-            f"{val_stat.group_mr[2]:>3.0%}]")
+        val_pbar.set_postfix_str(f"loss:{val_loss_meter.avg:.1f} "
+                                 f"mr:{val_stat.mr:>6.2%} "
+                                 f"[{val_stat.group_mr[0]:>3.0%},"
+                                 f"{val_stat.group_mr[1]:>3.0%},"
+                                 f"{val_stat.group_mr[2]:>3.0%}]")
         val_pbar.close()
 
         return val_stat, val_loss_meter.avg
@@ -368,7 +402,9 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--local_rank', type=int, help='Local Rank for\
+    parser.add_argument('--local_rank',
+                        type=int,
+                        help='Local Rank for\
                         distributed training. if single-GPU, default: -1')
     parser.add_argument('--config_path', type=str, help='path of config file')
     args = parser.parse_args()

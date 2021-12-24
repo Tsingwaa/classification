@@ -1,18 +1,23 @@
 import json
 import os
+
 import numpy as np
 import torch
 import torchvision.transforms as T
-from PIL import Image
 from data_loader.dataset.builder import Datasets
+from PIL import Image
 
 
 @Datasets.register_module("Xray6")
 class Xray6(torch.utils.data.Dataset):
     num_classes = 6
 
-    def __init__(self, data_root, train, transform=None,
-                 fold=0, select_classes=[0, 1, 5, 7, 9, 11]):
+    def __init__(self,
+                 data_root,
+                 train,
+                 transform=None,
+                 fold=0,
+                 select_classes=[0, 1, 5, 7, 9, 11]):
         super(Xray6, self).__init__()
 
         self.data_root = data_root
@@ -61,8 +66,11 @@ class Xray6(torch.utils.data.Dataset):
         return len(self.labels)
 
 
-def get_xray14_dataset(data_root='Xray14/categories', bs=64, train=True,
-                       fold=0, select_classes=[0, 1, 5, 7, 9, 11]):
+def get_xray14_dataset(data_root='Xray14/categories',
+                       bs=64,
+                       train=True,
+                       fold=0,
+                       select_classes=[0, 1, 5, 7, 9, 11]):
     # mean = (0.527, 0.527, 0.527)
     # std = (0.203, 0.203, 0.203)
     mean = (0.485, 0.456, 0.406)
@@ -87,8 +95,11 @@ def get_xray14_dataset(data_root='Xray14/categories', bs=64, train=True,
             T.ToTensor(),
             T.Normalize(mean, std),
         ])
-    dataset = Xray6(data_root, train, transform,
-                    fold, select_classes=select_classes)
+    dataset = Xray6(data_root,
+                    train,
+                    transform,
+                    fold,
+                    select_classes=select_classes)
     weights = dataset.get_num_per_cls()
     weights = torch.tensor(weights, dtype=torch.float)
     # weights = 1.0 / weights

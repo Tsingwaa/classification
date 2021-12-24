@@ -12,16 +12,20 @@
 from __future__ import absolute_import
 
 import torch
-from torch import nn
-from pudb import set_trace
 from model.loss.builder import Losses
+from pudb import set_trace
+from torch import nn
 from utils import cos_sim, eu_dist
 
 
 @Losses.register_module("CenterLoss")
 class CenterLoss(nn.Module):
-    def __init__(self, num_classes=10, feat_dim=2, alpha=0,
-                 alpha_dist='eu', **kwargs):
+    def __init__(self,
+                 num_classes=10,
+                 feat_dim=2,
+                 alpha=0,
+                 alpha_dist='eu',
+                 **kwargs):
         """Initialize class centers
 
         Args:
@@ -72,7 +76,7 @@ if __name__ == '__main__':
     feat_dim = 2
 
     features = torch.ones(16, 2)
-    targets = torch.ones((16,)).long()
+    targets = torch.ones((16, )).long()
     if use_gpu:
         features = features.cuda()
         targets = targets.cuda()

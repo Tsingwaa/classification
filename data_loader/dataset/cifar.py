@@ -3,12 +3,12 @@
 # BBN (https://github.com/Megvii-Nanjing/BBN)
 # to produce long-tailed CIFAR datasets.
 
-import torchvision
-from torchvision import transforms
 import numpy as np
 import PIL
+import torchvision
 # from pudb import set_trace
 from data_loader.dataset.builder import Datasets
+from torchvision import transforms
 
 
 @Datasets.register_module("CIFAR10")
@@ -17,16 +17,18 @@ class CIFAR10_(torchvision.datasets.CIFAR10):
     mean = [0.4914, 0.4822, 0.4465]
     std = [0.2023, 0.1994, 0.2010]
 
-    def __init__(self, data_root, phase, transform=None, download=True,
+    def __init__(self,
+                 data_root,
+                 phase,
+                 transform=None,
+                 download=True,
                  **kwargs):
         self.train = True if phase == 'train' else False
         self.class_adapt = kwargs.get('class_adapt', False)
-        super(CIFAR10_, self).__init__(
-            root=data_root,
-            train=self.train,
-            transform=transform,
-            download=download
-        )
+        super(CIFAR10_, self).__init__(root=data_root,
+                                       train=self.train,
+                                       transform=transform,
+                                       download=download)
 
     def __getitem__(self, index):
         img, target = self.data[index], self.targets[index]
@@ -35,8 +37,10 @@ class CIFAR10_(torchvision.datasets.CIFAR10):
 
         if self.transform is not None:
             percent = (1. + target) / 10. if self.class_adapt else None
-            img = self.transform(img, percent=percent,
-                                 mean=self.mean, std=self.std)
+            img = self.transform(img,
+                                 percent=percent,
+                                 mean=self.mean,
+                                 std=self.std)
         return img, target
 
     @property
@@ -57,15 +61,20 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     mean = [0.4914, 0.4822, 0.4465]
     std = [0.2023, 0.1994, 0.2010]
 
-    def __init__(self, data_root, phase, transform=None, download=True,
-                 imb_type='exp', imb_factor=0.01, seed=0, **kwargs):
+    def __init__(self,
+                 data_root,
+                 phase,
+                 transform=None,
+                 download=True,
+                 imb_type='exp',
+                 imb_factor=0.01,
+                 seed=0,
+                 **kwargs):
         train = True if phase == 'train' else False
-        super(ImbalanceCIFAR10, self).__init__(
-            root=data_root,
-            train=train,
-            transform=transform,
-            download=download
-        )
+        super(ImbalanceCIFAR10, self).__init__(root=data_root,
+                                               train=train,
+                                               transform=transform,
+                                               download=download)
 
         self.imb_type = imb_type
         self.imb_factor = imb_factor
@@ -81,9 +90,9 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         num_samples_per_cls = []
         if self.imb_type == 'exp':
             for class_index in range(self.num_classes):
-                num_samples = max_num_samples * (
-                    self.imb_factor ** (class_index / (self.num_classes - 1.0))
-                )
+                num_samples = max_num_samples * (self.imb_factor
+                                                 ** (class_index /
+                                                     (self.num_classes - 1.0)))
                 num_samples_per_cls.append(int(num_samples))
         elif self.imb_type == 'step':
             # One step: the former half {img_max} imgs,
@@ -118,7 +127,9 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
             np.random.shuffle(img_indexes)
             select_indexes = img_indexes[:num_samples]
             new_data.append(self.data[select_indexes, ...])
-            new_targets.extend([class_index, ] * num_samples)
+            new_targets.extend([
+                class_index,
+            ] * num_samples)
 
         new_data = np.vstack(new_data)
         self.data = new_data

@@ -1,13 +1,13 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 
 
 def focal_loss(input_values, gamma):
     """Computes the focal loss"""
     p = torch.exp(-input_values)
-    loss = (1 - p) ** gamma * input_values
+    loss = (1 - p)**gamma * input_values
     return loss.mean()
 
 
@@ -19,9 +19,11 @@ class FocalLoss(nn.Module):
         self.weight = weight
 
     def forward(self, input, target):
-        return focal_loss(F.cross_entropy(input, target, reduction='none',
-                                          weight=self.weight),
-                          self.gamma)
+        return focal_loss(
+            F.cross_entropy(input,
+                            target,
+                            reduction='none',
+                            weight=self.weight), self.gamma)
 
 
 class LDAMLoss(nn.Module):
@@ -46,5 +48,4 @@ class LDAMLoss(nn.Module):
         x_m = x - batch_m
 
         output = torch.where(index, x_m, x)
-        return F.cross_entropy(self.s * output, target,
-                               weight=self.weight)
+        return F.cross_entropy(self.s * output, target, weight=self.weight)

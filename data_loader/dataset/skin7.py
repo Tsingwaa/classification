@@ -2,8 +2,8 @@ import os
 
 import pandas as pd
 import torch
-from PIL import Image
 from data_loader.dataset.builder import Datasets
+from PIL import Image
 
 
 def make_dataset(fold, data_root):
@@ -35,8 +35,7 @@ class Skin7(torch.utils.data.Dataset):
     mean = [0.7626, 0.5453, 0.5714]
     std = [0.1404, 0.1519, 0.1685]
 
-    def __init__(self, data_root, train, transform=None,
-                 fold=0, **kwargs):
+    def __init__(self, data_root, train, transform=None, fold=0, **kwargs):
         self.train_data, self.test_data = make_dataset(fold, data_root)
         print('===> Initializing fold.{} {}...\
               '.format(fold, 'train set' if train else 'test set'))
@@ -44,8 +43,9 @@ class Skin7(torch.utils.data.Dataset):
         self.train = train
         if self.train:
             self.labels = [data[1] for data in self.train_data]
-            self.img_num_per_cls = [self.labels.count(i)
-                                    for i in range(self.num_classes)]
+            self.img_num_per_cls = [
+                self.labels.count(i) for i in range(self.num_classes)
+            ]
         else:
             self.labels = [data[1] for data in self.test_data]
 
@@ -56,7 +56,7 @@ class Skin7(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         img_fname, label = self.train_data[index] if self.train \
-                            else self.test_data[index]
+            else self.test_data[index]
         img_fpath = os.path.join(self.data_dir, img_fname)
         img = Image.open(img_fpath).convert('RGB')
         if self.transform is not None:
@@ -69,7 +69,7 @@ class Skin7(torch.utils.data.Dataset):
 
 def get_mean_std(fold):
     filename = './mean_std.csv'
-    dataframe = pd.read_csv(filename).values[int(fold)-1]
+    dataframe = pd.read_csv(filename).values[int(fold) - 1]
     print(dataframe)
     return dataframe[0:3], dataframe[3:]
 

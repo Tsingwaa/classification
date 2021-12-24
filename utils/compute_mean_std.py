@@ -11,6 +11,7 @@
 
 import math
 from os.path import join
+
 import numpy as np
 import torch
 from PIL import Image
@@ -39,8 +40,15 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
 
     cls_num = 3
 
-    def __init__(self, data_root, phase, img_lst_fpath, transform=None,
-                 imb_type='exp', imb_factor=0.01, seed=0, **kwargs):
+    def __init__(self,
+                 data_root,
+                 phase,
+                 img_lst_fpath,
+                 transform=None,
+                 imb_type='exp',
+                 imb_factor=0.01,
+                 seed=0,
+                 **kwargs):
         self.img_paths = []
         self.targets = []
         self.transform = transform
@@ -59,9 +67,8 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         if phase == 'train':
             np.random.seed(seed)
             # generate imbalance num_samples list
-            img_num_list = self.get_img_num_per_cls(
-                self.cls_num, imb_type, imb_factor
-            )
+            img_num_list = self.get_img_num_per_cls(self.cls_num, imb_type,
+                                                    imb_factor)
             # according to the generated img_samples,
             # generate new self.img_paths and self.targets
             self.gen_imbalanced_data(img_num_list)
@@ -78,9 +85,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         img_num_per_cls = []
         if imb_type == 'exp':  # exponential moving
             for cls_idx in range(cls_num):
-                num = img_max * (
-                    imb_factor ** (cls_idx / (cls_num - 1.0))
-                )
+                num = img_max * (imb_factor**(cls_idx / (cls_num - 1.0)))
                 img_num_per_cls.append(int(num))
         elif imb_type == 'step':  # two different num_samples
             for cls_idx in range(cls_num // 2):
@@ -107,7 +112,9 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
             selec_idx = idx[:the_img_num]
             # generate new train pairs
             new_img_paths.extend(self.img_paths[selec_idx].tolist())
-            new_targets.extend([the_class, ] * the_img_num)
+            new_targets.extend([
+                the_class,
+            ] * the_img_num)
 
         self.img_paths = new_img_paths
         self.targets = new_targets
@@ -143,12 +150,10 @@ def compute_mean_and_std(img_paths):
     mean_g /= len(img_paths)
     mean_r /= len(img_paths)
 
-    mean = (mean_r.item() / 255.0,
-            mean_g.item() / 255.0,
+    mean = (mean_r.item() / 255.0, mean_g.item() / 255.0,
             mean_b.item() / 255.0)
 
-    print('===> mean: [{:.4f},{:.4f},{:.4f}]\n'.format(mean[0],
-                                                       mean[1],
+    print('===> mean: [{:.4f},{:.4f},{:.4f}]\n'.format(mean[0], mean[1],
                                                        mean[2]))
 
     diff_r = 0.
@@ -172,9 +177,7 @@ def compute_mean_and_std(img_paths):
     std_g = np.sqrt(diff_g / N)
     std_b = np.sqrt(diff_b / N)
 
-    std = (std_r.item() / 255.0,
-           std_g.item() / 255.0,
-           std_b.item() / 255.0)
+    std = (std_r.item() / 255.0, std_g.item() / 255.0, std_b.item() / 255.0)
 
     print('===> std: [{:.4f},{:.4f},{:.4f}]'.format(std[0], std[1], std[2]))
 
@@ -193,7 +196,7 @@ def get_LT_img_paths(img_paths, targets, imb_type, imb_factor):
     num_per_cls = []  # 每个类别的样本数量
     if imb_type == 'exp':  # exponential moving
         for cls_idx in range(num_classes):
-            img_num = img_max * imb_factor ** (cls_idx / (num_classes - 1))
+            img_num = img_max * imb_factor**(cls_idx / (num_classes - 1))
             num_per_cls.append(int(img_num))
     elif imb_type == 'step':  # two different num_samples
         head_classes = math.floor(num_classes / 3)  # head=tail
@@ -206,7 +209,7 @@ def get_LT_img_paths(img_paths, targets, imb_type, imb_factor):
                 step = 1
             else:
                 step = 2
-            img_num = img_max * imb_factor ** (step / 2)
+            img_num = img_max * imb_factor**(step / 2)
             num_per_cls.append(int(img_num))
     else:
         num_per_cls.extend([int(img_max)] * num_classes)

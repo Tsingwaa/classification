@@ -4,6 +4,7 @@ Revised: Nov 15,2019 - Yuchong Gu
 """
 import os
 import pdb
+
 from PIL import Image
 from scipy.io import loadmat
 from torch.utils.data import Dataset
@@ -48,7 +49,9 @@ class DogDataset(Dataset):
 
     def __getitem__(self, item):
         # image
-        image = Image.open(os.path.join(DATAPATH, 'Images', self.images[item])).convert('RGB')  # (C, H, W)
+        image = Image.open(os.path.join(DATAPATH,
+                                        'Images', self.images[item])).convert(
+                                            'RGB')  # (C, H, W)
         image = self.transform(image)
 
         # return image and label

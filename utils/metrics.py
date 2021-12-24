@@ -1,10 +1,13 @@
 import math
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
 
-__all__ = ['eu_dist', 'cos_sim', 'get_preds_by_eudist', 'get_preds_by_cossim',
-           'ExpStat']
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+
+__all__ = [
+    'eu_dist', 'cos_sim', 'get_preds_by_eudist', 'get_preds_by_cossim',
+    'ExpStat'
+]
 
 
 def eu_dist(A, B, sqrt=False, device='cuda'):
@@ -107,11 +110,14 @@ class ExpStat(object):
         head_cls_num = math.floor(self.cls_num / 3)
         tail_cls_num = head_cls_num
         head_mr = np.mean(self.recalls[:head_cls_num])
-        mid_mr = np.mean(self.recalls[head_cls_num:self.cls_num-tail_cls_num])
+        mid_mr = np.mean(self.recalls[head_cls_num:self.cls_num -
+                                      tail_cls_num])
         tail_mr = np.mean(self.recalls[tail_cls_num:])
-        return [np.around(head_mr, decimals=4),
-                np.around(mid_mr, decimals=4),
-                np.around(tail_mr, decimals=4)]
+        return [
+            np.around(head_mr, decimals=4),
+            np.around(mid_mr, decimals=4),
+            np.around(tail_mr, decimals=4)
+        ]
 
     @property
     def precisions(self):
@@ -157,17 +163,20 @@ class ExpStat(object):
         im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
         ax.figure.colorbar(im, ax=ax)
         # We want to show all ticks...
-        ax.set(xticks=np.arange(cm.shape[1]),
-               yticks=np.arange(cm.shape[0]),
-               # ... and label them with the respective list entries
-               xticklabels=np.arange(self.cls_num),
-               yticklabels=np.arange(self.cls_num),
-               title=title,
-               ylabel='True label',
-               xlabel='Predicted label')
+        ax.set(
+            xticks=np.arange(cm.shape[1]),
+            yticks=np.arange(cm.shape[0]),
+            # ... and label them with the respective list entries
+            xticklabels=np.arange(self.cls_num),
+            yticklabels=np.arange(self.cls_num),
+            title=title,
+            ylabel='True label',
+            xlabel='Predicted label')
 
         # Rotate the tick labels and set their alignment.
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+        plt.setp(ax.get_xticklabels(),
+                 rotation=45,
+                 ha="right",
                  rotation_mode="anchor")
 
         # Loop over data dimensions and create text annotations.
@@ -175,8 +184,11 @@ class ExpStat(object):
         thresh = cm.max() / 2.
         for i in range(cm.shape[0]):
             for j in range(cm.shape[1]):
-                ax.text(j, i, format(cm[i, j], fmt),
-                        ha="center", va="center",
+                ax.text(j,
+                        i,
+                        format(cm[i, j], fmt),
+                        ha="center",
+                        va="center",
                         color="white" if cm[i, j] > thresh else "black")
         fig.tight_layout()
         return fig
