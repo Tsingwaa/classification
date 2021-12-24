@@ -11,7 +11,7 @@ import yaml
 from apex import amp
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
-from pudb import set_trace
+# from pudb import set_trace
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -29,9 +29,9 @@ class Trainer(BaseTrainer):
         adv_config = config['adv']
         self.adv_name = adv_config['name']
         self.clean_weight = adv_config['clean_weight']
-        self.adv_step_size = torch.tensor(adv_config['step_size']) / 255.
+        self.adv_step_size = adv_config['step_size']
         self.adv_num_steps = adv_config['num_steps']
-        self.adv_eps = torch.tensor(adv_config['eps']) / 255.
+        self.adv_eps = adv_config['eps']
 
     def train(self):
         #######################################################################
@@ -99,7 +99,9 @@ class Trainer(BaseTrainer):
         #######################################################################
         self.attacker = self.init_module(self.adv_name,
                                          model=self.model,
-                                         **self.adv_param)
+                                         eps=self.adv_eps,
+                                         num_steps=self.adv_num_steps,
+                                         step_size=self.adv_step_size)
 
         #######################################################################
         # Initialize DistributedDataParallel
@@ -224,15 +226,15 @@ class Trainer(BaseTrainer):
                     best_epoch = cur_epoch
                     best_group_mr = val_stat.group_mr
                 if (not cur_epoch % self.save_period) or is_best:
-                    self.save_checkpoint(cur_epoch,
-                                         self.model,
-                                         self.opt,
-                                         self.criterion,
-                                         is_best,
-                                         val_stat.mr,
-                                         val_stat.group_mr,
-                                         prefix=None,
-                                         save_dir=self.exp_dir)
+                    self.save_checkpoint(
+                        epoch=cur_epoch,
+                        model=self.model,
+                        optimizer=self.opt,
+                        is_best=is_best,
+                        mr=val_stat.mr,
+                        group_mr=val_stat.group_mr,
+                        prefix=None,
+                        save_dir=self.exp_dir)
 
         end_time = datetime.now()
         dur_time = str(end_time - start_time)[:-7]  # 取到秒

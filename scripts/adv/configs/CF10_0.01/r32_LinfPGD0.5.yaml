@@ -85,11 +85,11 @@ val_dataset:
 
 trainloader:
   sampler: ''
-  batch_size: 64
+  batch_size: 128
   num_workers: 4
 
 valloader:
-  batch_size: 64
+  batch_size: 128
   num_workers: 4
 
 network:

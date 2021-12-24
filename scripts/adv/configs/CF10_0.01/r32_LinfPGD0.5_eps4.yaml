@@ -11,17 +11,16 @@ experiment:
 
 adv:
   name: 'LinfPGD'
-  param:
-    joint_training: True
-    clean_weight: 0.5
-    test_adv: False
-    num_steps: 7  # Default: 7
-    step_size: 1  # Default: 2/255
-    eps: 4  # Default: 8/255
-    # random_start: True  # Default: True
-    # targeted: False  # Default: False
-    # clip_min: 0.  # Default: 0.
-    # clip_max: 1.  # Default: 0.
+  joint_training: True
+  clean_weight: 0.5
+  test_adv: False
+  num_steps: 7  # Default: 7
+  step_size: 1  # Default: 2/255
+  eps: 4  # Default: 8/255
+# random_start: True  # Default: True
+# targeted: False  # Default: False
+# clip_min: 0.  # Default: 0.
+# clip_max: 1.  # Default: 0.
 
 finetune:
   name: '2RW'
@@ -87,11 +86,11 @@ val_dataset:
 
 trainloader:
   sampler: ''
-  batch_size: 64
+  batch_size: 128
   num_workers: 4
 
 valloader:
-  batch_size: 64
+  batch_size: 128
   num_workers: 4
 
 network:

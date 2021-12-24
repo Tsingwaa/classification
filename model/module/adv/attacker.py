@@ -85,7 +85,7 @@ class LinfPGD(nn.Module):
         else:
             adv_imgs = adv_imgs.detach() + self.step_size * torch.sign(grad)
 
-        perturbation = self.compute_perturbation(adv_imgs, imgs)
+        perturbation = self.compute_perturbation(adv_imgs, imgs, targets)
 
         return perturbation
 

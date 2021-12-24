@@ -238,15 +238,15 @@ class Trainer(BaseTrainer):
                     best_epoch = cur_epoch
                     best_group_mr = val_stat.group_mr
                 if (not cur_epoch % self.save_period) or is_best:
-                    self.save_checkpoint(cur_epoch,
-                                         self.model,
-                                         self.opt,
-                                         self.criterion,
-                                         is_best,
-                                         val_stat.mr,
-                                         val_stat.group_mr,
-                                         prefix=None,
-                                         save_dir=self.exp_dir)
+                    self.save_checkpoint(
+                        epoch=cur_epoch,
+                        model=self.model,
+                        optimizer=self.opt,
+                        is_best=is_best,
+                        mr=val_stat.mr,
+                        group_mr=val_stat.group_mr,
+                        prefix=None,
+                        save_dir=self.exp_dir)
 
         end_time = datetime.now()
         dur_time = str(end_time - start_time)[:-7]  # 取到秒
