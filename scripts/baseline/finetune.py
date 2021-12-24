@@ -168,31 +168,18 @@ class FineTuner(BaseTrainer):
                                      **self.network_params)
         self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
 
-        # if self.ft_network_name:  # 排除name=’‘
-        #     self.ft_model = self.init_model(self.ft_network_name,
-        #                                     resume=False,
-        #                                     **self.ft_network_params)
-        # else:
-        #     self.ft_model = None
-
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.loss_params = self.update_class_weight(trainset.img_num,
-                                                    **self.loss_params)
+        self.loss_params = self.update_class_weight(
+            trainset.num_samples_per_cls, **self.loss_params)
         self.criterion = self.init_loss(self.loss_name, **self.loss_params)
 
         #######################################################################
         # Initialize Optimizer
         #######################################################################
-        # if self.ft_model is not None:
-        self.opt = self.init_optimizer(self.opt_name,
-                                       self.ft_model.parameters(),
+        self.opt = self.init_optimizer(self.opt_name, self.model.parameters(),
                                        **self.opt_params)
-        # else:
-        #     self.opt = self.init_optimizer(self.opt_name,
-        #                                    self.model.parameters(),
-        #                                    **self.opt_params)
 
         #######################################################################
         # Initialize LR Scheduler
@@ -268,7 +255,7 @@ class FineTuner(BaseTrainer):
                                          optimizer=self.opt,
                                          is_best=is_best,
                                          mr=val_stat.mr,
-                                         group_recalls=val_stat.group_mr,
+                                         group_mr=val_stat.group_mr,
                                          prefix=self.finetune_name,
                                          save_dir=self.save_dir)
 
@@ -290,7 +277,7 @@ class FineTuner(BaseTrainer):
                 f" {final_mr:>6.2%}\n"
                 f"Average Group mean recalls: [{final_head_mr:6.2%}, "
                 f"{final_mid_mr:>6.2%}, {final_tail_mr:>6.2%}]\n\n"
-                f"===> Save directory: '{self.exp_dir}'\n"
+                f"===> Save directory: '{self.save_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************\n")
 
@@ -322,10 +309,10 @@ class FineTuner(BaseTrainer):
             batch_labels = batch_labels.cuda(non_blocking=True)
 
             if ft_model is not None:
-                batch_feats = model(batch_imgs, embedding=True)
+                batch_feats = model(batch_imgs, out_type='feat')
                 batch_probs = ft_model(batch_feats)
             else:
-                batch_probs = model(batch_imgs, out=None)
+                batch_probs = model(batch_imgs)
 
             avg_loss = criterion(batch_probs, batch_labels)
             if self.local_rank != -1:
@@ -383,10 +370,10 @@ class FineTuner(BaseTrainer):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
                 if ft_model is not None:
-                    batch_feats = model(batch_imgs, embedding=True)
+                    batch_feats = model(batch_imgs, out_type='feat')
                     batch_probs = ft_model(batch_feats)
                 else:
-                    batch_probs = model(batch_imgs, out=None)
+                    batch_probs = model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]
                 avg_loss = criterion(batch_probs, batch_labels)
                 val_loss_meter.update(avg_loss.item(), 1)

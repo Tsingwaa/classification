@@ -38,8 +38,8 @@ finetune:
   optimizer:
     name: 'SGD'
     param:
-      lr: 1.0e-2
-      weight_decay: 1.0e-5
+      lr: 1.0e-1
+      weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -85,11 +85,11 @@ val_dataset:
 
 trainloader:
   sampler: ''
-  batch_size: 128
+  batch_size: 64
   num_workers: 4
 
 valloader:
-  batch_size: 128
+  batch_size: 64
   num_workers: 4
 
 network:
@@ -110,7 +110,7 @@ optimizer:
   name: 'SGD'
   param:
     lr: 0.1
-    weight_decay: 1.0e-5
+    weight_decay: 2.0e-4
     momentum: 0.9
     nesterov: True
 
@@ -128,7 +128,7 @@ lr_scheduler:
     # base_lr: 5.0e-7
 
     # MultiStepLR
-    milestones: [120, 160]
+    milestones: [120, 160, 190]
     gamma: 0.01
 
     # CosineAnnealingWarmRestarts
