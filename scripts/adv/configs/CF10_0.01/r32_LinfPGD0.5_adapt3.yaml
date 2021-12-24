@@ -22,7 +22,7 @@ adv:
     # clip_max: 1.  # Default: 0.
 
 finetune:
-    name: '2RW'
+    name: 'DRW'
     total_epochs: 30
     unfreeze_keys: ['fc']
     trainloader:

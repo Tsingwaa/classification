@@ -134,9 +134,9 @@ class ResNet_CIFAR(nn.Module):
         self.layer3 = self._make_layer(block, 64, num_blocks[2], stride=2)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         if use_norm:
-            self.linear = NormedLinear(64, num_classes)
+            self.fc = NormedLinear(64, num_classes)
         else:
-            self.linear = nn.Linear(64, num_classes)
+            self.fc = nn.Linear(64, num_classes)
 
         self.fc_2 = nn.Linear(64, 2)
         self.fc_N = nn.Linear(2, num_classes)
@@ -168,7 +168,7 @@ class ResNet_CIFAR(nn.Module):
             else:  # output logits through D->2->N MLP
                 return self.fc_N(feat_2d)  # (N, C)
         else:  # Default output logits
-            return self.linear(feat)  # (N, C)
+            return self.fc(feat)  # (N, C)
 
 
 @Networks.register_module("ResNet20_CIFAR")

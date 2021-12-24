@@ -1,13 +1,13 @@
 experiment:
-  name: 'CF10_0.01_LinfPGD0.5'
-  start_epoch: 1
-  total_epochs: 200
-  log_fname: 'train.log'
-  resume: False
-  resume_fpath: 'last.pth.tar'
-  extract_phase: 'train'
-  save_period: 10
-  eval_period: 1  # if 0, remove validate process when training.
+    name: 'CF10_0.01_LinfPGD0.5'
+    start_epoch: 1
+    total_epochs: 200
+    log_fname: 'train.log'
+    resume: False
+    resume_fpath: 'best.pth.tar'
+    extract_phase: 'train'
+    save_period: 10
+    eval_period: 1  # if 0, remove validate process when training.
 
 adv:
   name: 'LinfPGD'
@@ -16,19 +16,19 @@ adv:
   num_steps: 7  # Default: 7
   step_size: 2  # Default: 2/255
   eps: 8  # Default: 8/255
-# random_start: True  # Default: True
-# targeted: False  # Default: False
-# clip_min: 0.  # Default: 0.
-# clip_max: 1.  # Default: 0.
+  # random_start: True  # Default: True
+  # targeted: False  # Default: False
+  # clip_min: 0.  # Default: 0.
+  # clip_max: 1.  # Default: 0.
 
 finetune:
   name: 'DRW'
-  total_epochs: 30
+  total_epochs: 10
   unfreeze_keys: ['fc']
   trainloader:
     sampler: ''
     retain_epoch_size: True
-    batch_size: 64
+    batch_size: 128
     num_workers: 4
   loss:
     name: 'CrossEntropyLoss'
@@ -43,10 +43,10 @@ finetune:
       momentum: 0.9
       nesterov: True
   lr_scheduler:
-    name: 'MultiStepLR'
+    name: 'StepLR'
     param:
       warmup_epochs: 0
-      milestones: [2, 4, 6, 8]
+      step_size: 2
       gamma: 0.1
 
 train_transform:

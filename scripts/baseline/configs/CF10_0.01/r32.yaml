@@ -4,16 +4,16 @@ experiment:
   total_epochs: 200
   log_fname: "train.log"
   resume: False
-  resume_fpath: "last.pth.tar"
+  resume_fpath: "best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: "DRS"
+  name: "DRW"
   total_epochs: 10
   unfreeze_keys: ["fc", 'linear']
   trainloader:
-    sampler: "BalanceSampler"
+    sampler: ""
     retain_epoch_size: True
     batch_size: 128
     num_workers: 4
@@ -25,7 +25,7 @@ finetune:
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: ""
+      weight_type: "class_weight"
       label_smoothing: 0.
   optimizer:
     name: "SGD"

@@ -104,20 +104,20 @@ class BasicBlock(nn.Module):
     def forward(self, x):
         identity = x
 
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
+        out_type = self.conv1(x)
+        out_type = self.bn1(out_type)
+        out_type = self.relu(out_type)
 
-        out = self.conv2(out)
-        out = self.bn2(out)
+        out_type = self.conv2(out_type)
+        out_type = self.bn2(out_type)
 
         if self.downsample is not None:
             identity = self.downsample(x)
 
-        out += identity
-        out = self.relu(out)
+        out_type += identity
+        out_type = self.relu(out_type)
 
-        return out
+        return out_type
 
 
 class Bottleneck(nn.Module):
@@ -160,24 +160,24 @@ class Bottleneck(nn.Module):
     def forward(self, x):
         identity = x
 
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
+        out_type = self.conv1(x)
+        out_type = self.bn1(out_type)
+        out_type = self.relu(out_type)
 
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
+        out_type = self.conv2(out_type)
+        out_type = self.bn2(out_type)
+        out_type = self.relu(out_type)
 
-        out = self.conv3(out)
-        out = self.bn3(out)
+        out_type = self.conv3(out_type)
+        out_type = self.bn3(out_type)
 
         if self.downsample is not None:
             identity = self.downsample(x)
 
-        out += identity
-        out = self.relu(out)
+        out_type += identity
+        out_type = self.relu(out_type)
 
-        return out
+        return out_type
 
 
 class ResNet(nn.Module):
@@ -292,7 +292,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, out=None):
+    def forward(self, x, out_type=None):
         # See note [TorchScript super()]
         x = self.conv1(x)
         x = self.bn1(x)
@@ -303,15 +303,15 @@ class ResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         feat_map = self.layer4[:-1](x)
-        if out == 'map':
+        if out_type == 'map':
             return feat_map
         else:
             feat_map = self.layer4[-1](feat_map)
             feat_vec = self.avgpool(feat_map)
             feat_vec = torch.squeeze(feat_vec)
-            if out == 'vec':
+            if out_type == 'vec':
                 return feat_vec
-            elif out == 'mlp':
+            elif out_type == 'mlp':
                 return self.mlp(feat_vec)
             else:
                 return self.fc(feat_vec)
