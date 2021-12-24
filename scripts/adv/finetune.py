@@ -13,7 +13,7 @@ from os.path import join
 from torch.utils.data import DataLoader
 # from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from sklearn import metrics
+# from sklearn import metrics
 from prefetch_generator import BackgroundGenerator
 # Distribute Package
 from torch import distributed as dist
@@ -301,7 +301,6 @@ class FineTuner(BaseTrainer):
             batch_preds = batch_prob.max(1)[1]
             train_loss_meter.update(avg_loss.item(), 1)
             train_stat.update(batch_labels, batch_preds)
-
 
             if self.local_rank in [-1, 0]:
                 train_pbar.update()

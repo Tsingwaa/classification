@@ -40,7 +40,7 @@ class FineTuner(BaseTrainer):
 
         self.local_rank = local_rank
         if self.local_rank != -1:
-            dist.init_process_group(backend='nccl')
+            dist.init_process_group(backend="nccl")
             torch.cuda.set_device(self.local_rank)
             self.global_rank = dist.get_rank()
             self.world_size = dist.get_world_size()
@@ -48,77 +48,78 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
-        self.exp_config = config['experiment']
-        self.exp_name = self.exp_config['name']
-        self.finetune_config = config['finetune']
-        self.finetune_name = self.finetune_config['name']
+        self.exp_config = config["experiment"]
+        self.exp_name = self.exp_config["name"]
+        self.finetune_config = config["finetune"]
+        self.finetune_name = self.finetune_config["name"]
 
-        self.user_root = os.environ['HOME']
-        self.exp_root = join(self.user_root, 'Experiments')
-        self.total_epochs = self.finetune_config['total_epochs']
+        self.user_root = os.environ["HOME"]
+        self.exp_root = join(self.user_root, "Experiments")
+        self.total_epochs = self.finetune_config["total_epochs"]
 
         self._set_configs(config)
 
         self.resume = True
-        if '/' in self.exp_config['resume_fpath']:
-            self.resume_fpath = self.exp_config['resume_fpath']
+        if "/" in self.exp_config["resume_fpath"]:
+            self.resume_fpath = self.exp_config["resume_fpath"]
         else:
             self.resume_fpath = join(self.exp_root, self.exp_name,
-                                     self.exp_config['resume_fpath'])
+                                     self.exp_config["resume_fpath"])
 
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
 
-        self.start_epoch = self.checkpoint['epoch'] + 1
+        self.start_epoch = self.checkpoint["epoch"] + 1
         self.final_epoch = self.start_epoch + self.total_epochs
 
         if self.local_rank in [-1, 0]:
-            self.eval_period = self.exp_config['eval_period']
-            self.save_period = self.exp_config['save_period']
+            self.eval_period = self.exp_config["eval_period"]
+            self.save_period = self.exp_config["save_period"]
             self.save_dir = join(self.exp_root, self.exp_name)
             os.makedirs(self.save_dir, exist_ok=True)
 
             # Set logger to save .log file and output to screen.
             self.log_fpath = join(
-                self.save_dir, f'{self.finetune_name}.log')
+                self.save_dir, f"{self.finetune_name}.log")
             self.logger = self.init_logger(self.log_fpath)
-            exp_init_log = f'\n****************************************'\
-                f'****************************************************'\
-                f'\nExperiment: Finetune {self.exp_name}\n'\
-                f'Start_epoch: {self.start_epoch}\n'\
-                f'Total_epochs: {self.total_epochs}\n'\
-                f'Save dir: {self.save_dir}\n'\
-                f'Save peroid: {self.save_period}\n'\
-                f'Resume Training: {self.resume}\n'\
-                f'Distributed Training: '\
-                f'{True if self.local_rank != -1 else False}\n'\
-                f'**********************************************'\
-                f'**********************************************\n'
+            exp_init_log = f"\n****************************************"\
+                f"****************************************************"\
+                f"\nExperiment: Finetune {self.exp_name}\n"\
+                f"Start_epoch: {self.start_epoch}\n"\
+                f"Total_epochs: {self.total_epochs}\n"\
+                f"Save dir: {self.save_dir}\n"\
+                f"Save peroid: {self.save_period}\n"\
+                f"Resume Training: {self.resume}\n"\
+                f"Distributed Training: "\
+                f"{True if self.local_rank != -1 else False}\n"\
+                f"**********************************************"\
+                f"**********************************************\n"
             self.log(exp_init_log)
             self.log(resume_log)
 
-        self.unfreeze_keys = self.finetune_config['unfreeze_keys']
+        self.unfreeze_keys = self.finetune_config["unfreeze_keys"]
 
-        ft_network_config = self.finetune_config['network']
-        self.ft_network_name = ft_network_config['name']
-        self.ft_network_params = ft_network_config['param']
+        ft_network_config = self.finetune_config.pop("network", None)
+        if ft_network_config is not None:
+            self.ft_network_name = ft_network_config["name"]
+            self.ft_network_params = ft_network_config["param"]
 
-        self.trainloader_params = self.finetune_config['trainloader']
+        self.trainloader_params = self.finetune_config["trainloader"]
 
-        self.train_sampler_name = self.trainloader_params.pop('sampler', None)
-        self.train_batchsize = self.trainloader_params['batch_size']
-        self.train_workers = self.trainloader_params['num_workers']
+        self.train_sampler_name = self.trainloader_params.pop("sampler", None)
+        self.train_batchsize = self.trainloader_params["batch_size"]
+        self.train_workers = self.trainloader_params["num_workers"]
 
-        loss_config = self.finetune_config['loss']
-        self.loss_name = loss_config['name']
-        self.loss_params = loss_config['param']
+        loss_config = self.finetune_config["loss"]
+        self.loss_name = loss_config["name"]
+        self.loss_params = loss_config["param"]
 
-        opt_config = self.finetune_config['optimizer']
-        self.opt_name = opt_config['name']
-        self.opt_params = opt_config['param']
+        opt_config = self.finetune_config["optimizer"]
+        self.opt_name = opt_config["name"]
+        self.opt_params = opt_config["param"]
 
-        scheduler_config = self.finetune_config['lr_scheduler']
-        self.scheduler_name = scheduler_config['name']
-        self.scheduler_params = scheduler_config['param']
+        scheduler_config = self.finetune_config["lr_scheduler"]
+        self.scheduler_name = scheduler_config["name"]
+        self.scheduler_params = scheduler_config["param"]
 
     def finetune(self):
         #######################################################################
@@ -247,7 +248,7 @@ class FineTuner(BaseTrainer):
                     f"[{val_stat.group_mr[0]:>6.2%}, "
                     f"{val_stat.group_mr[1]:>6.2%}, "
                     f"{val_stat.group_mr[2]:>6.2%}",
-                    log_level='file'
+                    log_level="file"
                 )
 
                 is_best = val_stat.mr > best_mr
