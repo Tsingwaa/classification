@@ -17,9 +17,9 @@ from data_loader.transform.builder import Transforms
 from model.loss.builder import Losses
 from model.module.builder import Modules
 from model.network.builder import Networks
+# from pudb import set_trace
 from torch import distributed as dist
 from torch.utils.data.distributed import DistributedSampler
-# from pudb import set_trace
 from torch.utils.tensorboard import SummaryWriter
 from utils import GradualWarmupScheduler
 
@@ -339,8 +339,16 @@ class BaseTrainer:
             f"Mean recall:{mr:.2%}\nGroup recalls:{recalls}\n"
         return checkpoint, resume_log
 
-    def save_checkpoint(self, epoch, model, optimizer, criterion, is_best, mr,
-                        group_recalls, prefix, save_dir):
+    def save_checkpoint(self,
+                        epoch,
+                        model,
+                        optimizer,
+                        is_best,
+                        mr,
+                        group_mr,
+                        prefix,
+                        save_dir,
+                        criterion=None):
         checkpoint = {
             "model":
             model.state_dict()
@@ -348,7 +356,7 @@ class BaseTrainer:
             "optimizer":
             optimizer.state_dict(),
             "criterion":
-            criterion.state_dict(),
+            criterion.state_dict() if criterion is not None else None,
             "best":
             is_best,
             "epoch":
@@ -356,7 +364,7 @@ class BaseTrainer:
             "mr":
             mr,
             "group_recalls":
-            group_recalls
+            group_mr
         }
         save_fname = "best.pth.tar" if is_best else "last.pth.tar"
         if prefix is not None:

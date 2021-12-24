@@ -137,6 +137,10 @@ class ResNet_CIFAR(nn.Module):
             self.linear = NormedLinear(64, num_classes)
         else:
             self.linear = nn.Linear(64, num_classes)
+
+        self.fc_2 = nn.Linear(64, 2)
+        self.fc_N = nn.Linear(2, num_classes)
+
         self.apply(_weights_init)
 
     def _make_layer(self, block, planes, num_blocks, stride):
@@ -148,21 +152,23 @@ class ResNet_CIFAR(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, embedding=False):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.layer1(out)
-        out = self.layer2(out)
-        out = self.layer3(out)
-        # out = F.avg_pool2d(out, out.size()[3])
-        out = self.avgpool(out)
-        # out = out.view(out.size(0), -1)
-        out = torch.squeeze(out)
-        if embedding:
-            ret = out
-        else:
-            ret = self.linear(out)
-
-        return ret
+    def forward(self, x, out_type='fc'):
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.avgpool(x)
+        feat = torch.flatten(x, 1)  # (N, 64)
+        if out_type == 'feat':
+            return feat
+        elif '2' in out_type:
+            feat_2d = F.relu(self.fc_2(feat))  # (N, 2)
+            if out_type == 'feat_2d':
+                return feat_2d
+            else:  # output logits through D->2->N MLP
+                return self.fc_N(feat_2d)  # (N, C)
+        else:  # Default output logits
+            return self.linear(feat)  # (N, C)
 
 
 @Networks.register_module("ResNet20_CIFAR")

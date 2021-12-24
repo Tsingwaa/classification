@@ -173,7 +173,7 @@ class NormResNet_CIFAR(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, out='fc'):
+    def forward(self, x, out_type='fc'):
         # x: (N, 3, 32, 32)
         x = F.relu(self.bn1(self.conv1(x)))  # (N, 16, 32, 32)
         x = self.layer1(x)  # (N, 16, 32, 32)
@@ -181,11 +181,11 @@ class NormResNet_CIFAR(nn.Module):
         x = self.layer3(x)  # (N, 64, 8, 8)
         x = self.avgpool(x)  # (N, 64, 1, 1)
         feat = torch.flatten(x, 1)  # (N, 64)
-        if out == 'feat':
+        if out_type == 'feat':
             return feat  # (N, 64)
-        elif '2' in out:
+        elif '2' in out_type:
             feat_2d = F.relu(self.fc_2(x))  # (N, 2)
-            if out == 'feat_2d':
+            if out_type == 'feat_2d':
                 return feat_2d  # (N, 2)
             else:  # out == 'fc_2d_N'
                 return self.fc_N(feat_2d)  # (N, C)
