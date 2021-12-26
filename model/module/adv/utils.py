@@ -6,10 +6,8 @@
 # LICENSE file in the root directory of this source tree.
 #
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 import numpy as np
 import torch
@@ -38,15 +36,20 @@ def torch_allclose(x, y, rtol=1.e-5, atol=1.e-8):
     :return: (bool) if x and y are all close
     """
     import numpy as np
-    return np.allclose(x.detach().cpu().numpy(), y.detach().cpu().numpy(),
-                       rtol=rtol, atol=atol)
+    return np.allclose(x.detach().cpu().numpy(),
+                       y.detach().cpu().numpy(),
+                       rtol=rtol,
+                       atol=atol)
 
 
 def single_dim_flip(x, dim):
     dim = x.dim() + dim if dim < 0 else dim
-    indices = torch.arange(
-        x.size(dim) - 1, -1, -1,
-        dtype=torch.long, device=x.device, requires_grad=x.requires_grad)
+    indices = torch.arange(x.size(dim) - 1,
+                           -1,
+                           -1,
+                           dtype=torch.long,
+                           device=x.device,
+                           requires_grad=x.requires_grad)
     # TODO: do we need requires_grad???
     return x.index_select(dim, indices)
 
@@ -153,8 +156,8 @@ def _batch_multiply_tensor_by_vector(vector, batch_tensor):
         batch_tensor.data[ii] *= vector[ii]
     return batch_tensor
     """
-    return (
-        batch_tensor.transpose(0, -1) * vector).transpose(0, -1).contiguous()
+    return (batch_tensor.transpose(0, -1) * vector).transpose(0,
+                                                              -1).contiguous()
 
 
 def _batch_clamp_tensor_by_vector(vector, batch_tensor):
@@ -163,9 +166,8 @@ def _batch_clamp_tensor_by_vector(vector, batch_tensor):
         batch_tensor[ii] = clamp(
             batch_tensor[ii], -vector[ii], vector[ii])
     """
-    return torch.min(
-        torch.max(batch_tensor.transpose(0, -1), -vector), vector
-    ).transpose(0, -1).contiguous()
+    return torch.min(torch.max(batch_tensor.transpose(0, -1), -vector),
+                     vector).transpose(0, -1).contiguous()
 
 
 def batch_multiply(float_or_vector, tensor):
@@ -312,8 +314,8 @@ def jacobian(model, x, output_class):
     return xvar.grad.detach().clone()
 
 
-MNIST_MEAN = (0.1307,)
-MNIST_STD = (0.3081,)
+MNIST_MEAN = (0.1307, )
+MNIST_STD = (0.3081, )
 
 CIFAR10_MEAN = (0.4914, 0.4822, 0.4465)
 CIFAR10_STD = (0.2023, 0.1994, 0.2010)
@@ -347,8 +349,8 @@ def normalize_fn(tensor, mean, std):
 def batch_per_image_standardization(imgs):
     # replicate tf.image.per_image_standardization, but in batch
     assert imgs.ndimension() == 4
-    mean = imgs.view(imgs.shape[0], -1).mean(dim=1).view(
-        imgs.shape[0], 1, 1, 1)
+    mean = imgs.view(imgs.shape[0],
+                     -1).mean(dim=1).view(imgs.shape[0], 1, 1, 1)
     return (imgs - mean) / batch_adjusted_stddev(imgs)
 
 
@@ -382,9 +384,10 @@ def set_torch_deterministic():
 
 
 def set_seed(seed=None):
-    import torch
-    import numpy as np
     import random
+
+    import numpy as np
+    import torch
     if seed is not None:
         torch.manual_seed(seed)
     np.random.seed(seed)
@@ -422,8 +425,8 @@ def rand_init_delta(delta, x, ord, eps, clip_min, clip_max):
         delta.data = delta.data - x
         delta.data = clamp_by_pnorm(delta.data, ord, eps)
     elif ord == 1:
-        ini = laplace.Laplace(
-            loc=delta.new_tensor(0), scale=delta.new_tensor(1))
+        ini = laplace.Laplace(loc=delta.new_tensor(0),
+                              scale=delta.new_tensor(1))
         delta.data = ini.sample(delta.data.shape)
         delta.data = normalize_by_pnorm(delta.data, p=1)
         ray = uniform.Uniform(0, eps).sample()
@@ -433,8 +436,7 @@ def rand_init_delta(delta, x, ord, eps, clip_min, clip_max):
         error = "Only ord = inf, ord = 1 and ord = 2 have been implemented"
         raise NotImplementedError(error)
 
-    delta.data = clamp(
-        x + delta.data, min=clip_min, max=clip_max) - x
+    delta.data = clamp(x + delta.data, min=clip_min, max=clip_max) - x
     return delta.data
 
 
@@ -467,9 +469,12 @@ class AttackConfig(object):
         return adversary
 
 
-def multiple_mini_batch_attack(
-        adversary, loader, device="cuda", save_adv=False,
-        norm=None, num_batch=None):
+def multiple_mini_batch_attack(adversary,
+                               loader,
+                               device="cuda",
+                               save_adv=False,
+                               norm=None,
+                               num_batch=None):
     lst_label = []
     lst_pred = []
     lst_advpred = []
@@ -480,6 +485,7 @@ def multiple_mini_batch_attack(
         norm = _norm_convert_dict[norm]
 
     if norm == "inf":
+
         def dist_func(x, y):
             return (x - y).view(x.size(0), -1).max(dim=1)[0]
     elif norm == 1 or norm == 2:

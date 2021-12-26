@@ -1,25 +1,26 @@
 """TRAINING
 """
+import argparse
 import os
 import shutil
-import h5py
 import warnings
-import argparse
-import yaml
+from os.path import join
+
+import h5py
 import torch
 import torch.nn.functional as F
+import yaml
+from base.base_trainer import BaseTrainer
+from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
-from os.path import join
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from prefetch_generator import BackgroundGenerator
-from base.base_trainer import BaseTrainer
 
 
 class DataLoaderX(DataLoader):
     def __iter__(self):
-        return BackgroundGenerator(super().__iter__(), max_prefetch=10)
+        return BackgroundGenerator(super().__iter__())
 
 
 class Extractor(BaseTrainer):
@@ -124,9 +125,11 @@ class Extractor(BaseTrainer):
             for i, (batch_imgs, batch_labels) in enumerate(dataloader):
                 # collect labels
                 batch_ori_imgs = batch_imgs * self.reform_std +\
-                        self.reform_mean
-                batch_resized_imgs = F.interpolate(batch_ori_imgs,
-                                                   size=(112, 112),)
+                    self.reform_mean
+                batch_resized_imgs = F.interpolate(
+                    batch_ori_imgs,
+                    size=(112, 112),
+                )
                 all_imgs.append(batch_resized_imgs.detach())
                 all_labels.append(batch_labels.detach())
                 # batch_labels:torch.size([B])
@@ -147,16 +150,20 @@ class Extractor(BaseTrainer):
         all_labels = torch.hstack(all_labels).numpy()
         all_preds = torch.hstack(all_preds).numpy()
 
-        self.writer.add_embedding(mat=all_feats,
-                                  metadata=all_labels,
-                                  label_img=all_imgs,
-                                  tag=f'{phase}_GT',
-                                  global_step=self.total_epochs,)
-        self.writer.add_embedding(mat=all_feats,
-                                  metadata=all_preds,
-                                  label_img=all_imgs,
-                                  tag=f'{phase}_Pred',
-                                  global_step=self.total_epochs,)
+        self.writer.add_embedding(
+            mat=all_feats,
+            metadata=all_labels,
+            label_img=all_imgs,
+            tag=f'{phase}_GT',
+            global_step=self.total_epochs,
+        )
+        self.writer.add_embedding(
+            mat=all_feats,
+            metadata=all_preds,
+            label_img=all_imgs,
+            tag=f'{phase}_Pred',
+            global_step=self.total_epochs,
+        )
         self.writer.close()
 
         feat_fpath = join(self.exp_root, self.exp_name,
@@ -174,7 +181,9 @@ class Extractor(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--local_rank', type=int, help='Local Rank for\
+    parser.add_argument('--local_rank',
+                        type=int,
+                        help='Local Rank for\
                         distributed training. if single-GPU, default: -1')
     parser.add_argument("--config_path", type=str)
     args = parser.parse_args()

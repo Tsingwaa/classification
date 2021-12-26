@@ -2,17 +2,19 @@
 Customized by Kaihua Tang
 """
 
+import imghdr
 # import os
 import math
-import torch
-import numpy as np
-import imghdr
 # from pudb import set_trace
 from os.path import join
+
+import numpy as np
+import torch
+from data_loader.dataset.builder import Datasets
 from PIL import Image
 # from torchvision import transforms
 from torchvision.datasets import ImageFolder
-from data_loader.dataset.builder import Datasets
+
 # TiffImagePlugin.DEBUG = True
 
 
@@ -35,11 +37,18 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
     mean = [0.4153, 0.4586, 0.4759]
     std = [0.2955, 0.2785, 0.2847]
 
-    cls_num = 100
+    num_classes = 100
 
     # set_trace()
-    def __init__(self, data_root, phase, img_lst_fpath=None, transform=None,
-                 imb_type='exp', imb_factor=0.1, seed=0, adapt=False,
+    def __init__(self,
+                 data_root,
+                 phase,
+                 img_lst_fpath=None,
+                 transform=None,
+                 imb_type='exp',
+                 imb_factor=0.1,
+                 seed=0,
+                 adapt=False,
                  **kwargs):
         self.img_paths = []
         self.targets = []
@@ -62,110 +71,107 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
                 self.targets.append(int(line.split()[1]))
 
         self.img_paths = np.array(self.img_paths)
-        self.img_num = []
+        self.num_samples_per_cls = []
 
         if phase == 'train':
             np.random.seed(seed)
             # generate imbalance num_samples list
-            img_num_list = self.get_img_num_per_cls(
-                self.cls_num, imb_type, imb_factor
-            )
+            self.num_samples_per_cls = self.get_num_samples_per_cls(
+                self.num_classes, imb_type, imb_factor)
             # regenerate self.img_paths and self.targets
-            self.gen_imbalanced_data(img_num_list)
-            self.img_num = img_num_list
+            self.gen_imbalanced_data(self.num_samples_per_cls)
             self.class_weight = self.get_class_weight()
+        else:
+            self.num_samples_per_cls = [200] * self.num_classes
 
-        self.labels = self.targets
-        label2ctg = self.get_label2ctg()
-        self.classes = [label2ctg[i] for i in range(self.cls_num)]
+        self.classes = [self.label2ctg[i] for i in range(self.num_classes)]
 
-    def get_img_num_per_cls(self, cls_num, imb_type, imb_factor):
+    def get_num_samples_per_cls(self, num_classes, imb_type, imb_factor):
         """Generate imbalanced num samples by 'exp' or 'step'.
         - imb_type: 'exp' or 'step'
         - imb_factor: (default: 0.1) the largest / the smallest
         - steps: if imb_type is 'step', how many steps.
         """
-        img_max = len(self.img_paths) / cls_num
-        img_num_per_cls = []
+        max_num_samples = len(self.img_paths) / num_classes
+        num_samples_per_cls = []
         if imb_type == 'exp':  # exponential moving
-            for cls_idx in range(cls_num):
-                img_num = img_max * imb_factor ** (cls_idx / (cls_num - 1))
-                img_num_per_cls.append(int(img_num))
+            for cls_idx in range(num_classes):
+                img_num = max_num_samples * imb_factor**(cls_idx /
+                                                         (num_classes - 1))
+                num_samples_per_cls.append(int(img_num))
         elif imb_type == 'step':  # two different num_samples
-            head_classes = math.floor(cls_num / 3)  # head=tail
+            head_classes = math.floor(num_classes / 3)  # head=tail
             tail_classes = head_classes
             # 3step, 20classes： 7-7-6
-            for cls_idx in range(cls_num):
+            for cls_idx in range(num_classes):
                 if cls_idx < head_classes:
                     step = 0
-                elif head_classes <= cls_idx < cls_num - tail_classes:
+                elif head_classes <= cls_idx < num_classes - tail_classes:
                     step = 1
                 else:
                     step = 2
-                img_num = img_max * imb_factor ** (step / 2)
-                img_num_per_cls.append(int(img_num))
+                img_num = max_num_samples * imb_factor**(step / 2)
+                num_samples_per_cls.append(int(img_num))
         else:
-            img_num_per_cls.extend([int(img_max)] * cls_num)
+            num_samples_per_cls.extend([int(max_num_samples)] * num_classes)
 
-        return img_num_per_cls
+        return num_samples_per_cls
 
-    def gen_imbalanced_data(self, img_num_per_cls):
+    def gen_imbalanced_data(self, num_samples_per_cls):
         new_img_paths = []
         new_targets = []
         targets_np = np.array(self.targets, dtype=np.int64)
         classes = np.unique(targets_np)
 
-        self.num_per_cls_dict = dict()
-        for the_class, the_img_num in zip(classes, img_num_per_cls):
-            self.num_per_cls_dict[the_class] = the_img_num
+        self.cls2nsamples = dict()
+        for cls, n_samples in zip(classes, num_samples_per_cls):
+            self.cls2nsamples[cls] = n_samples
             # random shuffle indexs and select num_samples of the class
-            idx = np.where(targets_np == the_class)[0]
+            idx = np.where(targets_np == cls)[0]
             np.random.shuffle(idx)
-            selec_idx = idx[:the_img_num]
+            selec_idx = idx[:n_samples]
             # generate new train pairs
             new_img_paths.extend(self.img_paths[selec_idx].tolist())
-            new_targets.extend([the_class, ] * the_img_num)
+            new_targets.extend([
+                cls,
+            ] * n_samples)
 
         self.img_paths = new_img_paths
         self.targets = new_targets
 
     def __getitem__(self, index):
         img_path = self.img_paths[index]
-        label = self.labels[index]
+        target = self.targets[index]
         img = Image.open(img_path).convert('RGB')
         img = self._check_channel(img)  # 对单通道灰度图复制为三通道
 
         if self.transform is not None:
-            if self.adapt and (self.phase == 'train'):
-                percent = np.sum(self.class_weight[:(label+1)])
-            else:
-                percent = None
-            img = self.transform(img, mean=self.mean, std=self.std,
-                                 percent=percent)
+            # if self.adapt and (self.phase == 'train'):
+            #     percent = np.sum(self.class_weight[:(target+1)])
+            # else:
+            #     percent = None
+            img = self.transform(img,
+                                 mean=self.mean,
+                                 std=self.std,
+                                 percent=None)
 
-        return img, label
+        return img, target
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.targets)
 
-    # def get_num_classes(self):
-    #     return self.cls_num
-
-    # def get_img_num_list(self):
-    #     """list of num_samples"""
-    #     return self.img_num
-
-    def get_label2ctg(self):
+    @property
+    def label2ctg(self):
         label2ctg = dict()
-        for i in range(len(self.labels)):
-            if self.labels[i] not in label2ctg:
+        for i in range(len(self.targets)):
+            if self.targets[i] not in label2ctg:
                 category = self.img_paths[i].split('/')[-2]
-                label2ctg[self.labels[i]] = category
+                label2ctg[self.targets[i]] = category
         return label2ctg
 
     def get_class_weight(self):
-        imgs_per_cls = np.array(self.img_num)
-        weight = 1.0 / imgs_per_cls
+        samplers_per_cls = np.array(self.num_samples_per_cls)
+        weight = 1.0 / samplers_per_cls
         weight /= np.sum(weight)
         return weight
 
@@ -184,7 +190,17 @@ class ImbalanceMiniImageNet20(ImbalanceMiniImageNet):
     """
     mean = [0.3567, 0.4279, 0.4439]
     std = [0.2761, 0.2584, 0.2705]
-    cls_num = 20
+    num_classes = 20
+
+
+@Datasets.register_module('imb_miniImageNet3')
+class ImbalanceMiniImageNet3(ImbalanceMiniImageNet):
+    """Select the former 20 classes as a small imbalanced dataset
+    for test use
+    """
+    mean = [0.3644, 0.4094, 0.3998]
+    std = [0.2698, 0.2434, 0.2535]
+    num_classes = 3
 
 
 @Datasets.register_module('imb_miniImageNet20_tail')
@@ -194,10 +210,17 @@ class ImbalanceMiniImageNet20_tail(ImbalanceMiniImageNet):
     """
     mean = [0.3567, 0.4279, 0.4439]
     std = [0.2761, 0.2584, 0.2705]
-    cls_num = 20
+    num_classes = 20
 
-    def __init__(self, data_root, phase, img_lst_fpath=None, transform=None,
-                 imb_type='exp', imb_factor=0.1, seed=0, tail_num_classes=0,
+    def __init__(self,
+                 data_root,
+                 phase,
+                 img_lst_fpath=None,
+                 transform=None,
+                 imb_type='exp',
+                 imb_factor=0.1,
+                 seed=0,
+                 tail_num_classes=0,
                  **kwargs):
         self.img_paths = []
         self.targets = []
@@ -223,9 +246,8 @@ class ImbalanceMiniImageNet20_tail(ImbalanceMiniImageNet):
         if phase == 'train':
             np.random.seed(seed)
             # generate imbalance num_samples list
-            img_num_list = self.get_img_num_per_cls(
-                self.cls_num, imb_type, imb_factor
-            )
+            img_num_list = self.get_num_samples_per_cls(
+                self.num_classes, imb_type, imb_factor)
             # regenerate self.img_paths and self.targets
             self.gen_imbalanced_data(img_num_list)
             self.img_num = img_num_list
@@ -234,14 +256,15 @@ class ImbalanceMiniImageNet20_tail(ImbalanceMiniImageNet):
             self.targets = np.array(self.targets)
             self.img_paths = np.array(self.img_paths)
             tail_indexes = np.where(
-                self.targets >= (self.cls_num - tail_num_classes))
+                self.targets >= (self.num_classes - tail_num_classes))
             self.targets = self.targets[tail_indexes]
             self.img_paths = self.img_paths[tail_indexes]
-            self.cls_num = tail_num_classes
+            self.num_classes = tail_num_classes
         self.labels = self.targets
         label2ctg = self.get_label2ctg()
-        self.classes = [label2ctg[tail_num_classes+i]
-                        for i in range(self.cls_num)]
+        self.classes = [
+            label2ctg[tail_num_classes + i] for i in range(self.num_classes)
+        ]
         self.img_num = self.img_num[-tail_num_classes:]
 
 
@@ -250,14 +273,14 @@ class miniImageNet(ImageFolder):
     # Full miniImageNet
     mean = [0.4153, 0.4586, 0.4759]
     std = [0.2955, 0.2785, 0.2847]
-    cls_num = 100
+    num_classes = 100
 
     def __init__(self, data_root, phase, transform=None, **kwargs):
         super(miniImageNet, self).__init__(
             root=join(data_root, phase),
             transform=transform,
         )
-        self.cls_num = len(self.classes)
+        self.num_classes = len(self.classes)
 
     def __getitem__(self, index):
         img_fpath, img_label = self.imgs[index]
@@ -282,14 +305,14 @@ class miniImageNet_eval(ImageFolder):
     # Full miniImageNet
     mean = [0.4153, 0.4586, 0.4759]
     std = [0.2955, 0.2785, 0.2847]
-    cls_num = 100
+    num_classes = 100
 
     def __init__(self, data_root, phase, transform=None, **kwarg):
         super(miniImageNet_eval, self).__init__(
             root=join(data_root, phase),
             transform=transform,
         )
-        self.cls_num = len(self.classes)
+        self.num_classes = len(self.classes)
 
     def __getitem__(self, index):
         img_fpath, img_label = self.imgs[index]

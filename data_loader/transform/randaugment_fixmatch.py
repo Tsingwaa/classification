@@ -8,9 +8,9 @@ import random
 # from pudb import set_trace
 import numpy as np
 import PIL
-import PIL.ImageOps
-import PIL.ImageEnhance
 import PIL.ImageDraw
+import PIL.ImageEnhance
+import PIL.ImageOps
 from PIL import Image
 
 logger = logging.getLogger(__name__)
@@ -147,41 +147,22 @@ def _int_parameter(v, max_v):
 
 def fixmatch_augment_pool():
     # FixMatch paper
-    augs = [(AutoContrast, None, None),
-            (Brightness, 0.9, 0.05),
-            (Color, 0.9, 0.05),
-            (Contrast, 0.9, 0.05),
-            (Equalize, None, None),
-            (Identity, None, None),
-            (Posterize, 4, 4),
-            (Rotate, 30, 0),
-            (Sharpness, 0.9, 0.05),
-            (ShearX, 0.3, 0),
-            (ShearY, 0.3, 0),
-            (Solarize, 256, 0),
-            (TranslateX, 0.3, 0),
-            (TranslateY, 0.3, 0)]
+    augs = [(AutoContrast, None, None), (Brightness, 0.9, 0.05),
+            (Color, 0.9, 0.05), (Contrast, 0.9, 0.05), (Equalize, None, None),
+            (Identity, None, None), (Posterize, 4, 4), (Rotate, 30, 0),
+            (Sharpness, 0.9, 0.05), (ShearX, 0.3, 0), (ShearY, 0.3, 0),
+            (Solarize, 256, 0), (TranslateX, 0.3, 0), (TranslateY, 0.3, 0)]
     return augs
 
 
 def my_augment_pool():
     # Test
-    augs = [(AutoContrast, None, None),
-            (Brightness, 1.8, 0.1),
-            (Color, 1.8, 0.1),
-            (Contrast, 1.8, 0.1),
-            (Cutout, 0.2, 0),
-            (Equalize, None, None),
-            (Invert, None, None),
-            (Posterize, 4, 4),
-            (Rotate, 30, 0),
-            (Sharpness, 1.8, 0.1),
-            (ShearX, 0.3, 0),
-            (ShearY, 0.3, 0),
-            (Solarize, 256, 0),
-            (SolarizeAdd, 110, 0),
-            (TranslateX, 0.45, 0),
-            (TranslateY, 0.45, 0)]
+    augs = [(AutoContrast, None, None), (Brightness, 1.8, 0.1),
+            (Color, 1.8, 0.1), (Contrast, 1.8, 0.1), (Cutout, 0.2, 0),
+            (Equalize, None, None), (Invert, None, None), (Posterize, 4, 4),
+            (Rotate, 30, 0), (Sharpness, 1.8, 0.1), (ShearX, 0.3, 0),
+            (ShearY, 0.3, 0), (Solarize, 256, 0), (SolarizeAdd, 110, 0),
+            (TranslateX, 0.45, 0), (TranslateY, 0.45, 0)]
     return augs
 
 
@@ -193,7 +174,10 @@ class RandAugmentPC(object):
         self.m = m
         self.augment_pool = my_augment_pool()  # Stronger
 
-    def __call__(self, img, ):
+    def __call__(
+        self,
+        img,
+    ):
         # set_trace()
         img_size = img.size()
         ops = random.choices(self.augment_pool, k=self.n)

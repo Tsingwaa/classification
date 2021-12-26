@@ -1,4 +1,3 @@
-
 def split_dataset(data_root, dataset_name, split_ratio=0.8, manual_seed=0):
     """Split whole dataset into train and test dataset at ratio of 4:1.
     Args:
@@ -11,7 +10,8 @@ def split_dataset(data_root, dataset_name, split_ratio=0.8, manual_seed=0):
     import os
     import random
     import shutil
-    from os.path import join, isdir
+    from os.path import isdir, join
+
     from tqdm import tqdm
 
     random.seed(manual_seed)

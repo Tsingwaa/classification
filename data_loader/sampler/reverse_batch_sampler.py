@@ -1,13 +1,13 @@
 import random
+
 import numpy as np
+from data_loader.sampler.builder import Samplers
 # from PIL import Image
 from torch.utils.data.sampler import BatchSampler
-from data_loader.sampler.builder import Samplers
 
 
 @Samplers.register_module("reversedbatchsampler")
 class ReversedBatchSampler(BatchSampler):
-
     def __init__(self, labels, batch_size, random_seed=42):
         """Reverse batch sampler for imbalanced dataset.
         The probability of sampling a data point from the minority classes is
@@ -27,11 +27,12 @@ class ReversedBatchSampler(BatchSampler):
         self.label_to_indices = {
             label: np.where(self.labels == label)[0]
             for label in self.labels_set
-            }
+        }
 
         self.cls_num = len(self.labels_set)
-        self.num_list = [len(self.label_to_indices[label])
-                         for label in self.labels_set]
+        self.num_list = [
+            len(self.label_to_indices[label]) for label in self.labels_set
+        ]
         max_num = max(self.num_list)
         self.class_weight = [max_num / i for i in self.num_list]
         self.sum_weight = sum(self.class_weight)

@@ -1,11 +1,13 @@
 from __future__ import absolute_import
-from torchvision.T import *
-from PIL import Image
-import random
+
 import math
+import random
+
 import numpy as np
 import torch
 import torch.nn as nn
+from PIL import Image
+from torchvision.T import *
 
 
 class RandomErasing(object):
@@ -17,16 +19,12 @@ class RandomErasing(object):
     mean: erasing value
     '''
 
-    def __init__(
-        self,
-        p=0.5,
-        sl=0.02,
-        sh=0.4,
-        r1=0.3,
-        mean=[
-            0.485,
-            0.456,
-            0.406]):
+    def __init__(self,
+                 p=0.5,
+                 sl=0.02,
+                 sh=0.4,
+                 r1=0.3,
+                 mean=[0.485, 0.456, 0.406]):
         self.probability = p
         self.mean = mean
         self.sl = sl

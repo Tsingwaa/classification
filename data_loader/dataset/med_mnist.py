@@ -3,21 +3,30 @@ import os
 import numpy as np
 import torch
 import torch.utils.data as data
+from data_loader.dataset.builder import Datasets
 from PIL import Image
 from torchvision import transforms as T
-from data_loader.dataset.builder import Datasets
 
 
 @Datasets.register_module("MedMNIST")
 class MedMNIST(data.Dataset):
     cls_num = 0
 
-    def __init__(self, root, sub, split='train', transform=None,
-                 imb_factor=0.1, **kwargs):
+    def __init__(self,
+                 root,
+                 sub,
+                 split='train',
+                 transform=None,
+                 imb_factor=0.1,
+                 **kwargs):
         super(MedMNIST, self).__init__()
         self.transform = transform if transform is not None else lambda x: x
-        self.data = np.load(os.path.join(root, '{}.npz'.format(sub)))[split + '_images'].squeeze().astype(np.uint8)
-        self.labels = np.load(os.path.join(root, '{}.npz'.format(sub)))[split + '_labels'].squeeze().astype(np.long)
+        self.data = np.load(os.path.join(
+            root, '{}.npz'.format(sub)))[split + '_images'].squeeze().astype(
+                np.uint8)
+        self.labels = np.load(os.path.join(
+            root,
+            '{}.npz'.format(sub)))[split + '_labels'].squeeze().astype(np.long)
         self.sub = sub
         if split == 'train':
             if imb_factor < 1:
@@ -44,7 +53,7 @@ class MedMNIST(data.Dataset):
         for i in range(len(classes)):
             imgs = self.data[self.labels == classes[i]]
             labels = self.labels[self.labels == classes[i]]
-            num = int(max_num * (imb_factor ** (i / (len(classes) - 1.0))))
+            num = int(max_num * (imb_factor**(i / (len(classes) - 1.0))))
             idx = np.arange(len(labels))
             if num < class_count[i]:
                 np.random.shuffle(idx)

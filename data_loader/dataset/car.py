@@ -4,6 +4,7 @@ Revised: Nov 15,2019 - Yuchong Gu
 """
 import os
 import pdb
+
 from PIL import Image
 from scipy.io import loadmat
 from torch.utils.data import Dataset
@@ -35,10 +36,12 @@ class CarDataset(Dataset):
         self.num_classes = 196
 
         if phase == 'train':
-            list_path = os.path.join(DATAPATH, 'devkit', 'cars_train_annos.mat')
+            list_path = os.path.join(DATAPATH, 'devkit',
+                                     'cars_train_annos.mat')
             self.image_path = os.path.join(DATAPATH, 'cars_train')
         else:
-            list_path = os.path.join(DATAPATH, 'cars_test_annos_withlabels.mat')
+            list_path = os.path.join(DATAPATH,
+                                     'cars_test_annos_withlabels.mat')
             self.image_path = os.path.join(DATAPATH, 'cars_test')
 
         list_mat = loadmat(list_path)
@@ -50,7 +53,8 @@ class CarDataset(Dataset):
 
     def __getitem__(self, item):
         # image
-        image = Image.open(os.path.join(self.image_path, self.images[item])).convert('RGB')  # (C, H, W)
+        image = Image.open(os.path.join(
+            self.image_path, self.images[item])).convert('RGB')  # (C, H, W)
         image = self.transform(image)
 
         # return image and label

@@ -13,9 +13,10 @@ All rights reserved.
 """
 
 import random
+
 import numpy as np
-from torch.utils.data.sampler import Sampler
 from data_loader.sampler.builder import Samplers
+from torch.utils.data.sampler import Sampler
 
 
 class RandomCycleIter:
@@ -40,7 +41,9 @@ class RandomCycleIter:
         return self.data_list[self.i]
 
 
-def class_aware_sample_generator(cls_iter, data_iter_list, total_samples,
+def class_aware_sample_generator(cls_iter,
+                                 data_iter_list,
+                                 total_samples,
                                  num_samples_each_cls_draw=1):
     i = 0
     j = 0
@@ -49,10 +52,9 @@ def class_aware_sample_generator(cls_iter, data_iter_list, total_samples,
             j = 0
 
         if j == 0:
-            temp_tuple = next(zip(
-                *[data_iter_list[next(cls_iter)]] *
-                num_samples_each_cls_draw
-            ))
+            temp_tuple = next(
+                zip(*[data_iter_list[next(cls_iter)]] *
+                    num_samples_each_cls_draw))
             """解读上面一行代码:
             data_iter_list[next(cls_iter)]是选定类别的数据迭代器；
             先复制n个迭代器，然后解索引选定n个迭代器，然后zip组合为一起，
@@ -70,15 +72,14 @@ def class_aware_sample_generator(cls_iter, data_iter_list, total_samples,
 
 
 @Samplers.register_module('ClassAwareSampler')
-class ClassAwareSampler (Sampler):
-
+class ClassAwareSampler(Sampler):
     def __init__(self, dataset, num_samples_each_cls_draw=1, **kwargs):
         """根据dataset得到类等价的sampler, 上采样器
         Args:
             dataset: 数据集对象，使用其labels对象
             num_samples_each_cls_draw: 每类每次抽取的样本数量
         """
-        num_classes = len(np.unique(dataset.labels))
+        num_classes = dataset.num_classes
         self.class_iter = RandomCycleIter(range(num_classes))
 
         # turn list [0,..., num_classes-1] to RandomCycleIterator
@@ -125,17 +126,16 @@ def get_balanced_samper(dataset):
 class BalancedSampler(Sampler):
     def __init__(self, dataset, retain_epoch_size=False, **kwargs):
         self.retain_epoch_size = retain_epoch_size
-        self.unique_labels = np.unique(dataset.labels)
-        self.num_buckets = len(self.unique_labels)
-        self.buckets = {uq_label: [] for uq_label in self.unique_labels}
-        for idx, label in enumerate(dataset.labels):
-            self.buckets[label].append(idx)
+        self.num_buckets = dataset.num_classes
+        self.buckets = {bucket: [] for bucket in range(self.num_buckets)}
+        for index, target in enumerate(dataset.targets):
+            self.buckets[target].append(index)
 
         # Pointer for each class to mark which index we should choose next.
         # Initialize pointer as the first one (index = 0)
-        self.bucket_pointers = {uq_label: 0 for uq_label in self.unique_labels}
-        self.max_bucket_size = max([len(bucket) for bucket in
-                                    self.buckets.values()])
+        self.bucket_pointers = [0] * self.num_buckets
+        self.max_bucket_size = max(
+            [len(bucket) for bucket in self.buckets.values()])
 
     def __iter__(self):
         count = self.__len__()
@@ -145,7 +145,7 @@ class BalancedSampler(Sampler):
 
     def _next_item(self):
         # Randomly choose one class
-        bucket_idx = random.choice(self.unique_labels)
+        bucket_idx = random.choice(list(range(self.num_buckets)))
         # get indexes of corresponding class
         bucket = self.buckets[bucket_idx]
         # choose the pointed item

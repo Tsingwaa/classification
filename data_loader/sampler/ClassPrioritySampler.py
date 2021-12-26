@@ -6,12 +6,12 @@ LICENSE file in the root directory of this source tree.
 """
 
 import random
+
 import numpy as np
 from torch.utils.data.sampler import Sampler
 
 
 class RandomCycleIter:
-
     def __init__(self, data, test_mode=False):
         self.data_list = list(data)
         self.length = len(self.data_list)
@@ -33,8 +33,12 @@ class RandomCycleIter:
 
 
 class PriorityTree(object):
-    def __init__(self, capacity, init_weights, fixed_weights=None,
-                 fixed_scale=1.0, alpha=1.0):
+    def __init__(self,
+                 capacity,
+                 init_weights,
+                 fixed_weights=None,
+                 fixed_scale=1.0,
+                 alpha=1.0):
         """
         fixed_weights: weights that wont be updated by self.update()
         """
@@ -167,8 +171,7 @@ class PriorityTree(object):
                 pdb.set_trace()
             delta = np.power(
                 np.power(self.tree[tree_idx], 1 / self.alpha) + delta,
-                self.alpha
-            ) - self.tree[tree_idx]
+                self.alpha) - self.tree[tree_idx]
         self.tree[tree_idx] += delta
         while tree_idx != 0:
             tree_idx = (tree_idx - 1) // 2
@@ -207,11 +210,15 @@ class PriorityTree(object):
         return np.min(self.tree[-self.capacity:])
 
     def get_weights(self):
-        wdict = {'fixed_weights': self.fixed_weights,
-                 'total_weights': self.get_total_weights()}
+        wdict = {
+            'fixed_weights': self.fixed_weights,
+            'total_weights': self.get_total_weights()
+        }
         if self.alpha != 1:
-            wdict.update({'raw_total_weights': self.get_raw_total_weights(),
-                          'alpha': self.alpha})
+            wdict.update({
+                'raw_total_weights': self.get_raw_total_weights(),
+                'alpha': self.alpha
+            })
 
         return wdict
 
@@ -265,10 +272,22 @@ class ClassPrioritySampler(Sampler):
             - 'linear': for linear decay
     """
 
-    def __init__(self, dataset, balance_scale=1.0, fixed_scale=1.0,
-                 lam=None, epochs=90, cycle=0, nroot=None, manual_only=False,
-                 rescale=False, root_decay=None, decay_gap=30, ptype='score',
-                 pri_mode='train', momentum=0., alpha=1.0):
+    def __init__(self,
+                 dataset,
+                 balance_scale=1.0,
+                 fixed_scale=1.0,
+                 lam=None,
+                 epochs=90,
+                 cycle=0,
+                 nroot=None,
+                 manual_only=False,
+                 rescale=False,
+                 root_decay=None,
+                 decay_gap=30,
+                 ptype='score',
+                 pri_mode='train',
+                 momentum=0.,
+                 alpha=1.0):
         """
         """
         self.dataset = dataset
@@ -317,13 +336,14 @@ class ClassPrioritySampler(Sampler):
             if cycle == 0:
                 self.lams = np.linspace(0, 1, epochs)
             elif cycle == 1:
-                self.lams = np.concatenate(
-                    [np.linspace(0, 1, epochs // 3)] * 3)
+                self.lams = np.concatenate([np.linspace(0, 1, epochs // 3)] *
+                                           3)
             elif cycle == 2:
-                self.lams = np.concatenate([np.linspace(0, 1, epochs // 3),
-                                            np.linspace(
-                                                0, 1, epochs // 3)[::-1],
-                                            np.linspace(0, 1, epochs // 3)])
+                self.lams = np.concatenate([
+                    np.linspace(0, 1, epochs // 3),
+                    np.linspace(0, 1, epochs // 3)[::-1],
+                    np.linspace(0, 1, epochs // 3)
+                ])
             else:
                 raise NotImplementedError(
                     'cycle = {} not implemented'.format(cycle))
@@ -366,8 +386,8 @@ class ClassPrioritySampler(Sampler):
         elif self.ptype in ['CE', 'entropy']:
             self.init_weight = 6.9
         else:
-            raise NotImplementedError(
-                'ptype {} not implemented'.format(self.ptype))
+            raise NotImplementedError('ptype {} not implemented'.format(
+                self.ptype))
         if self.manual_only:
             self.init_weight = 0.
         self.per_example_uni_weights = np.ones(
@@ -464,8 +484,8 @@ class ClassPrioritySampler(Sampler):
             # make sure 'self.fixed_scale > 0' and\
             # 'self.manual_as_backend = True' are mutually exclusive
             if self.fixed_scale > 0:
-                self.ptree.reset_fixed_weights(
-                    self.manual_weights, self.rescale)
+                self.ptree.reset_fixed_weights(self.manual_weights,
+                                               self.rescale)
             if self.manual_as_backend:
                 self.update_backend_distribution(self.manual_weights)
 
@@ -530,11 +550,8 @@ class ClassPrioritySampler(Sampler):
                     self.ptree.update_delta(this_label, delta.sum())
                 else:
                     self.ptree.update(
-                        this_label,
-                        self.per_example_uni_weights[
-                            self.cls_idxs[this_label]
-                        ].sum()
-                    )
+                        this_label, self.per_example_uni_weights[
+                            self.cls_idxs[this_label]].sum())
 
     def reset_priority(self, weights, labels):
         if self.pri_mode == 'valid':

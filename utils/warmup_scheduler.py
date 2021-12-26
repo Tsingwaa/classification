@@ -1,5 +1,4 @@
-from torch.optim.lr_scheduler import _LRScheduler
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, _LRScheduler
 
 
 class GradualWarmupScheduler(_LRScheduler):
@@ -15,7 +14,10 @@ class GradualWarmupScheduler(_LRScheduler):
         after_scheduler: after target_epoch, use this scheduler
     """
 
-    def __init__(self, optimizer, multiplier, warmup_epochs,
+    def __init__(self,
+                 optimizer,
+                 multiplier,
+                 warmup_epochs,
                  after_scheduler=None):
         self.multiplier = multiplier
         if self.multiplier < 1.:
@@ -37,12 +39,15 @@ class GradualWarmupScheduler(_LRScheduler):
             return [base_lr * self.multiplier for base_lr in self.base_lrs]
 
         if self.multiplier == 1.0:
-            return [base_lr * (float(self.last_epoch) / self.warmup_epochs)
-                    for base_lr in self.base_lrs]
+            return [
+                base_lr * (float(self.last_epoch) / self.warmup_epochs)
+                for base_lr in self.base_lrs
+            ]
         else:
             return [
                 base_lr * ((self.multiplier - 1.) * self.last_epoch /
-                           self.warmup_epochs + 1.) for base_lr in self.base_lrs
+                           self.warmup_epochs + 1.)
+                for base_lr in self.base_lrs
             ]
 
     def step_ReduceLROnPlateau(self, metrics, epoch=None):
@@ -54,7 +59,8 @@ class GradualWarmupScheduler(_LRScheduler):
         if self.last_epoch <= self.warmup_epochs:
             warmup_lr = [
                 base_lr * ((self.multiplier - 1.) * self.last_epoch /
-                           self.warmup_epochs + 1.) for base_lr in self.base_lrs
+                           self.warmup_epochs + 1.)
+                for base_lr in self.base_lrs
             ]
             for param_group, lr in zip(self.optimizer.param_groups, warmup_lr):
                 param_group['lr'] = lr

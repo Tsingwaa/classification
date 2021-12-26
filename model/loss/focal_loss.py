@@ -17,5 +17,5 @@ class FocalLoss(nn.Module):
         if self.weight is not None:
             self.weight = self.weight.cuda()
             ce_loss *= self.weight[targets]  # (N*1) * (N*1)
-        focal_loss = ((1 - pt) ** self.gamma * ce_loss).mean()  # 1*1
+        focal_loss = ((1 - pt)**self.gamma * ce_loss).mean()  # 1*1
         return focal_loss

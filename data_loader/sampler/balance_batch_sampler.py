@@ -1,9 +1,10 @@
 import random
+
 import numpy as np
+from common.dataset.sampler.builder import Sampler
+from torch.utils.data import DataLoader
 # from PIL import Image
 from torch.utils.data.sampler import BatchSampler
-from torch.utils.data import DataLoader
-from common.dataset.sampler.builder import Sampler
 
 
 @Sampler.register_module("balancedbatchsampler")
@@ -20,7 +21,8 @@ class BalancedBatchSampler(BatchSampler):
         self.labels_set = list(set(self.labels))
         self.label_to_indices = {
             label: np.where(self.labels == label)[0]
-            for label in self.labels_set}
+            for label in self.labels_set
+        }
         self.cls_num = len(self.labels_set)
 
     def __iter__(self):
@@ -47,8 +49,10 @@ class BalancedBatchSampler2(BatchSampler):
     def __init__(self, labels, n_classes, n_samples):
         self.labels = labels
         self.labels_set = list(set(self.labels.numpy()))
-        self.label_to_indices = {label: np.where(self.labels.numpy() == label)[
-            0] for label in self.labels_set}
+        self.label_to_indices = {
+            label: np.where(self.labels.numpy() == label)[0]
+            for label in self.labels_set
+        }
         for label in self.labels_set:
             np.random.shuffle(self.label_to_indices[label])
         self.used_label_indices_count = {label: 0 for label in self.labels_set}
@@ -61,14 +65,18 @@ class BalancedBatchSampler2(BatchSampler):
     def __iter__(self):
         self.count = 0
         while self.count + self.batch_size < self.n_dataset:
-            classes = np.random.choice(
-                self.labels_set, self.n_classes, replace=False)
+            classes = np.random.choice(self.labels_set,
+                                       self.n_classes,
+                                       replace=False)
             self.labels_set = list(set(self.labels_set) - set(classes))
             if len(self.labels_set) < self.n_classes:
                 self.labels_set = list(set(self.labels.numpy()))
             indices = []
             for class_ in classes:
-                indices.extend(self.label_to_indices[class_][self.used_label_indices_count[class_]:self.used_label_indices_count[class_] + self.n_samples])  # noqa
+                indices.extend(self.label_to_indices[class_]
+                               [self.used_label_indices_count[class_]:self.
+                                used_label_indices_count[class_] +
+                                self.n_samples])  # noqa
                 self.used_label_indices_count[class_] += self.n_samples
                 if self.used_label_indices_count[class_] + \
                         self.n_samples > len(self.label_to_indices[class_]):

@@ -162,7 +162,7 @@ class Trainer(BaseTrainer):
             self.logger.info(
                 f"===> Best mean recall: {best_mr} (epoch{best_epoch})\n"
                 f"Class recalls: {best_recalls}\n"
-                f"===> Save directory: '{self.save_dir}'\n"
+                f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************"
             )

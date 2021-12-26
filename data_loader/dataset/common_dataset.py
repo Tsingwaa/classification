@@ -1,27 +1,26 @@
-from collections import Counter
+import json
+import os
 import os.path as P
+from collections import Counter
+
 import cv2
 import numpy as np
-from torch.utils.data.dataset import Dataset
 import torch
-import os
-import json
-from PIL import Image
-from PIL import ImageFile
 from data_loader.dataset.builder import Datasets
+from PIL import Image, ImageFile
+from torch.utils.data.dataset import Dataset
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 @Datasets.register_module("testdataset")
 class TestDataset(Dataset):
-    def __init__(
-            self,
-            data_root=None,
-            img_lst_fpath=None,
-            map_fpath=None,
-            transform=None,
-            **kwarg):
+    def __init__(self,
+                 data_root=None,
+                 img_lst_fpath=None,
+                 map_fpath=None,
+                 transform=None,
+                 **kwarg):
         self.data_root = data_root
         self.img_lst_fpath = img_lst_fpath
         self.map_fpath = map_fpath
@@ -63,13 +62,12 @@ class TestDataset(Dataset):
 
 @Datasets.register_module("evaldataset")
 class EvalDataset(Dataset):
-    def __init__(
-            self,
-            data_root=None,
-            img_lst_fpath=None,
-            map_fpath=None,
-            transform=None,
-            **kwarg):
+    def __init__(self,
+                 data_root=None,
+                 img_lst_fpath=None,
+                 map_fpath=None,
+                 transform=None,
+                 **kwarg):
         self.data_root = data_root
         self.transform = transform
 
@@ -117,13 +115,12 @@ class EvalDataset(Dataset):
 
 @Datasets.register_module("imagedataset")
 class ImageDataset(Dataset):
-    def __init__(
-            self,
-            data_root=None,
-            img_lst_fpath=None,
-            map_fpath=None,
-            transform=None,
-            **kwargs):
+    def __init__(self,
+                 data_root=None,
+                 img_lst_fpath=None,
+                 map_fpath=None,
+                 transform=None,
+                 **kwargs):
         self.data_root = data_root
         self.transform = transform
 
@@ -174,13 +171,12 @@ class ImageDataset(Dataset):
 
 @Datasets.register_module("imagedataset_multi_label")
 class ImageMultilabelDataset(Dataset):
-    def __init__(
-            self,
-            data_root=None,
-            img_lst_fpath=None,
-            map_fpath=None,
-            transform=None,
-            **kwargs):
+    def __init__(self,
+                 data_root=None,
+                 img_lst_fpath=None,
+                 map_fpath=None,
+                 transform=None,
+                 **kwargs):
         self.data_root = data_root
         self.transform = transform
 

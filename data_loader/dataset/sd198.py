@@ -1,10 +1,11 @@
 import os
+
 import numpy as np
 import pandas as pd
 import torch
 import torchvision.transforms as T
-from PIL import Image
 from data_loader.dataset.builder import Datasets
+from PIL import Image
 
 
 @Datasets.register_module("SD198")
@@ -12,8 +13,11 @@ class SD198(torch.utils.data.Dataset):
     cls_num = 198
     dataset_name = "SD198"
 
-    def __init__(self, data_root='/data/Public/Datasets/SD198',
-                 train=True, transform=None, fold=0):
+    def __init__(self,
+                 data_root='/data/Public/Datasets/SD198',
+                 train=True,
+                 transform=None,
+                 fold=0):
 
         self.train = train
         self.data_dir = os.path.join(data_root, 'images')
@@ -96,11 +100,10 @@ class SD198(torch.utils.data.Dataset):
 if __name__ == '__main__':
     mean = (0.592, 0.479, 0.451)
     std = (0.265, 0.245, 0.247)
-    transform = T.Compose([
-        T.Resize((224, 224)),
-        T.ToTensor(),
-        T.Normalize(mean=mean, std=std)
-    ])
+    transform = T.Compose(
+        [T.Resize((224, 224)),
+         T.ToTensor(),
+         T.Normalize(mean=mean, std=std)])
     trainset = SD198(train=True, transform=transform, fold=1)
 
     loader = torch.utils.data.DataLoader(trainset,

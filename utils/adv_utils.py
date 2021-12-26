@@ -1,5 +1,7 @@
 from functools import partial
 
+__all__ = ['switch_clean', 'switch_adv', 'switch_mix']
+
 
 def switch_mode(m, status):
     if hasattr(m, 'batch_type'):

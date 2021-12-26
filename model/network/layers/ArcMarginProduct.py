@@ -9,16 +9,21 @@
 '''
 
 import math
+
+import numpy as np
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch.nn import Parameter
-import torch.nn.functional as F
-import numpy as np
 
 
 class ArcMarginProduct(nn.Module):
-    def __init__(self, in_feature=128, out_feature=10575,
-                 s=32.0, m=0.50, easy_margin=False):
+    def __init__(self,
+                 in_feature=128,
+                 out_feature=10575,
+                 s=32.0,
+                 m=0.50,
+                 easy_margin=False):
         super(ArcMarginProduct, self).__init__()
         self.in_feature = in_feature
         self.out_feature = out_feature
@@ -48,8 +53,8 @@ class ArcMarginProduct(nn.Module):
         if self.easy_margin:
             phi = torch.where(cosine > 0, phi, cosine)
         else:
-            phi = torch.where((cosine.float() - self.th) > 0,
-                              phi.float(), cosine.float() - self.mm)
+            phi = torch.where((cosine.float() - self.th) > 0, phi.float(),
+                              cosine.float() - self.mm)
 
         # one_hot = torch.zeros(cosine.size(), device='cuda'
         # if torch.cuda.is_available() else 'cpu')
@@ -62,8 +67,13 @@ class ArcMarginProduct(nn.Module):
 
 
 class LDAMargin(nn.Module):
-    def __init__(self, cls_num_list, max_m=0.5, class_weight=None, s=32,
-                 in_feature=128, out_feature=256):
+    def __init__(self,
+                 cls_num_list,
+                 max_m=0.5,
+                 class_weight=None,
+                 s=32,
+                 in_feature=128,
+                 out_feature=256):
         super(LDAMargin, self).__init__()
         m_list = 1.0 / np.sqrt(np.sqrt(cls_num_list))
         m_list = m_list * (max_m / np.max(m_list))
@@ -83,8 +93,8 @@ class LDAMargin(nn.Module):
         index.scatter_(1, target.data.view(-1, 1), 1)
 
         index_float = index.type(torch.cuda.FloatTensor)
-        batch_m = torch.matmul(
-            self.m_list[None, :], index_float.transpose(0, 1))
+        batch_m = torch.matmul(self.m_list[None, :],
+                               index_float.transpose(0, 1))
         batch_m = batch_m.view((-1, 1))
         x_m = x - batch_m
 
