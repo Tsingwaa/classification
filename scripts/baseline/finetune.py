@@ -66,7 +66,8 @@ class FineTuner(BaseTrainer):
 
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
 
-        self.start_epoch = self.checkpoint["epoch"] + 1
+
+        self.start_epoch = 1
         self.final_epoch = self.start_epoch + self.total_epochs
 
         if self.local_rank in [-1, 0]:
@@ -81,7 +82,6 @@ class FineTuner(BaseTrainer):
             exp_init_log = f"\n****************************************"\
                 f"****************************************************"\
                 f"\nExperiment: Finetune {self.exp_name}\n"\
-                f"Start_epoch: {self.start_epoch}\n"\
                 f"Total_epochs: {self.total_epochs}\n"\
                 f"Save dir: {self.save_dir}\n"\
                 f"Save peroid: {self.save_period}\n"\
@@ -199,6 +199,8 @@ class FineTuner(BaseTrainer):
         last_mid_mrs = []
         last_tail_mrs = []
         start_time = datetime.now()
+        self.start_epoch = 1
+        self.final_epoch = self.start_epoch + self.total_epochs
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             # learning rate decay by epoch
             self.lr_scheduler.step()

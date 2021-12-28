@@ -67,7 +67,7 @@ class FineTuner(BaseTrainer):
 
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
 
-        self.start_epoch = self.checkpoint['epoch'] + 1
+        self.start_epoch = 1
         self.final_epoch = self.start_epoch + self.total_epochs
 
         if self.local_rank in [-1, 0]:
@@ -166,21 +166,22 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.loss_params = self.update_class_weight(trainset.img_num,
-                                                    **self.loss_params)
+        self.loss_params = self.update_class_weight(
+            trainset.num_samples_per_cls, **self.loss_params)
         self.criterion = self.init_loss(self.loss_name, **self.loss_params)
 
         #######################################################################
-        # Initialize Optimizer
+        # Initialize opt
         #######################################################################
-        self.optimizer = self.init_optimizer(self.opt_name, self.model,
-                                             **self.opt_params)
+        self.opt = self.init_optimizer(self.opt_name,
+                                       self.model.parameters(),
+                                       **self.opt_params)
 
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
         self.lr_scheduler = self.init_lr_scheduler(self.scheduler_name,
-                                                   self.optimizer,
+                                                   self.opt,
                                                    **self.scheduler_params)
 
         #######################################################################
@@ -251,7 +252,7 @@ class FineTuner(BaseTrainer):
                                          optimizer=self.opt,
                                          is_best=is_best,
                                          mr=val_stat.mr,
-                                         group_recalls=val_stat.group_mr,
+                                         group_mr=val_stat.group_mr,
                                          prefix=self.finetune_name,
                                          save_dir=self.save_dir)
 
@@ -273,7 +274,7 @@ class FineTuner(BaseTrainer):
                 f" {final_mr:>6.2%}\n"
                 f"Average Group mean recalls: [{final_head_mr:6.2%}, "
                 f"{final_mid_mr:>6.2%}, {final_tail_mr:>6.2%}]\n\n"
-                f"===> Save directory: '{self.exp_dir}'\n"
+                f"===> Save directory: '{self.save_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************\n")
 
@@ -302,7 +303,7 @@ class FineTuner(BaseTrainer):
             batch_prob = model(batch_imgs)
             avg_loss = criterion(batch_prob, batch_labels)
             if self.local_rank != -1:
-                with amp.scale_loss(avg_loss, self.optimizer) as scaled_loss:
+                with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
                 opt.step()
                 self._reduce_loss(avg_loss)
