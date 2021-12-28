@@ -211,12 +211,12 @@ class BaseTrainer:
         prefix = "Initialized"
         if resume:
             model = self.update_state_dict(model, checkpoint["model"])
-            prefix = "Resumed checkpoint params to"
+            prefix = "Resumed checkpoint model_params to"
         elif kwargs.get("pretrained", False):
             state_dict = torch.load(kwargs["pretrained_fpath"],
                                     map_location="cpu")
             model = self.update_state_dict(model, state_dict)
-            prefix = "Resumed pretrained params to"
+            prefix = "Resumed pretrained model_params to"
 
         kwargs.pop("checkpoint", None)
         model_init_log = f"===> {prefix} {network_name}(total_params"\
@@ -277,29 +277,26 @@ class BaseTrainer:
         self.log(f"===> Initialized {loss_name}: {kwargs}", log_level)
         return loss.cuda()
 
-    def init_optimizer(self, opt_name, params, **kwargs):
+    def init_optimizer(self, opt_name, model_params, **kwargs):
         # model_params = [
-        #     {"params": [p for n, p in self.model.named_parameters()
+        #     {"model_params": [p for n, p in self.model.named_parameters()
         #                    if not any(nd in n for nd in ["bias", "bn"])],
         #      "weight_decay": self.weight_decay},
-        #     {"params": [p for n, p in self.model.named_parameters()
+        #     {"model_params": [p for n, p in self.model.named_parameters()
         #                    if any(nd in n for nd in ["bias", "bn"])],
         #      "weight_decay": 0.0}]
         log_level = kwargs.pop("log_level", "default")
 
-        try:
-            optimizer = getattr(torch.optim, opt_name)(params, **kwargs)
-            prefix = "Initialized"
-            if kwargs.get("resume", False):
-                checkpoint = kwargs.pop("checkpoint", None)
-                optimizer = self.update_state_dict(optimizer,
-                                                   checkpoint["optimizer"])
-                prefix = "Resumed"
+        optimizer = getattr(torch.optim, opt_name)(model_params, **kwargs)
+        prefix = "Initialized"
+        if kwargs.get("resume", False):
+            checkpoint = kwargs.pop("checkpoint", None)
+            optimizer = self.update_state_dict(optimizer,
+                                               checkpoint["optimizer"])
+            prefix = "Resumed"
 
-            self.log(f"===> {prefix} {opt_name}: {kwargs}", log_level)
-            return optimizer
-        except Exception as error:
-            raise AttributeError(f"Optimizer init failed: {error}")
+        self.log(f"===> {prefix} {opt_name}: {kwargs}", log_level)
+        return optimizer
 
     def init_lr_scheduler(self, scheduler_name, optimizer, **kwargs):
         warmup_epochs = kwargs.pop("warmup_epochs", 5)
