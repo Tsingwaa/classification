@@ -57,7 +57,7 @@ class ClusteringAffinity(nn.Module):
         rw = 2.0/(mc**2-mc)*residuals.sum()
         # rw=residuals.sum()
         batch_size = f.size(0)
-        rw_broadcast = torch.ones((batch_size, 1)).to('cuda')*rw
+        rw_broadcast = torch.ones((batch_size, 1)).to('cuda') * rw
         output = torch.cat((distance, rw_broadcast), dim=-1)
         return output
 
@@ -65,20 +65,21 @@ class ClusteringAffinity(nn.Module):
         upper = torch.triu(metrix)
         diagonal = torch.diag(metrix)
         diagonal_mask = torch.sign(torch.abs(torch.diag(diagonal)))
-        return upper*(1.0-diagonal_mask)
+        return upper * (1.0 - diagonal_mask)
 
 
 class Affinity_Loss(nn.Module):
-    def __init__(self, lambd):
+    def __init__(self, lamda):
         super(Affinity_Loss, self).__init__()
-        self.lamda = lambd
+        self.lamda = lamda
 
     def forward(self, y_pred_plusone, y_true_plusone):
         onehot = y_true_plusone[:, :-1]
         distance = y_pred_plusone[:, :-1]
         rw = torch.mean(y_pred_plusone[:, -1])
-        d_fi_wyi = torch.sum(onehot*distance, -1).unsqueeze(1)
-        losses = torch.clamp(self.lamda+distance-d_fi_wyi, min=0)
-        L_mm = torch.sum(losses*(1.0-onehot), -1) / y_true_plusone.size(0)
-        loss = torch.sum(L_mm+rw, -1)
+        d_fi_wyi = torch.sum(onehot * distance, -1).unsqueeze(1)
+        losses = torch.clamp(self.lamda + distance - d_fi_wyi, min=0)
+        L_mm = torch.sum(losses * (1.0 - onehot), -1) / y_true_plusone.size(0)
+        loss = torch.sum(L_mm + rw, -1)
+
         return loss
