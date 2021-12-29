@@ -12,10 +12,12 @@ class FocalLoss(nn.Module):
         self.gamma = gamma
 
     def forward(self, inputs, targets):
-        ce_loss = F.cross_entropy(inputs, targets, reduction='none')  # N*1
-        pt = torch.exp(-ce_loss)  # N*1: softmax prob of the target class
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none')  # (N, 1)
+        pt = torch.exp(-ce_loss)  # (N, 1): softmax prob of the target class
         if self.weight is not None:
             self.weight = self.weight.cuda()
-            ce_loss *= self.weight[targets]  # (N*1) * (N*1)
+            ce_loss *= self.weight[targets]  # elem: (N*1) * (N*1)
+
         focal_loss = ((1 - pt)**self.gamma * ce_loss).mean()  # 1*1
+
         return focal_loss

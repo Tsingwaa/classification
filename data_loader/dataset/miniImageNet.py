@@ -40,15 +40,8 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
     num_classes = 100
 
     # set_trace()
-    def __init__(self,
-                 data_root,
-                 phase,
-                 img_lst_fpath=None,
-                 transform=None,
-                 imb_type='exp',
-                 imb_factor=0.1,
-                 seed=0,
-                 adapt=False,
+    def __init__(self, data_root, phase, img_lst_fpath=None, transform=None,
+                 imb_type='exp', imb_factor=0.1, seed=0, adapt=False,
                  **kwargs):
         self.img_paths = []
         self.targets = []

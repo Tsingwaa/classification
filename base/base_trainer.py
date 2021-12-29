@@ -238,27 +238,28 @@ class BaseTrainer:
                 else:
                     var.requires_grad = False
 
-    def update_class_weight(self, imgs_per_cls, **kwargs):
+    def update_class_weight(self, **kwargs):
         """
         Args:
-            imgs_per_class(List): imgs of each class
-            weight_type(Str): select which type of weight
+            num_samples_per_cls(List): imgs of each class
         Return:
-            weight(Tensor): 1-D torch.Tensor
+            kwargs with updated weight
         """
-        weight_type = kwargs["weight_type"]
-        if not isinstance(imgs_per_cls, torch.Tensor):
-            imgs_per_cls = torch.FloatTensor(imgs_per_cls)
+        num_samples_per_cls = kwargs['num_samples_per_cls']
+        num_samples_per_cls = torch.FloatTensor(num_samples_per_cls)
 
-        if weight_type == "class_weight":
-            num_img = torch.sum(imgs_per_cls)
-            num_cls = len(imgs_per_cls)
-            weight = num_img / (num_cls * imgs_per_cls)
+        if kwargs["weight_type"] == "class_weight":
+            num_samples = torch.sum(num_samples_per_cls)
+            num_classes = len(num_samples_per_cls)
+            weight = num_samples / (num_classes * num_samples_per_cls)
             weight /= torch.sum(weight)
-        elif weight_type == "CB":
+
+        elif kwargs["weight_type"] == "Class-balanced":
             beta = kwargs["beta"]
-            weight = (1.0 - beta) / (1.0 - torch.pow(beta, imgs_per_cls))
+            weight = (1.0 - beta) / \
+                (1.0 - torch.pow(beta, num_samples_per_cls))
             weight /= torch.sum(weight)
+
         else:
             weight = None
 
@@ -266,14 +267,16 @@ class BaseTrainer:
             display_weight = weight.numpy().round(2)
             self.log(f"===> Computed class_weight:\n{display_weight}")
         kwargs.update({"weight": weight})
+
         return kwargs
 
     def init_loss(self, loss_name, **kwargs):
-        log_level = kwargs.get("log_level", "default")
-        kwargs.pop("log_level", None)
+        log_level = kwargs.pop("log_level", "default")
 
+        kwargs = self.update_class_weight(**kwargs)
         loss = Losses.get(loss_name)(**kwargs)
-        kwargs.pop("weight", None)
+
+        kwargs.pop("weight")
         self.log(f"===> Initialized {loss_name}: {kwargs}", log_level)
         return loss.cuda()
 
@@ -336,33 +339,17 @@ class BaseTrainer:
             f"Mean recall:{mr:.2%}\nGroup recalls:{recalls}\n"
         return checkpoint, resume_log
 
-    def save_checkpoint(self,
-                        epoch,
-                        model,
-                        optimizer,
-                        is_best,
-                        mr,
-                        group_mr,
-                        prefix,
-                        save_dir,
-                        criterion=None):
-        checkpoint = {
-            "model":
-            model.state_dict()
-            if self.local_rank == -1 else model.module.state_dict(),
-            "optimizer":
-            optimizer.state_dict(),
-            "criterion":
-            criterion.state_dict() if criterion is not None else None,
-            "best":
-            is_best,
-            "epoch":
-            epoch,
-            "mr":
-            mr,
-            "group_recalls":
-            group_mr
-        }
+    def save_checkpoint(self, epoch, model, optimizer, is_best, mr, group_mr,
+                        save_dir, prefix=None, criterion=None):
+        checkpoint = {"model": model.state_dict()
+                      if self.local_rank == -1 else model.module.state_dict(),
+                      "optimizer": optimizer.state_dict(),
+                      "criterion": criterion.state_dict()
+                      if criterion is not None else None,
+                      "best": is_best,
+                      "epoch": epoch,
+                      "mr": mr,
+                      "group_recalls": group_mr}
         save_fname = "best.pth.tar" if is_best else "last.pth.tar"
         if prefix is not None:
             save_fname = prefix + "_" + save_fname
@@ -416,13 +403,13 @@ class BaseTrainer:
         unupdated keys of the module"""
         module_state_dict = module.state_dict()
         update_items = {
-            k: v
-            for k, v in checkpoint_state_dict.items()
-            if k in module_state_dict.keys()
+            key: value
+            for key, value in checkpoint_state_dict.items()
+            if key in module_state_dict.keys()
         }
         unupdated_keys = [
-            k for k in module_state_dict.keys()
-            if k not in update_items.keys()
+            key for key in module_state_dict.keys()
+            if key not in update_items.keys()
         ]
         self.log(f"Found unused keys from checkpoint: {unupdated_keys}")
         module_state_dict.update(update_items)
