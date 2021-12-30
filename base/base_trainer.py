@@ -238,42 +238,34 @@ class BaseTrainer:
                 else:
                     var.requires_grad = False
 
-    def update_class_weight(self, **kwargs):
-        """
-        Args:
-            num_samples_per_cls(List): imgs of each class
-        Return:
-            kwargs with updated weight
-        """
-        num_samples_per_cls = kwargs['num_samples_per_cls']
+    def get_class_weight(self, num_samples_per_cls, weight_type, **kwargs):
         num_samples_per_cls = torch.FloatTensor(num_samples_per_cls)
-
-        if kwargs["weight_type"] == "class_weight":
+        if weight_type == "inverse":
             num_samples = torch.sum(num_samples_per_cls)
             num_classes = len(num_samples_per_cls)
             weight = num_samples / (num_classes * num_samples_per_cls)
             weight /= torch.sum(weight)
-
-        elif kwargs["weight_type"] == "Class-balanced":
+        elif weight_type == "proportion":
+            num_samples = torch.sum(num_samples_per_cls)
+            weight = num_samples_per_cls / num_samples
+            weight /= torch.sum(weight)
+        elif weight_type == "Class-balanced":
             beta = kwargs["beta"]
             weight = (1.0 - beta) / \
                 (1.0 - torch.pow(beta, num_samples_per_cls))
             weight /= torch.sum(weight)
-
         else:
             weight = None
-
-        if weight is not None:
-            display_weight = weight.numpy().round(2)
-            self.log(f"===> Computed class_weight:\n{display_weight}")
-        kwargs.update({"weight": weight})
-
-        return kwargs
+        return weight
 
     def init_loss(self, loss_name, **kwargs):
         log_level = kwargs.pop("log_level", "default")
 
-        kwargs = self.update_class_weight(**kwargs)
+        weight = kwargs.get('weight', None)
+        if weight is not None:
+            display_weight = weight.numpy().round(2)
+            self.log(f"===> Computed class_weight:\n{display_weight}")
+
         loss = Losses.get(loss_name)(**kwargs)
 
         kwargs.pop("weight")
@@ -294,8 +286,8 @@ class BaseTrainer:
         prefix = "Initialized"
         if kwargs.get("resume", False):
             checkpoint = kwargs.pop("checkpoint", None)
-            optimizer = self.update_state_dict(optimizer,
-                                               checkpoint["optimizer"])
+            optimizer = self.update_state_dict(
+                optimizer, checkpoint["optimizer"])
             prefix = "Resumed"
 
         self.log(f"===> {prefix} {opt_name}: {kwargs}", log_level)
@@ -349,7 +341,7 @@ class BaseTrainer:
                       "best": is_best,
                       "epoch": epoch,
                       "mr": mr,
-                      "group_recalls": group_mr}
+                      "group_mr": group_mr}
         save_fname = "best.pth.tar" if is_best else "last.pth.tar"
         if prefix is not None:
             save_fname = prefix + "_" + save_fname
