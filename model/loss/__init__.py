@@ -5,3 +5,4 @@ from .focal_loss import *
 from .softmax_loss import *
 from .triplet_loss import *
 from .ldam_loss import *
+from .affinity_loss import *

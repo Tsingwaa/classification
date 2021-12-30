@@ -123,11 +123,13 @@ class ResNet_CIFAR(nn.Module):
         self.fc_2 = nn.Linear(64, 2)
         self.fc_N = nn.Linear(2, num_classes)
         # Init ClusteringAffinity class object
-        self.affinity = ClusteringAffinity(n_classes=num_classes,
-                                           n_centers=5,
-                                           sigma=kwargs.get('sigma', 0),
-                                           feat_dim=64,
-                                           init_weight=True)
+        # self.bn_a = nn.BatchNorm1d(64)
+        self.affinity = ClusteringAffinity(
+            num_classes=num_classes,
+            num_centers=kwargs.get('num_centers', 5),
+            sigma=kwargs.get('sigma', 10),
+            feat_dim=64,
+            init_weight=True)
         self.apply(_weights_init)
 
     def _make_layer(self, block, planes, num_blocks, stride):
@@ -139,7 +141,7 @@ class ResNet_CIFAR(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, out_type='fc'):
+    def forward(self, x, out_type='logits'):
         x = F.relu(self.bn1(self.conv1(x)))
         x = self.layer1(x)
         x = self.layer2(x)
@@ -154,6 +156,9 @@ class ResNet_CIFAR(nn.Module):
                 return feat_2d
             else:  # output logits through D->2->N MLP
                 return self.fc_N(feat_2d)  # (N, C)
+        elif out_type == 'affinity':
+            # feat = self.bn_a(feat)
+            return self.affinity(feat)  # (N, C+1)
         else:  # Default output logits
             return self.fc(feat)  # (N, C)
 
