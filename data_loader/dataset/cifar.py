@@ -5,6 +5,7 @@
 
 import numpy as np
 import PIL
+import torch
 import torchvision
 # from pudb import set_trace
 from data_loader.dataset.builder import Datasets
@@ -61,15 +62,8 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     mean = [0.4914, 0.4822, 0.4465]
     std = [0.2023, 0.1994, 0.2010]
 
-    def __init__(self,
-                 data_root,
-                 phase,
-                 transform=None,
-                 download=True,
-                 imb_type='exp',
-                 imb_factor=0.01,
-                 seed=0,
-                 **kwargs):
+    def __init__(self, data_root, phase, transform=None, download=True,
+                 imb_type='exp', imb_factor=0.01, seed=0, **kwargs):
         train = True if phase == 'train' else False
         super(ImbalanceCIFAR10, self).__init__(root=data_root,
                                                train=train,
@@ -143,6 +137,13 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
             img = self.transform(img, mean=self.mean, std=self.std)
 
         return img, target
+
+    @property
+    def class_weight(self):
+        num_samples = torch.sum(self.num_samples_per_cls)
+        weight = num_samples / (self.num_classes * self.num_samples_per_cls)
+        weight /= torch.sum(weight)
+        return weight
 
 
 @Datasets.register_module("ImbalanceCIFAR100")
