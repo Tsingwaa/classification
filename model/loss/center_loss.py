@@ -13,32 +13,36 @@ from __future__ import absolute_import
 
 import torch
 from model.loss.builder import Losses
-from pudb import set_trace
+# from pudb import set_trace
 from torch import nn
 from utils import cos_sim, eu_dist
 
 
 @Losses.register_module("CenterLoss")
 class CenterLoss(nn.Module):
-    def __init__(self,
-                 num_classes=10,
-                 feat_dim=2,
-                 alpha=0,
-                 alpha_dist='eu',
-                 **kwargs):
+    def __init__(self, num_classes, feat_dim, alpha=0, alpha_dist='eu',
+                 weight=None, **kwargs):
         """Initialize class centers
 
         Args:
             num_classes (int): number of classes.
-            feature_dim (int): dimension of feature vector.
+            feat_dim (int): dimension of feature vector.
             alpha (float): weight of constraint for distance between centers.
-            kwargs (dict): other args.
+            alpha_dist (dist type): optional eu or cos.
+            weight (list): whether to weight center loss
+            kwargs (dict):
         """
 
         super(CenterLoss, self).__init__()
         self.alpha = alpha
         self.alpha_dist = alpha_dist
+<<<<<<< HEAD
         
+=======
+        self.weight = weight
+        if self.weight is not None:
+            self.weight = self.weight.cuda()
+>>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
         self.centers = nn.Parameter(torch.randn(num_classes, feat_dim))
 
     def forward(self, feat_vec, labels):
@@ -48,9 +52,11 @@ class CenterLoss(nn.Module):
             labels (Tensor or List, batch_size * 1): ground truth labels
         """
 
-        self.centers = self.centers.cuda()
-        center = self.centers[labels]
-        dist = (feat_vec - center).pow(2).sum(dim=-1)
+        self.centers = self.centers.cuda()  # (C, d)
+        center = self.centers[labels]  # (N, d)
+        dist = (feat_vec - center).pow(2).sum(dim=-1)  # (N, 1)
+        if self.weight is not None:
+            dist *= self.weight[labels]  # (N, 1)
         loss = 0.5 * torch.clamp(dist, min=1e-12, max=1e+12).mean(dim=-1)
 
         if self.alpha_dist == 'eu':

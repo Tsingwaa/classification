@@ -75,10 +75,15 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
+        weight = self.get_class_weight(
+            num_samples_per_cls=trainset.num_samples_per_cls,
+            **self.loss_params,  # 包含weight_type
+        )
         self.criterion = self.init_loss(
             self.loss_name,
-            num_samples_per_cls=trainset.num_samples_per_cls,
-            **self.loss_params)
+            weight=weight,
+            **self.loss_params
+        )
 
         #######################################################################
         # Initialize Optimizer
@@ -155,17 +160,20 @@ class Trainer(BaseTrainer):
                     log_level='file')
 
                 # Save log by tensorboard
-                self.writer.add_scalar(f"{self.exp_name}/LR",
-                                       self.opt.param_groups[-1]["lr"],
-                                       cur_epoch)
-                self.writer.add_scalars(f"{self.exp_name}/Loss", {
-                    "train_loss": train_loss,
-                    "val_loss": val_loss
-                }, cur_epoch)
-                self.writer.add_scalars(f"{self.exp_name}/Recall", {
-                    "train_mr": train_stat.mr,
-                    "val_mr": val_stat.mr
-                }, cur_epoch)
+                self.writer.add_scalar(
+                    f"{self.exp_name}/LR",
+                    self.opt.param_groups[-1]["lr"],
+                    cur_epoch)
+                self.writer.add_scalars(
+                    f"{self.exp_name}/Loss", {
+                        "train_loss": train_loss,
+                        "val_loss": val_loss
+                    }, cur_epoch)
+                self.writer.add_scalars(
+                    f"{self.exp_name}/Recall", {
+                        "train_mr": train_stat.mr,
+                        "val_mr": val_stat.mr
+                    }, cur_epoch)
                 self.writer.add_scalars(
                     f"{self.exp_name}/TrainGroupRecall", {
                         "head_mr": train_stat.group_mr[0],
@@ -234,7 +242,7 @@ class Trainer(BaseTrainer):
 
             batch_imgs = batch_imgs.cuda()
             batch_labels = batch_labels.cuda()
-            batch_probs = model(batch_imgs)
+            batch_probs = model(batch_imgs, out_type='fc')
             avg_loss = criterion(batch_probs, batch_labels)
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
@@ -245,7 +253,7 @@ class Trainer(BaseTrainer):
                 avg_loss.backward()
                 opt.step()
 
-            batch_preds = batch_probs.max(1)[1]
+            batch_preds = torch.argmax(batch_probs, dim=1)
             train_loss_meter.update(avg_loss.item(), 1)
             train_stat.update(batch_labels, batch_preds)
 
@@ -280,8 +288,8 @@ class Trainer(BaseTrainer):
                 batch_imgs = batch_imgs.cuda()
                 batch_labels = batch_labels.cuda()
 
-                batch_probs = model(batch_imgs)
-                batch_preds = batch_probs.max(1)[1]
+                batch_probs = model(batch_imgs, out_type='fc')
+                batch_preds = torch.argmax(batch_probs, dim=1)
                 avg_loss = criterion(batch_probs, batch_labels)
 
                 val_loss_meter.update(avg_loss.item(), 1)
@@ -301,9 +309,7 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank",
-                        type=int,
-                        help="Local Rank for\
+    parser.add_argument("--local_rank", type=int, help="Local Rank for\
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     args = parser.parse_args()

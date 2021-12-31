@@ -32,6 +32,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 from model.network.builder import Networks
+from model.module.clustering_affinity import ClusteringAffinity
 from torch.nn import Parameter
 
 __all__ = [
@@ -71,19 +72,11 @@ class BasicBlock(nn.Module):
 
     def __init__(self, in_planes, planes, stride=1, option='A'):
         super(BasicBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_planes,
-                               planes,
-                               kernel_size=3,
-                               stride=stride,
-                               padding=1,
-                               bias=False)
+        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3,
+                               stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes,
-                               planes,
-                               kernel_size=3,
-                               stride=1,
-                               padding=1,
-                               bias=False)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3,
+                               stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
 
         self.shortcut = nn.Sequential()
@@ -97,11 +90,8 @@ class BasicBlock(nn.Module):
                     (0, 0, 0, 0, planes // 4, planes // 4), "constant", 0))
             elif option == 'B':
                 self.shortcut = nn.Sequential(
-                    nn.Conv2d(in_planes,
-                              self.expansion * planes,
-                              kernel_size=1,
-                              stride=stride,
-                              bias=False),
+                    nn.Conv2d(in_planes, self.expansion * planes,
+                              kernel_size=1, stride=stride, bias=False),
                     nn.BatchNorm2d(self.expansion * planes))
 
     def forward(self, x):
@@ -113,21 +103,13 @@ class BasicBlock(nn.Module):
 
 
 class ResNet_CIFAR(nn.Module):
-    def __init__(self,
-                 block,
-                 num_blocks,
-                 num_classes=10,
-                 use_norm=False,
+    def __init__(self, block, num_blocks, num_classes=10, use_norm=False,
                  **kwargs):
         super(ResNet_CIFAR, self).__init__()
         self.in_planes = 16
 
-        self.conv1 = nn.Conv2d(3,
-                               16,
-                               kernel_size=3,
-                               stride=1,
-                               padding=1,
-                               bias=False)
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1,
+                               padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(16)
         self.layer1 = self._make_layer(block, 16, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
@@ -140,7 +122,14 @@ class ResNet_CIFAR(nn.Module):
 
         self.fc_2 = nn.Linear(64, 2)
         self.fc_N = nn.Linear(2, num_classes)
-
+        # Init ClusteringAffinity class object
+        # self.bn_a = nn.BatchNorm1d(64)
+        self.affinity = ClusteringAffinity(
+            num_classes=num_classes,
+            num_centers=kwargs.get('num_centers', 5),
+            sigma=kwargs.get('sigma', 10),
+            feat_dim=64,
+            init_weight=True)
         self.apply(_weights_init)
 
     def _make_layer(self, block, planes, num_blocks, stride):
@@ -152,7 +141,7 @@ class ResNet_CIFAR(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, out_type='fc'):
+    def forward(self, x, out_type='logits'):
         x = F.relu(self.bn1(self.conv1(x)))
         x = self.layer1(x)
         x = self.layer2(x)
@@ -167,6 +156,9 @@ class ResNet_CIFAR(nn.Module):
                 return feat_2d
             else:  # output logits through D->2->N MLP
                 return self.fc_N(feat_2d)  # (N, C)
+        elif out_type == 'affinity':
+            # feat = self.bn_a(feat)
+            return self.affinity(feat)  # (N, C+1)
         else:  # Default output logits
             return self.fc(feat)  # (N, C)
 

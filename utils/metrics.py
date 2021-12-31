@@ -39,7 +39,7 @@ def get_preds_by_eudist(querys, keys):
     keys: num_classes * d
     """
     dist_mat = eu_dist(querys, keys, sqrt=False)  # batch_size * num_classes
-    preds = dist_mat.max(1)[1]  # predicted classes: batch_size * 1
+    preds = dist_mat.min(1)[1]  # predicted classes: batch_size * 1
     return preds
 
 

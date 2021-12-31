@@ -88,11 +88,27 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
+<<<<<<< HEAD
         self.loss_params = self.update_class_weight(trainset.img_num,
                                                     **self.loss_params)
         self.loss2_params = self.update_class_weight(trainset.img_num,
                                                     **self.loss2_params)
         self.criterion = self.init_loss(self.loss_name, **self.loss_params)
+=======
+        weight = self.get_class_weight(
+            num_samples_per_cls=trainset.num_samples_per_cls,
+            **self.loss_params,)
+        self.criterion = self.init_loss(self.loss_name,
+                                        weight=weight,
+                                        **self.loss_params)
+
+        weight2 = self.get_class_weight(
+            num_samples_per_cls=trainset.num_samples_per_cls,
+            **self.loss2_params,)
+        self.criterion2 = self.init_loss(self.loss2_name,
+                                         weight=weight2,
+                                         **self.loss2_params)
+>>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
 
         self.criterion2 = self.init_loss(self.loss2_name, **self.loss2_params)
         print(self.loss2_name)
@@ -100,7 +116,8 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Optimizer
         #######################################################################
-        self.opt = self.init_optimizer(self.opt_name, self.model.parameters(),
+        self.opt = self.init_optimizer(self.opt_name,
+                                       self.model.parameters(),
                                        **self.opt_params)
         self.opt2 = self.init_optimizer(self.opt2_name,
                                         self.criterion2.parameters(),
@@ -120,7 +137,8 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.scheduler = self.init_lr_scheduler(self.scheduler_name, self.opt,
+        self.scheduler = self.init_lr_scheduler(self.scheduler_name,
+                                                self.opt,
                                                 **self.scheduler_params)
         self.scheduler2 = self.init_lr_scheduler(self.scheduler2_name,
                                                  self.opt2,
@@ -152,7 +170,8 @@ class Trainer(BaseTrainer):
                 self.opt,
                 criterion2=self.criterion2,
                 optimizer2=self.opt2,
-                num_classes=trainset.cls_num)
+                num_classes=trainset.num_classes,
+            )
 
             if self.local_rank in [-1, 0]:
                 val_stat, val_loss = self.evaluate(
@@ -160,9 +179,10 @@ class Trainer(BaseTrainer):
                     self.valloader,
                     self.model,
                     self.criterion,
-                    num_classes=trainset.cls_num)
+                    num_classes=trainset.num_classes,
+                )
 
-                if self.final_epoch - cur_epoch <= 10:
+                if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
                     last_head_mrs.append(val_stat.group_mr[0])
                     last_mid_mrs.append(val_stat.group_mr[1])
@@ -182,8 +202,6 @@ class Trainer(BaseTrainer):
                     f"Mid={val_stat.group_mr[1]:.2%} "
                     f"Tail={val_stat.group_mr[2]:.2%}",
                     log_level='file')
-                # if len(val_recalls) <= 20 and cur_epoch == self.total_epochs:
-                #     self.logger.info(f"Class recalls: {val_recalls}\n")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(f"{self.exp_name}/LR",
@@ -216,6 +234,7 @@ class Trainer(BaseTrainer):
                 if is_best:
                     best_mr = val_stat.mr
                     best_epoch = cur_epoch
+<<<<<<< HEAD
                     best_group_mr = list(val_stat.group_mr)
                 if (not cur_epoch % self.save_period) or is_best:
                     self.save_checkpoint(epoch=cur_epoch,
@@ -227,6 +246,22 @@ class Trainer(BaseTrainer):
                                          group_mr=val_stat.group_mr,
                                          prefix=None,
                                          save_dir=self.exp_dir)
+=======
+                    best_group_mr = val_stat.group_mr
+                if (not cur_epoch % self.save_period) or is_best:
+                    self.save_checkpoint(
+                        epoch=cur_epoch,
+                        model=self.model,
+                        optimizer=self.opt,
+                        is_best=is_best,
+                        mr=val_stat.mr,
+                        group_mr=val_stat.group_mr,
+                        prefix=None,
+                        save_dir=self.exp_dir,
+                        criterion=self.criterion2,
+                    )
+
+>>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
         end_time = datetime.now()
         dur_time = str(end_time - start_time)[:-7]  # 取到秒
 
@@ -249,15 +284,8 @@ class Trainer(BaseTrainer):
                 f"*********************************************************"
                 f"*********************************************************\n")
 
-    def train_epoch(self,
-                    cur_epoch,
-                    trainloader,
-                    model,
-                    criterion,
-                    optimizer,
-                    criterion2=None,
-                    optimizer2=None,
-                    num_classes=None):
+    def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
+                    criterion2=None, optimizer2=None, num_classes=None):
         model.train()
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
@@ -274,7 +302,11 @@ class Trainer(BaseTrainer):
 
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
+<<<<<<< HEAD
             batch_fvecs = model(batch_imgs, out_type='vec')
+=======
+            batch_fvecs = model(batch_imgs, out_type='feat')
+>>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
             batch_probs = model.fc(batch_fvecs)
             loss1 = criterion(batch_probs, batch_labels)
             loss2 = criterion2(batch_fvecs, batch_labels)
@@ -295,7 +327,7 @@ class Trainer(BaseTrainer):
             loss1_meter.update(loss1.item(), 1)
             loss2_meter.update(loss2.item(), 1)
 
-            batch_preds = batch_probs.max(1)[1]
+            batch_preds = torch.argmax(batch_probs, dim=1)
             train_stat.update(batch_labels, batch_preds)
 
             if self.local_rank in [-1, 0]:
@@ -332,8 +364,7 @@ class Trainer(BaseTrainer):
 
         if self.local_rank in [-1, 0]:
             val_pbar = tqdm(total=len(valloader),
-                            ncols=0,
-                            desc="                 Val")
+                            ncols=0, desc="                 Val")
         val_loss_meter = AverageMeter()
         val_stat = ExpStat(num_classes)
         with torch.no_grad():
@@ -341,8 +372,8 @@ class Trainer(BaseTrainer):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
 
-                batch_probs = model(batch_imgs)
-                batch_preds = batch_probs.max(1)[1]
+                batch_probs = model(batch_imgs, out_type='fc')
+                batch_preds = torch.argmax(batch_probs, dim=1)
                 avg_loss = criterion(batch_probs, batch_labels)
 
                 val_loss_meter.update(avg_loss.item(), 1)
@@ -362,9 +393,7 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank",
-                        type=int,
-                        help="Local Rank for\
+    parser.add_argument("--local_rank", type=int, help="Local Rank for\
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     args = parser.parse_args()

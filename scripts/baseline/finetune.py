@@ -171,7 +171,7 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.loss_params = self.update_class_weight(
+        self.loss_params = self.get_class_weight(
             trainset.num_samples_per_cls, **self.loss_params)
         self.criterion = self.init_loss(self.loss_name, **self.loss_params)
 
