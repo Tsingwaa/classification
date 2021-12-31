@@ -60,7 +60,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     num_classes = 10
     mean = [0.4914, 0.4822, 0.4465]
     std = [0.2023, 0.1994, 0.2010]
-
+    cls_num = 10
     def __init__(self,
                  data_root,
                  phase,
@@ -83,6 +83,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         np.random.seed(self.seed)
 
         self.num_samples_per_cls = self.get_img_num_per_cls()
+        self.img_num = self.num_samples_per_cls
         self.gen_imbalanced_data()
 
     def get_img_num_per_cls(self):
@@ -167,6 +168,7 @@ class ImbalanceCIFAR100(ImbalanceCIFAR10):
         'md5': '7973b15100ade9c7d40fb424638fde48',
     }
     num_classes = 100
+    cls_num = 100
 
 
 if __name__ == '__main__':

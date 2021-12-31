@@ -48,7 +48,7 @@ class BaseTrainer:
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.user_root = os.environ["HOME"]
-        self.exp_root = join(self.user_root, "Experiments")
+        self.exp_root = join(self.user_root, "project/Experiments")
         self.start_epoch = self.exp_config["start_epoch"]
         self.total_epochs = self.exp_config["total_epochs"]
 
@@ -238,14 +238,14 @@ class BaseTrainer:
                 else:
                     var.requires_grad = False
 
-    def update_class_weight(self, **kwargs):
+    def update_class_weight(self, num_samples_per_cls, **kwargs):
         """
         Args:
             num_samples_per_cls(List): imgs of each class
         Return:
             kwargs with updated weight
         """
-        num_samples_per_cls = kwargs['num_samples_per_cls']
+        # num_samples_per_cls = kwargs['num_samples_per_cls']
         num_samples_per_cls = torch.FloatTensor(num_samples_per_cls)
 
         if kwargs["weight_type"] == "class_weight":
@@ -259,6 +259,7 @@ class BaseTrainer:
             weight = (1.0 - beta) / \
                 (1.0 - torch.pow(beta, num_samples_per_cls))
             weight /= torch.sum(weight)
+            weight *= kwargs["num_class"]
 
         else:
             weight = None
@@ -272,8 +273,8 @@ class BaseTrainer:
 
     def init_loss(self, loss_name, **kwargs):
         log_level = kwargs.pop("log_level", "default")
-
-        kwargs = self.update_class_weight(**kwargs)
+        print(kwargs)
+        # kwargs = self.update_class_weight(**kwargs)
         loss = Losses.get(loss_name)(**kwargs)
 
         kwargs.pop("weight")

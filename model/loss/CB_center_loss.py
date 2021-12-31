@@ -16,13 +16,15 @@ from model.loss.builder import Losses
 from pudb import set_trace
 from torch import nn
 from utils import cos_sim, eu_dist
+import numpy as np
+import torch.nn.functional as F
 
-
-@Losses.register_module("CenterLoss")
-class CenterLoss(nn.Module):
+@Losses.register_module("CB_CenterLoss")
+class CB_CenterLoss(nn.Module):
     def __init__(self,
                  num_classes=10,
                  feat_dim=2,
+                 weight=None,
                  alpha=0,
                  alpha_dist='eu',
                  **kwargs):
@@ -35,11 +37,12 @@ class CenterLoss(nn.Module):
             kwargs (dict): other args.
         """
 
-        super(CenterLoss, self).__init__()
+        super(CB_CenterLoss, self).__init__()
         self.alpha = alpha
         self.alpha_dist = alpha_dist
-        
         self.centers = nn.Parameter(torch.randn(num_classes, feat_dim))
+        self.weights = torch.tensor(weight).cuda()
+        self.num_classes = num_classes
 
     def forward(self, feat_vec, labels):
         """
@@ -50,7 +53,9 @@ class CenterLoss(nn.Module):
 
         self.centers = self.centers.cuda()
         center = self.centers[labels]
+        weights = self.weights[labels]
         dist = (feat_vec - center).pow(2).sum(dim=-1)
+        dist = weights * dist
         loss = 0.5 * torch.clamp(dist, min=1e-12, max=1e+12).mean(dim=-1)
 
         if self.alpha_dist == 'eu':
