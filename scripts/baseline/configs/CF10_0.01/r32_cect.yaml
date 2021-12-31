@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_r32_cect"
+  name: "CF10_0.01_r32_cect_proportion"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
