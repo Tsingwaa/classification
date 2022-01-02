@@ -34,6 +34,8 @@ class CutMix(Dataset):
 
             # generate mixed sample, lambd for original area
             lambd = np.random.beta(self.beta, self.beta)
+
+            # TODO add class-specific weight prob.
             rand_index = random.choice(range(len(self)))
 
             img2, lb2 = self.dataset[rand_index]
