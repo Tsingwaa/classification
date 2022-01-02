@@ -36,13 +36,10 @@ class CenterLoss(nn.Module):
         super(CenterLoss, self).__init__()
         self.alpha = alpha
         self.alpha_dist = alpha_dist
-<<<<<<< HEAD
-        
-=======
         self.weight = weight
         if self.weight is not None:
             self.weight = self.weight.cuda()
->>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
+
         self.centers = nn.Parameter(torch.randn(num_classes, feat_dim))
 
     def forward(self, feat_vec, labels):
