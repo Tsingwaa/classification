@@ -36,6 +36,7 @@ class BaseTrainer:
         torch.backends.cudnn.benchmark = True
 
         self.local_rank = local_rank
+
         if self.local_rank != -1:
             dist.init_process_group(backend="nccl")
             torch.cuda.set_device(self.local_rank)
@@ -54,6 +55,7 @@ class BaseTrainer:
 
         self._set_configs(config)  # set common configs
         self.resume = self.exp_config["resume"]
+
         if self.resume:
             if "/" in self.exp_config["resume_fpath"]:
                 self.resume_fpath = self.exp_config["resume_fpath"]
@@ -96,6 +98,7 @@ class BaseTrainer:
                 f"**********************************************\n"
 
             self.log(exp_init_log)
+
             if self.resume:
                 self.log(resume_log)
 
@@ -166,6 +169,7 @@ class BaseTrainer:
         transform = Transforms.get(transform_name)(**kwargs)
         transform_init_log = f"===> Initialized {transform_name}: {kwargs}"
         self.log(transform_init_log, log_level)
+
         return transform
 
     def init_dataset(self, dataset_name, **kwargs):
@@ -179,6 +183,7 @@ class BaseTrainer:
             f"classes={dataset.num_classes}\n"\
             f"imgs_per_cls={dataset.num_samples_per_cls}"
         self.log(dataset_init_log, log_level)
+
         return dataset
 
     def init_sampler(self, sampler_name, **kwargs):
@@ -195,6 +200,7 @@ class BaseTrainer:
             sampler_init_log = f"===> Initialized {sampler_name} with"\
                 f" resampled size={len(sampler)}"
         self.log(sampler_init_log, log_level)
+
         return sampler
 
     def init_model(self, network_name, resume=False, checkpoint=None,
@@ -206,6 +212,7 @@ class BaseTrainer:
         model.cuda()
 
         prefix = "Initialized"
+
         if resume:
             model = self.update_state_dict(model, checkpoint["model"])
             prefix = "Resumed checkpoint model_params to"
@@ -219,6 +226,7 @@ class BaseTrainer:
         model_init_log = f"===> {prefix} {network_name}(total_params"\
             f"={total_params:.2f}m): {kwargs}"
         self.log(model_init_log, log_level)
+
         return model
 
     def freeze_model(self, model, unfreeze_keys=["fc"]):
@@ -226,6 +234,7 @@ class BaseTrainer:
         Default: leave fc unfreezed
         """
         self.log(f"===> Freeze model except for keys{unfreeze_keys}")
+
         for named_key, var in model.named_parameters():
             if unfreeze_keys is None:
                 var.requires_grad = False
@@ -237,6 +246,7 @@ class BaseTrainer:
 
     def get_class_weight(self, num_samples_per_cls, weight_type, **kwargs):
         num_samples_per_cls = torch.FloatTensor(num_samples_per_cls)
+
         if weight_type == "inverse":
             num_samples = torch.sum(num_samples_per_cls)
             num_classes = len(num_samples_per_cls)
@@ -253,12 +263,14 @@ class BaseTrainer:
             weight /= torch.sum(weight)
         else:
             weight = None
+
         return weight
 
     def init_loss(self, loss_name, **kwargs):
         log_level = kwargs.pop("log_level", "default")
 
         weight = kwargs.get('weight', None)
+
         if weight is not None:
             display_weight = weight.numpy().round(2)
             self.log(f"===> Computed class_weight:\n{display_weight}")
@@ -267,6 +279,7 @@ class BaseTrainer:
 
         kwargs.pop("weight")
         self.log(f"===> Initialized {loss_name}: {kwargs}", log_level)
+
         return loss.cuda()
 
     def init_optimizer(self, opt_name, model_params, **kwargs):
@@ -281,6 +294,7 @@ class BaseTrainer:
 
         optimizer = getattr(torch.optim, opt_name)(model_params, **kwargs)
         prefix = "Initialized"
+
         if kwargs.get("resume", False):
             checkpoint = kwargs.pop("checkpoint", None)
             optimizer = self.update_state_dict(
@@ -288,6 +302,7 @@ class BaseTrainer:
             prefix = "Resumed"
 
         self.log(f"===> {prefix} {opt_name}: {kwargs}", log_level)
+
         return optimizer
 
     def init_lr_scheduler(self, scheduler_name, optimizer, **kwargs):
@@ -296,6 +311,7 @@ class BaseTrainer:
         lr_scheduler = getattr(torch.optim.lr_scheduler,
                                scheduler_name)(optimizer, **kwargs)
         self.log(f"===> Initialized {scheduler_name}: {kwargs}")
+
         if warmup_epochs > 0:
             lr_scheduler = GradualWarmupScheduler(
                 optimizer,
@@ -305,17 +321,20 @@ class BaseTrainer:
             )
             self.log(f"===> Initialized gradual warmup scheduler: "
                      f"warmup_epochs={warmup_epochs}")
+
         return lr_scheduler
 
     def init_module(self, module_name, **kwargs):
         module = Modules.get(module_name)(**kwargs)
         del kwargs["model"]
         self.log(f"===> Initialized {module_name}: {kwargs}")
+
         return module
 
     def _reduce_loss(self, tensor):
         with torch.no_grad():
             dist.reduce(tensor, dst=0)
+
             if not self.local_rank:
                 tensor /= self.world_size
 
@@ -326,6 +345,7 @@ class BaseTrainer:
 
         resume_log = f"===> Resume checkpoint from '{resume_fpath}'.\n"\
             f"Mean recall:{mr:.2%}\nGroup recalls:{recalls}\n"
+
         return checkpoint, resume_log
 
     def save_checkpoint(self, epoch, model, optimizer, is_best, mr, group_mr,
@@ -334,12 +354,14 @@ class BaseTrainer:
                       if self.local_rank == -1 else model.module.state_dict(),
                       "optimizer": optimizer.state_dict(),
                       "criterion": criterion.state_dict()
+
                       if criterion is not None else None,
                       "best": is_best,
                       "epoch": epoch,
                       "mr": mr,
                       "group_mr": group_mr}
         save_fname = "best.pth.tar" if is_best else "last.pth.tar"
+
         if prefix is not None:
             save_fname = prefix + "_" + save_fname
         save_path = join(save_dir, save_fname)
@@ -382,9 +404,11 @@ class BaseTrainer:
 
     def count_model_params(self, model):
         total_params = 0.
+
         for x in filter(lambda p: p.requires_grad, model.parameters()):
             total_params += np.prod(x.data.numpy().shape)
         total_params /= 10**6
+
         return total_params
 
     def update_state_dict(self, module, checkpoint_state_dict):
@@ -393,16 +417,20 @@ class BaseTrainer:
         module_state_dict = module.state_dict()
         update_items = {
             key: value
+
             for key, value in checkpoint_state_dict.items()
+
             if key in module_state_dict.keys()
         }
         unupdated_keys = [
             key for key in module_state_dict.keys()
+
             if key not in update_items.keys()
         ]
         self.log(f"Found unused keys from checkpoint: {unupdated_keys}")
         module_state_dict.update(update_items)
         module.load_state_dict(module_state_dict)
+
         return module
 
     @abc.abstractmethod
