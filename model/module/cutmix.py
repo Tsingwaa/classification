@@ -29,6 +29,7 @@ class CutMix(Dataset):
 
         for _ in range(self.num_mix):
             r = np.random.rand(1)
+
             if self.beta <= 0 or r > self.prob:
                 continue
 
@@ -61,11 +62,13 @@ def single_label2onehot(size, target):
     # single label to one-hot
     vec = torch.zeros(size, dtype=torch.float32)
     vec[target] = 1.
+
     return vec
 
 
 def rand_bbox(size, lambd):
     # size: (N, C, H, W)
+
     if len(size) in [3, 4]:
         H, W = size[-2], size[-1]
     else:
