@@ -77,18 +77,18 @@ def get_preds_by_cossim(querys, keys):
 
 
 class ExpStat(object):
-    def __init__(self, cls_num):
-        self.cls_num = cls_num
+    def __init__(self, num_classes):
+        self.num_classes = num_classes
         self.reset()
 
     def reset(self):
-        self._cm = np.zeros((self.cls_num, self.cls_num), dtype=int)
+        self._cm = np.zeros((self.num_classes, self.num_classes), dtype=int)
 
     def update(self, labels, preds):
         """labels and preds(batch_size*1) are both computed from iteration"""
-        labels, preds = labels.short(), preds.short()
-        length = preds.shape[0]
-        for i in range(length):
+        labels, preds = labels.short().cpu(), preds.short().cpu()
+        batch_size = preds.shape[0]
+        for i in range(batch_size):
             self._cm[labels[i], preds[i]] += 1  # label[i] --> output[i]
 
     @property
@@ -107,10 +107,10 @@ class ExpStat(object):
 
     @property
     def group_mr(self):
-        head_cls_num = math.floor(self.cls_num / 3)
+        head_cls_num = math.floor(self.num_classes / 3)
         tail_cls_num = head_cls_num
         head_mr = np.mean(self.recalls[:head_cls_num])
-        mid_mr = np.mean(self.recalls[head_cls_num:self.cls_num -
+        mid_mr = np.mean(self.recalls[head_cls_num:self.num_classes -
                                       tail_cls_num])
         tail_mr = np.mean(self.recalls[tail_cls_num:])
         return [
@@ -167,8 +167,8 @@ class ExpStat(object):
             xticks=np.arange(cm.shape[1]),
             yticks=np.arange(cm.shape[0]),
             # ... and label them with the respective list entries
-            xticklabels=np.arange(self.cls_num),
-            yticklabels=np.arange(self.cls_num),
+            xticklabels=np.arange(self.num_classes),
+            yticklabels=np.arange(self.num_classes),
             title=title,
             ylabel='True label',
             xlabel='Predicted label')
