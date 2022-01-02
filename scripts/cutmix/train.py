@@ -34,18 +34,19 @@ class Trainer(BaseTrainer):
         #######################################################################
         train_transform = self.init_transform(self.train_transform_name,
                                               **self.train_transform_params)
-        trainset = self.init_dataset(self.trainset_name,
-                                     transform=train_transform,
-                                     **self.trainset_params)
+        trainset0 = self.init_dataset(self.trainset_name,
+                                      transform=train_transform,
+                                      **self.trainset_params)
         self.log(f"===> Build Cutmix for {self.trainset_name}"
                  f" with {self.cutmix_params}")
-        trainset = CutMix(dataset=trainset,
+        trainset = CutMix(dataset=trainset0,
                           num_mix=1,
                           beta=self.cutmix_params["beta"],
                           prob=self.cutmix_params["prob"],)
         train_sampler = self.init_sampler(self.train_sampler_name,
                                           dataset=trainset,
                                           **self.trainloader_params)
+
         self.trainloader = DataLoaderX(trainset,
                                        batch_size=self.train_batchsize,
                                        shuffle=(train_sampler is None),
@@ -53,7 +54,6 @@ class Trainer(BaseTrainer):
                                        pin_memory=True,
                                        drop_last=True,
                                        sampler=train_sampler)
-
         if self.local_rank != -1:
             print(f"global_rank {self.global_rank},"
                   f"world_size {self.world_size},"
@@ -68,6 +68,14 @@ class Trainer(BaseTrainer):
                                        **self.valset_params)
             self.valloader = DataLoaderX(
                 valset,
+                batch_size=self.val_batchsize,
+                shuffle=False,
+                num_workers=self.val_workers,
+                pin_memory=True,
+                drop_last=False,
+            )
+            self.valloader_train = DataLoaderX(
+                trainset0,
                 batch_size=self.val_batchsize,
                 shuffle=False,
                 num_workers=self.val_workers,
@@ -133,19 +141,20 @@ class Trainer(BaseTrainer):
             if self.local_rank != -1:
                 train_sampler.set_epoch(cur_epoch)
 
-            train_stat, train_loss = self.train_epoch(
-                cur_epoch,
-                self.trainloader,
-                self.model,
-                self.criterion,
-                self.opt,
-                trainset.num_classes,
+            _, train_loss = self.train_epoch(
+                cur_epoch, self.trainloader, self.model, self.criterion,
+                self.opt, trainset.num_classes,
             )
 
             if self.local_rank in [-1, 0]:
-                val_stat, val_loss = self.evaluate(cur_epoch, self.valloader,
-                                                   self.model, self.criterion,
-                                                   trainset.num_classes)
+                train_stat, train_loss = self.evaluate(
+                    cur_epoch, self.valloader_train, self.model,
+                    self.criterion, trainset.num_classes,
+                )
+                val_stat, val_loss = self.evaluate(
+                    cur_epoch, self.valloader, self.model,
+                    self.criterion, trainset.num_classes
+                )
 
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
