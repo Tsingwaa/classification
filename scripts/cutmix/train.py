@@ -9,13 +9,13 @@ import torch
 import yaml
 from apex import amp
 from base.base_trainer import BaseTrainer
+from model.module import CutMix
 from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils import AverageMeter, ExpStat
-from model.module import CutMix
 
 
 class DataLoaderX(DataLoader):
@@ -54,6 +54,7 @@ class Trainer(BaseTrainer):
                                        pin_memory=True,
                                        drop_last=True,
                                        sampler=train_sampler)
+
         if self.local_rank != -1:
             print(f"global_rank {self.global_rank},"
                   f"world_size {self.world_size},"
@@ -110,6 +111,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
+
         if self.local_rank != -1:
             self.model, self.opt = amp.initialize(self.model,
                                                   self.opt,
@@ -136,8 +138,10 @@ class Trainer(BaseTrainer):
         last_tail_mrs = []
         self.final_epoch = self.start_epoch + self.total_epochs
         start_time = datetime.now()
+
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.scheduler.step()
+
             if self.local_rank != -1:
                 train_sampler.set_epoch(cur_epoch)
 
@@ -205,10 +209,12 @@ class Trainer(BaseTrainer):
                     }, cur_epoch)
 
                 is_best = val_stat.mr > best_mr
+
                 if is_best:
                     best_mr = val_stat.mr
                     best_epoch = cur_epoch
                     best_group_mr = val_stat.group_mr
+
                 if (not cur_epoch % self.save_period) or is_best:
                     self.save_checkpoint(
                         epoch=cur_epoch,
@@ -247,6 +253,7 @@ class Trainer(BaseTrainer):
     def train_epoch(self, cur_epoch, trainloader, model, criterion, opt,
                     num_classes, **kwargs):
         model.train()
+
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
@@ -254,6 +261,7 @@ class Trainer(BaseTrainer):
 
         train_loss_meter = AverageMeter()
         train_stat = ExpStat(num_classes)
+
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
 
@@ -261,6 +269,7 @@ class Trainer(BaseTrainer):
             batch_labels = batch_labels.cuda()
             batch_probs = model(batch_imgs, out_type='fc')
             avg_loss = criterion(batch_probs, batch_labels)
+
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
@@ -279,6 +288,7 @@ class Trainer(BaseTrainer):
                 train_pbar.set_postfix_str(
                     f"LR:{opt.param_groups[0]['lr']:.1e} "
                     f"Loss:{train_loss_meter.avg:>4.2f}")
+
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(f"LR:{opt.param_groups[0]['lr']:.1e} "
                                        f"Loss:{train_loss_meter.avg:>4.2f} "
@@ -330,6 +340,7 @@ def parse_args():
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     args = parser.parse_args()
+
     return args
 
 
