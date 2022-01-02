@@ -235,18 +235,7 @@ class BaseTrainer:
                 else:
                     var.requires_grad = False
 
-<<<<<<< HEAD
-    def update_class_weight(self, num_samples_per_cls, **kwargs):
-        """
-        Args:
-            num_samples_per_cls(List): imgs of each class
-        Return:
-            kwargs with updated weight
-        """
-        # num_samples_per_cls = kwargs['num_samples_per_cls']
-=======
     def get_class_weight(self, num_samples_per_cls, weight_type, **kwargs):
->>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
         num_samples_per_cls = torch.FloatTensor(num_samples_per_cls)
         if weight_type == "inverse":
             num_samples = torch.sum(num_samples_per_cls)
