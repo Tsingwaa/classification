@@ -108,7 +108,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.lr_scheduler = self.init_lr_scheduler(self.optimizer)
+        self.lr_scheduler = self.self(self.optimizer)
 
         #######################################################################
         # Start Training

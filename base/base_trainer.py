@@ -197,10 +197,7 @@ class BaseTrainer:
         self.log(sampler_init_log, log_level)
         return sampler
 
-    def init_model(self,
-                   network_name,
-                   resume=False,
-                   checkpoint=None,
+    def init_model(self, network_name, resume=False, checkpoint=None,
                    **kwargs):
         log_level = kwargs.pop("log_level", "default")
 

@@ -18,12 +18,13 @@ class Affinity_Loss(nn.Module):
         """
         batch_size = y_true_plusone.size(0)
 
-        onehot = y_true_plusone[:, :-1]  # onehot?
+        onehot = y_true_plusone[:, :-1]  # onehot + 0
         distance = y_pred_plusone[:, :-1]  # distance (N, C)
         rw = torch.mean(y_pred_plusone[:, -1])  # (N, 1) --> (1)
 
         # (N, C)->(N,)->(N, 1)
         d_fi_wyi = torch.sum(onehot * distance, -1).unsqueeze(1)
+
         # distance-d_f_w = (N, C) - (N, 1) --> (N, C)
         losses = torch.clamp(self.lamda + distance - d_fi_wyi, min=0)
 
