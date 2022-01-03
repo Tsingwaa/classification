@@ -25,6 +25,7 @@ from utils import GradualWarmupScheduler
 
 
 class BaseTrainer:
+
     def __init__(self, local_rank=-1, config=None):
         """ Base trainer for all experiments.  """
 
@@ -203,7 +204,10 @@ class BaseTrainer:
 
         return sampler
 
-    def init_model(self, network_name, resume=False, checkpoint=None,
+    def init_model(self,
+                   network_name,
+                   resume=False,
+                   checkpoint=None,
                    **kwargs):
         log_level = kwargs.pop("log_level", "default")
 
@@ -297,8 +301,8 @@ class BaseTrainer:
 
         if kwargs.get("resume", False):
             checkpoint = kwargs.pop("checkpoint", None)
-            optimizer = self.update_state_dict(
-                optimizer, checkpoint["optimizer"])
+            optimizer = self.update_state_dict(optimizer,
+                                               checkpoint["optimizer"])
             prefix = "Resumed"
 
         self.log(f"===> {prefix} {opt_name}: {kwargs}", log_level)
@@ -348,18 +352,34 @@ class BaseTrainer:
 
         return checkpoint, resume_log
 
-    def save_checkpoint(self, epoch, model, optimizer, is_best, mr, group_mr,
-                        save_dir, prefix=None, criterion=None):
-        checkpoint = {"model": model.state_dict()
-                      if self.local_rank == -1 else model.module.state_dict(),
-                      "optimizer": optimizer.state_dict(),
-                      "criterion": criterion.state_dict()
+    def save_checkpoint(self,
+                        epoch,
+                        model,
+                        optimizer,
+                        is_best,
+                        mr,
+                        group_mr,
+                        save_dir,
+                        prefix=None,
+                        criterion=None):
+        checkpoint = {
+            "model":
+            model.state_dict()
 
-                      if criterion is not None else None,
-                      "best": is_best,
-                      "epoch": epoch,
-                      "mr": mr,
-                      "group_mr": group_mr}
+            if self.local_rank == -1 else model.module.state_dict(),
+            "optimizer":
+            optimizer.state_dict(),
+            "criterion":
+            criterion.state_dict() if criterion is not None else None,
+            "best":
+            is_best,
+            "epoch":
+            epoch,
+            "mr":
+            mr,
+            "group_mr":
+            group_mr
+        }
         save_fname = "best.pth.tar" if is_best else "last.pth.tar"
 
         if prefix is not None:
