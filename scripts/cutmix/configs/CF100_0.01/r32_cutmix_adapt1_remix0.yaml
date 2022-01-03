@@ -1,5 +1,5 @@
 experiment:
-  name: "CF100_0.01_r32_cutmix_adapt_remix"
+  name: "CF100_0.01_r32_cutmix_adapt1_remix0"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"

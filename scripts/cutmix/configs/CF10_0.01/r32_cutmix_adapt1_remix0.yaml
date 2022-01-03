@@ -1,5 +1,5 @@
 experiment:
-  name: "CF100_0.1_r32_cutmix_adapt_remix"
+  name: "CF10_0.01_r32_cutmix_adapt1_remix0"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -55,15 +55,15 @@ val_transform:
     resize: [32, 32]
 
 train_dataset:
-  name: "ImbalanceCIFAR100"
+  name: "ImbalanceCIFAR10"
   param:
-    data_root: "cifar100"
+    data_root: "cifar10"
     phase: 'train'
     # train: True
     # img_lst_fpath: "None"
     # map_fpath: "None"
     imb_type: 'exp'
-    imb_factor: 0.1
+    imb_factor: 0.01
     rand_seed: 0
     download: False
 
@@ -74,9 +74,9 @@ cutmix:
   remix: True
 
 val_dataset:
-  name: "CIFAR100"
+  name: "CIFAR10"
   param:
-    data_root: "cifar100" # default: same as train_dataset
+    data_root: "cifar10" # default: same as train_dataset
     phase: 'val'
     # train: False
     # img_lst_fpath: "None"
