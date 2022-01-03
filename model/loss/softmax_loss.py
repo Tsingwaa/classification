@@ -94,6 +94,7 @@ class CrossEntropyLabelSmooth(nn.Module):
 
 @Losses.register_module("CrossEntropyLoss")
 class CELoss(nn.CrossEntropyLoss):
+
     """This criterion computes the cross entropy loss between input and target.
 
     It is useful when training a classification problem with `C` classes.
