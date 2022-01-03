@@ -12,11 +12,7 @@ from PIL import Image
 class Xray6(torch.utils.data.Dataset):
     num_classes = 6
 
-    def __init__(self,
-                 data_root,
-                 train,
-                 transform=None,
-                 fold=0,
+    def __init__(self, data_root, train, transform=None, fold=0,
                  select_classes=[0, 1, 5, 7, 9, 11]):
         super(Xray6, self).__init__()
 
@@ -30,10 +26,12 @@ class Xray6(torch.utils.data.Dataset):
             class_dict = json.load(f)
 
         self.fnames, self.labels = [], []
+
         if train:  # Train
             for i in range(5):
                 if i == fold:
                     continue
+
                 for d in class_dict[str(i)]:
                     if d[1] in select_classes:
                         self.fnames.append(d[0])
@@ -46,8 +44,10 @@ class Xray6(torch.utils.data.Dataset):
 
         valid_labels = np.unique(self.labels)
         idx_to_class = {}
+
         for i in range(len(valid_labels)):
             idx_to_class[valid_labels[i]] = i
+
         for i in range(len(self.labels)):
             self.labels[i] = idx_to_class[self.labels[i]]
         self.num_per_cls = np.unique(self.labels, return_counts=True)[1]
@@ -58,23 +58,23 @@ class Xray6(torch.utils.data.Dataset):
         img_fname, label = self.data[index], self.labels[index]
         img_fpath = os.path.join(self.data_root, img_fname)
         img = Image.open(img_fpath).convert('RGB')
+
         if self.transform is not None:
             img = self.transform(img)
+
         return img, label
 
     def __len__(self):
         return len(self.labels)
 
 
-def get_xray14_dataset(data_root='Xray14/categories',
-                       bs=64,
-                       train=True,
-                       fold=0,
-                       select_classes=[0, 1, 5, 7, 9, 11]):
+def get_xray14_dataset(data_root='Xray14/categories', bs=64, train=True,
+                       fold=0, select_classes=[0, 1, 5, 7, 9, 11]):
     # mean = (0.527, 0.527, 0.527)
     # std = (0.203, 0.203, 0.203)
     mean = (0.485, 0.456, 0.406)
     std = (0.229, 0.224, 0.225)
+
     if train:
         transform = T.Compose([
             T.Resize((224, 224)),
@@ -106,4 +106,5 @@ def get_xray14_dataset(data_root='Xray14/categories',
     # weights /= weights.sum()
     # dl = torch.utils.data.DataLoader(dataset, bs, train,
     # num_workers=16, pin_memory=True, drop_last=train)
+
     return dataset, weights

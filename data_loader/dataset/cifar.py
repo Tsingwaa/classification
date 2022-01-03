@@ -18,11 +18,7 @@ class CIFAR10_(torchvision.datasets.CIFAR10):
     mean = [0.4914, 0.4822, 0.4465]
     std = [0.2023, 0.1994, 0.2010]
 
-    def __init__(self,
-                 data_root,
-                 phase,
-                 transform=None,
-                 download=True,
+    def __init__(self, data_root, phase, transform=None, download=True,
                  **kwargs):
         self.train = True if phase == 'train' else False
         self.class_adapt = kwargs.get('class_adapt', False)
@@ -34,14 +30,12 @@ class CIFAR10_(torchvision.datasets.CIFAR10):
     def __getitem__(self, index):
         img, target = self.data[index], self.targets[index]
         img = PIL.Image.fromarray(img)
-        # set_trace()
 
         if self.transform is not None:
             percent = (1. + target) / 10. if self.class_adapt else None
-            img = self.transform(img,
-                                 percent=percent,
-                                 mean=self.mean,
-                                 std=self.std)
+            img = self.transform(img, percent=percent,
+                                 mean=self.mean, std=self.std)
+
         return img, target
 
     @property
@@ -82,6 +76,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     def get_img_num_per_cls(self):
         max_num_samples = int(len(self.data) / self.num_classes)
         num_samples_per_cls = []
+
         if self.imb_type == 'exp':
             for class_index in range(self.num_classes):
                 num_samples = max_num_samples * (self.imb_factor
@@ -92,6 +87,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
             # One step: the former half {img_max} imgs,
             # the latter half {img_max * imb_factor} imgs
             half_num_classes = int(self.num_classes // 2)
+
             for class_index in range(self.num_classes):
                 if class_index <= half_num_classes:
                     num_samples = max_num_samples
@@ -113,6 +109,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         # np.unique default output by increasing order. i.e. {class 0}: MAX.
         # np.random.shuffle(classes)
         self.cls2nsamples = dict()
+
         for class_index, num_samples in zip(class_indexes,
                                             self.num_samples_per_cls):
             self.cls2nsamples[class_index] = num_samples
@@ -121,9 +118,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
             np.random.shuffle(img_indexes)
             select_indexes = img_indexes[:num_samples]
             new_data.append(self.data[select_indexes, ...])
-            new_targets.extend([
-                class_index,
-            ] * num_samples)
+            new_targets.extend([class_index, ] * num_samples)
 
         new_data = np.vstack(new_data)
         self.data = new_data
@@ -143,7 +138,19 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         num_samples = torch.sum(self.num_samples_per_cls)
         weight = num_samples / (self.num_classes * self.num_samples_per_cls)
         weight /= torch.sum(weight)
+
         return weight
+
+    @property
+    def indexes_per_cls(self):
+        targets = self.dataset.targets
+        indexes_per_cls = []
+
+        for i in range(self.num_classes):
+            indexes = np.where(np.array(targets) == i)[0].tolist()
+            indexes_per_cls.append(indexes)
+
+        return indexes_per_cls
 
 
 @Datasets.register_module("ImbalanceCIFAR100")
