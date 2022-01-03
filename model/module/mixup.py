@@ -23,6 +23,7 @@ class MixUp(Dataset):
         self.beta = beta
         self.prob = prob
         self.type = type
+        self.idx_per_class = self.get_idx_per_class()
 
     def __getitem__(self, index):
         img, lb = self.dataset[index]
@@ -46,6 +47,12 @@ class MixUp(Dataset):
             return self.get_img2_A(lb)
         elif self.type == 'B':
             return self.get_img2_B(lb)
+        elif self.type == 'C':
+            return self.get_img2_C(lb)
+        elif self.type == 'D':
+            return self.get_img2_D(lb)
+        elif self.type == 'E':
+            return self.get_img2_E(lb)
         else:
             return None, None
 
@@ -71,6 +78,34 @@ class MixUp(Dataset):
         lb2_onehot = single_label2onehot(self.num_classes, lb2)
         return img2, lb2_onehot
 
+    def get_img2_C(self, lb):
+        weight = np.array(self.num_samples_per_cls) / sum(self.num_samples_per_cls)
+        weight = np.exp(weight) / sum(np.exp(weight))
+        # generate mixed sample, lambd for original area
+        class_idx = np.random.choice(range(self.num_classes), p=weight)
+        rand_index = np.random.choice(self.idx_per_class[class_idx])
+        img2, lb2 = self.dataset[rand_index]
+        lb2_onehot = single_label2onehot(self.num_classes, lb2)
+        return img2, lb2_onehot
+    
+    def get_img2_D(self, lb):
+        # generate mixed sample, lambd for original area
+        rand_index = random.choice(range(len(self)))
+        img2, lb2 = self.dataset[rand_index]
+        while abs(lb - lb2) > 1:
+            # print('lb: %d, lb2: %d'%(lb, lb2))
+            rand_index = random.choice(range(len(self)))
+            img2, lb2 = self.dataset[rand_index]
+        lb2_onehot = single_label2onehot(self.num_classes, lb2)
+        return img2, lb2_onehot
+    
+    def get_img2_E(self, lb):
+        # generate mixed sample, lambd for original area
+        rand_index = random.choice(range(len(self.idx_per_class[lb])))
+        img2, lb2 = self.dataset[rand_index]
+        lb2_onehot = single_label2onehot(self.num_classes, lb2)
+        return img2, lb2_onehot
+    
     def get_img2_random(self, lb):
         # generate mixed sample, lambd for original area
         rand_index = random.choice(range(len(self)))
@@ -82,7 +117,14 @@ class MixUp(Dataset):
     def __len__(self):
         return len(self.dataset)
 
-
+    def get_idx_per_class(self):
+        idx_per_class = [[] for i in range(self.num_classes)]
+        
+        for i in range(len(self.dataset)):
+            _, lb = self.dataset[i]
+            idx_per_class[lb].append(i)
+        
+        return idx_per_class
 
 def single_label2onehot(size, target):
     # single label to one-hot
