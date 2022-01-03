@@ -9,21 +9,23 @@ import torch
 import yaml
 from apex import amp
 from base.base_trainer import BaseTrainer
+from model.module import CutMix
 from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils import AverageMeter, ExpStat
-from model.module import CutMix
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__())
 
 
 class Trainer(BaseTrainer):
+
     def __init__(self, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
         self.cutmix_params = config["cutmix"]
@@ -34,18 +36,16 @@ class Trainer(BaseTrainer):
         #######################################################################
         train_transform = self.init_transform(self.train_transform_name,
                                               **self.train_transform_params)
-        trainset = self.init_dataset(self.trainset_name,
-                                     transform=train_transform,
-                                     **self.trainset_params)
+        trainset0 = self.init_dataset(self.trainset_name,
+                                      transform=train_transform,
+                                      **self.trainset_params)
         self.log(f"===> Build Cutmix for {self.trainset_name}"
                  f" with {self.cutmix_params}")
-        trainset = CutMix(dataset=trainset,
-                          num_mix=1,
-                          beta=self.cutmix_params["beta"],
-                          prob=self.cutmix_params["prob"],)
+        trainset = CutMix(dataset=trainset0, **self.cutmix_params)
         train_sampler = self.init_sampler(self.train_sampler_name,
                                           dataset=trainset,
                                           **self.trainloader_params)
+
         self.trainloader = DataLoaderX(trainset,
                                        batch_size=self.train_batchsize,
                                        shuffle=(train_sampler is None),
@@ -74,11 +74,21 @@ class Trainer(BaseTrainer):
                 pin_memory=True,
                 drop_last=False,
             )
+            self.valloader_train = DataLoaderX(
+                trainset0,
+                batch_size=self.val_batchsize,
+                shuffle=False,
+                num_workers=self.val_workers,
+                pin_memory=True,
+                drop_last=False,
+            )
 
         #######################################################################
         # Initialize Network
         #######################################################################
-        self.model = self.init_model(self.network_name, **self.network_params)
+        self.model = self.init_model(self.network_name,
+                                     num_classes=trainset.num_classes,
+                                     **self.network_params)
 
         #######################################################################
         # Initialize Loss
@@ -87,11 +97,9 @@ class Trainer(BaseTrainer):
             num_samples_per_cls=trainset.num_samples_per_cls,
             **self.loss_params,  # 包含weight_type
         )
-        self.criterion = self.init_loss(
-            self.loss_name,
-            weight=weight,
-            **self.loss_params
-        )
+        self.criterion = self.init_loss(self.loss_name,
+                                        weight=weight,
+                                        **self.loss_params)
 
         #######################################################################
         # Initialize Optimizer
@@ -102,6 +110,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
+
         if self.local_rank != -1:
             self.model, self.opt = amp.initialize(self.model,
                                                   self.opt,
@@ -128,12 +137,14 @@ class Trainer(BaseTrainer):
         last_tail_mrs = []
         self.final_epoch = self.start_epoch + self.total_epochs
         start_time = datetime.now()
+
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.scheduler.step()
+
             if self.local_rank != -1:
                 train_sampler.set_epoch(cur_epoch)
 
-            train_stat, train_loss = self.train_epoch(
+            _, train_loss = self.train_epoch(
                 cur_epoch,
                 self.trainloader,
                 self.model,
@@ -143,6 +154,13 @@ class Trainer(BaseTrainer):
             )
 
             if self.local_rank in [-1, 0]:
+                train_stat, train_loss = self.evaluate(
+                    cur_epoch,
+                    self.valloader_train,
+                    self.model,
+                    self.criterion,
+                    trainset.num_classes,
+                )
                 val_stat, val_loss = self.evaluate(cur_epoch, self.valloader,
                                                    self.model, self.criterion,
                                                    trainset.num_classes)
@@ -168,20 +186,17 @@ class Trainer(BaseTrainer):
                     log_level='file')
 
                 # Save log by tensorboard
-                self.writer.add_scalar(
-                    f"{self.exp_name}/LR",
-                    self.opt.param_groups[-1]["lr"],
-                    cur_epoch)
-                self.writer.add_scalars(
-                    f"{self.exp_name}/Loss", {
-                        "train_loss": train_loss,
-                        "val_loss": val_loss
-                    }, cur_epoch)
-                self.writer.add_scalars(
-                    f"{self.exp_name}/Recall", {
-                        "train_mr": train_stat.mr,
-                        "val_mr": val_stat.mr
-                    }, cur_epoch)
+                self.writer.add_scalar(f"{self.exp_name}/LR",
+                                       self.opt.param_groups[-1]["lr"],
+                                       cur_epoch)
+                self.writer.add_scalars(f"{self.exp_name}/Loss", {
+                    "train_loss": train_loss,
+                    "val_loss": val_loss
+                }, cur_epoch)
+                self.writer.add_scalars(f"{self.exp_name}/Recall", {
+                    "train_mr": train_stat.mr,
+                    "val_mr": val_stat.mr
+                }, cur_epoch)
                 self.writer.add_scalars(
                     f"{self.exp_name}/TrainGroupRecall", {
                         "head_mr": train_stat.group_mr[0],
@@ -196,10 +211,12 @@ class Trainer(BaseTrainer):
                     }, cur_epoch)
 
                 is_best = val_stat.mr > best_mr
+
                 if is_best:
                     best_mr = val_stat.mr
                     best_epoch = cur_epoch
                     best_group_mr = val_stat.group_mr
+
                 if (not cur_epoch % self.save_period) or is_best:
                     self.save_checkpoint(
                         epoch=cur_epoch,
@@ -238,6 +255,7 @@ class Trainer(BaseTrainer):
     def train_epoch(self, cur_epoch, trainloader, model, criterion, opt,
                     num_classes, **kwargs):
         model.train()
+
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
@@ -245,6 +263,7 @@ class Trainer(BaseTrainer):
 
         train_loss_meter = AverageMeter()
         train_stat = ExpStat(num_classes)
+
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
 
@@ -252,6 +271,7 @@ class Trainer(BaseTrainer):
             batch_labels = batch_labels.cuda()
             batch_probs = model(batch_imgs, out_type='fc')
             avg_loss = criterion(batch_probs, batch_labels)
+
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
@@ -270,6 +290,7 @@ class Trainer(BaseTrainer):
                 train_pbar.set_postfix_str(
                     f"LR:{opt.param_groups[0]['lr']:.1e} "
                     f"Loss:{train_loss_meter.avg:>4.2f}")
+
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(f"LR:{opt.param_groups[0]['lr']:.1e} "
                                        f"Loss:{train_loss_meter.avg:>4.2f} "
@@ -317,10 +338,13 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank", type=int, help="Local Rank for\
+    parser.add_argument("--local_rank",
+                        type=int,
+                        help="Local Rank for\
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     args = parser.parse_args()
+
     return args
 
 

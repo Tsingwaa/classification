@@ -13,6 +13,7 @@ def make_dataset(fold, data_root):
     train_dataframe = pd.read_csv(train_csv_fpath)
     raw_train_data = train_dataframe.values
     train_data = []
+
     for x, y in raw_train_data:
         train_data.append((x, y))
 
@@ -22,6 +23,7 @@ def make_dataset(fold, data_root):
     test_dataframe = pd.read_csv(test_csv_fpath)
     raw_test_data = test_dataframe.values
     test_data = []
+
     for x, y in raw_test_data:
         test_data.append((x, y))
 
@@ -41,6 +43,7 @@ class Skin7(torch.utils.data.Dataset):
               '.format(fold, 'train set' if train else 'test set'))
 
         self.train = train
+
         if self.train:
             self.labels = [data[1] for data in self.train_data]
             self.img_num_per_cls = [
@@ -59,8 +62,10 @@ class Skin7(torch.utils.data.Dataset):
             else self.test_data[index]
         img_fpath = os.path.join(self.data_dir, img_fname)
         img = Image.open(img_fpath).convert('RGB')
+
         if self.transform is not None:
             img = self.transform(img)
+
         return img, label
 
     def __len__(self):
@@ -71,6 +76,7 @@ def get_mean_std(fold):
     filename = './mean_std.csv'
     dataframe = pd.read_csv(filename).values[int(fold) - 1]
     print(dataframe)
+
     return dataframe[0:3], dataframe[3:]
 
 

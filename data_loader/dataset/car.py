@@ -3,7 +3,6 @@ Created: Nov 15,2019 - Yuchong Gu
 Revised: Nov 15,2019 - Yuchong Gu
 """
 import os
-import pdb
 
 from PIL import Image
 from scipy.io import loadmat

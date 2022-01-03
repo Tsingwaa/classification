@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_r32_cutmix"
+  name: "CF100_0.01_r32_cutmix_adapt1"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -11,7 +11,7 @@ experiment:
 finetune:
   name: "DRW"
   total_epochs: 10
-  unfreeze_keys: ["fc", 'linear']
+  unfreeze_keys: ["fc"]
   trainloader:
     sampler: ""
     retain_epoch_size: True
@@ -55,9 +55,9 @@ val_transform:
     resize: [32, 32]
 
 train_dataset:
-  name: "ImbalanceCIFAR10"
+  name: "ImbalanceCIFAR100"
   param:
-    data_root: "cifar10"
+    data_root: "cifar100"
     phase: 'train'
     # train: True
     # img_lst_fpath: "None"
@@ -70,11 +70,13 @@ train_dataset:
 cutmix:
   beta: 1.
   prob: 1.
+  adapt: 1
+  remix: False
 
 val_dataset:
-  name: "CIFAR10"
+  name: "CIFAR100"
   param:
-    data_root: "cifar10" # default: same as train_dataset
+    data_root: "cifar100" # default: same as train_dataset
     phase: 'val'
     # train: False
     # img_lst_fpath: "None"
@@ -93,7 +95,6 @@ valloader:
 network:
   name: "ResNet32_CIFAR"
   param:
-    num_classes: 10
     pretrained: False
     pretrained_fpath: ""
 

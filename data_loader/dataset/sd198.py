@@ -13,11 +13,8 @@ class SD198(torch.utils.data.Dataset):
     cls_num = 198
     dataset_name = "SD198"
 
-    def __init__(self,
-                 data_root='/data/Public/Datasets/SD198',
-                 train=True,
-                 transform=None,
-                 fold=0):
+    def __init__(self, data_root='/data/Public/Datasets/SD198', train=True,
+                 transform=None, fold=0):
 
         self.train = train
         self.data_dir = os.path.join(data_root, 'images')
@@ -44,7 +41,8 @@ class SD198(torch.utils.data.Dataset):
             # transforms.RandomVerticalFlip(),
             # transforms.ColorJitter(0.02, 0.02, 0.02, 0.01),
             # transforms.RandomRotation([-180, 180]),
-            # transforms.RandomAffine([-180, 180], translate=[0.1, 0.1], scale=[0.7, 1.3]),
+            # T.RandomAffine([-180, 180], translate=[0.1, 0.1],
+            #                scale=[0.7, 1.3]),
             T.RandomCrop(Crop_img),
             T.ToTensor(),
             T.Normalize(mean, std)
@@ -85,6 +83,7 @@ class SD198(torch.utils.data.Dataset):
 
         fnames = []
         labels = []
+
         for fname, label in raw_data:
             fnames.append(fname)
             labels.append(label)
@@ -94,6 +93,7 @@ class SD198(torch.utils.data.Dataset):
     @staticmethod
     def get_classes_name(data_dir):
         classes_name = np.load(data_dir)
+
         return classes_name
 
 
@@ -110,6 +110,7 @@ if __name__ == '__main__':
                                          batch_size=16,
                                          shuffle=True,
                                          num_workers=8)
+
     for data in loader:
         images, labels = data
         print('images:', images.size())
