@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_r32"
+  name: "CF10_0.01_r32_cutmix_adapt4"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -66,6 +66,12 @@ train_dataset:
     imb_factor: 0.01
     rand_seed: 0
     download: False
+
+cutmix:
+  beta: 1.
+  prob: 1.
+  adapt: 4
+  remix: False
 
 val_dataset:
   name: "CIFAR10"

@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_r32"
+  name: "CF10_0.01_r32_RW"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -7,40 +7,6 @@ experiment:
   resume_fpath: "best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
-
-finetune:
-  name: "DRW"
-  total_epochs: 10
-  unfreeze_keys: ["fc"]
-  trainloader:
-    sampler: ""
-    retain_epoch_size: True
-    batch_size: 128
-    num_workers: 4
-  network:
-    name: ''
-    param:
-      in_channels: 512
-      num_classes: 20
-  loss:
-    name: "CrossEntropyLoss"
-    param:
-      weight_type: "class_weight"
-      label_smoothing: 0.
-  optimizer:
-    name: "SGD"
-    param:
-      lr: 1.0e-1
-      weight_decay: 1.0e-4
-      momentum: 0.9
-      nesterov: True
-  lr_scheduler:
-    name: 'StepLR'
-    param:
-      warmup_epochs: 0
-      step_size: 2
-      # milestones: [5, 10, 15, 20]
-      gamma: 0.1
 
 train_transform:
   name: "CifarTransform"
@@ -55,9 +21,9 @@ val_transform:
     resize: [32, 32]
 
 train_dataset:
-  name: "ImbalanceCIFAR10"
+  name: "ImbalanceCIFAR100"
   param:
-    data_root: "cifar10"
+    data_root: "cifar100"
     phase: 'train'
     # train: True
     # img_lst_fpath: "None"
@@ -68,9 +34,9 @@ train_dataset:
     download: False
 
 val_dataset:
-  name: "CIFAR10"
+  name: "CIFAR100"
   param:
-    data_root: "cifar10" # default: same as train_dataset
+    data_root: "cifar100" # default: same as train_dataset
     phase: 'val'
     # train: False
     # img_lst_fpath: "None"
@@ -89,14 +55,13 @@ valloader:
 network:
   name: "ResNet32_CIFAR"
   param:
-    num_classes: 10
     pretrained: False
     pretrained_fpath: ""
 
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: ''
+    weight_type: 'class_weight'
     label_smoothing: 0.
 
 optimizer:

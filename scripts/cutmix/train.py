@@ -39,10 +39,7 @@ class Trainer(BaseTrainer):
                                       **self.trainset_params)
         self.log(f"===> Build Cutmix for {self.trainset_name}"
                  f" with {self.cutmix_params}")
-        trainset = CutMix(dataset=trainset0,
-                          num_mix=1,
-                          beta=self.cutmix_params["beta"],
-                          prob=self.cutmix_params["prob"],)
+        trainset = CutMix(dataset=trainset0, **self.cutmix_params)
         train_sampler = self.init_sampler(self.train_sampler_name,
                                           dataset=trainset,
                                           **self.trainloader_params)
@@ -87,7 +84,9 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Network
         #######################################################################
-        self.model = self.init_model(self.network_name, **self.network_params)
+        self.model = self.init_model(self.network_name,
+                                     num_classes=trainset.num_classes,
+                                     **self.network_params)
 
         #######################################################################
         # Initialize Loss
@@ -113,8 +112,7 @@ class Trainer(BaseTrainer):
         #######################################################################
 
         if self.local_rank != -1:
-            self.model, self.opt = amp.initialize(self.model,
-                                                  self.opt,
+            self.model, self.opt = amp.initialize(self.model, self.opt,
                                                   opt_level="O1")
             self.model = DistributedDataParallel(self.model,
                                                  device_ids=[self.local_rank],
