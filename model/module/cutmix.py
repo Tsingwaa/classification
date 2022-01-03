@@ -8,8 +8,13 @@ from torch.utils.data.dataset import Dataset
 class CutMix(Dataset):
     """Referred to https://github.com/ildoonet/cutmix"""
 
-    def __init__(self, dataset, num_mix=1, beta=1., prob=1.0,
-                 remix=False, adapt=-1):
+    def __init__(self,
+                 dataset,
+                 num_mix=1,
+                 beta=1.,
+                 prob=1.0,
+                 remix=False,
+                 adapt=-1):
         """build cutmix dataset based on common custom dataset class.
 
         Args:
@@ -21,18 +26,18 @@ class CutMix(Dataset):
         self.dataset = dataset
         self.num_classes = dataset.num_classes
         self.num_samples_per_cls = dataset.num_samples_per_cls
+        self.class_weight = dataset.class_weight
+        self.indexes_per_cls = dataset.indexes_per_cls
+
         self.num_mix = num_mix
         self.beta = beta
         self.prob = prob
-
         self.remix = remix
         self.adapt = adapt
 
         # get all choices for each class
         self.choices = self.get_choices()  # chooice for each class
-        self.indexes_per_cls = self.dataset.indexes_per_cls
         self.class_pointers = [0] * self.num_classes
-        self.class_weight = self.dataset.class_weight
 
     def __getitem__(self, index):
         img, target = self.dataset[index]
@@ -48,12 +53,14 @@ class CutMix(Dataset):
                 # rebalance mixup
                 rand_index = random.choice(self.choices[target])
             elif self.adapt == 3:  # random class
-                rand_class = random.choice(list(range(index, 10)))
+                rand_class = random.choice(
+                    list(range(target, self.num_classes)))
                 class_pointer = self.class_pointers[rand_class]
                 self.class_pointers[rand_class] = \
                     (self.class_pointers[rand_class] + 1) % \
-                    len(self.class_pointers[rand_class])
-                rand_index = self.indexes_per_cls[class_pointer]
+                    self.num_samples_per_cls[rand_class]
+                class_indexes = self.indexes_per_cls[rand_class]
+                rand_index = class_indexes[class_pointer]
             elif self.adapt == 4:  # reweight class
                 rand = np.random.rand(1)
                 rand_class = -1
@@ -63,15 +70,16 @@ class CutMix(Dataset):
                 # self.class_weight[:i+1]: [0,...,i]
 
                 for i in range(self.num_classes):
-                    if rand <= np.sum(self.class_weight[:i+1]):
+                    if rand <= np.sum(self.class_weight[:i + 1]):
                         rand_class = i
 
                         break
                 class_pointer = self.class_pointers[rand_class]
                 self.class_pointers[rand_class] = \
                     (self.class_pointers[rand_class] + 1) % \
-                    len(self.class_pointers[rand_class])
-                rand_index = self.indexes_per_cls[class_pointer]
+                    self.num_samples_per_cls[rand_class]
+                class_indexes = self.indexes_per_cls[rand_class]
+                rand_index = class_indexes[class_pointer]
             else:
                 rand_index = random.choice(range(len(self)))
 
@@ -82,7 +90,7 @@ class CutMix(Dataset):
             lambd = np.random.beta(self.beta, self.beta)
 
             if self.remix:  # the weight of choosen-to-mix img is larger.
-                lambd = lambd if lambd < 0.5 else 1-lambd
+                lambd = lambd if lambd < 0.5 else 1 - lambd
 
             bbx1, bby1, bbx2, bby2 = rand_bbox(img.size(), lambd)  # set box
             img[:, bbx1:bbx2, bby1:bby2] = img2[:, bbx1:bbx2, bby1:bby2]
