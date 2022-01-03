@@ -8,7 +8,8 @@ from torch.utils.data.dataset import Dataset
 class CutMix(Dataset):
     """Referred to https://github.com/ildoonet/cutmix"""
 
-    def __init__(self, dataset, num_mix=1, beta=1., prob=1.0):
+    def __init__(self, dataset, num_mix=1, beta=1., prob=1.0,
+                 remix=False, adapt=-1):
         """build cutmix dataset based on common custom dataset class.
 
         Args:
@@ -24,9 +25,18 @@ class CutMix(Dataset):
         self.beta = beta
         self.prob = prob
 
+        self.remix = remix
+        self.adapt = adapt
+
+        # get all choices for each class
+        self.choices = self.get_choices()  # chooice for each class
+        self.indexes_per_cls = self.dataset.indexes_per_cls
+        self.class_pointers = [0] * self.num_classes
+        self.class_weight = self.dataset.class_weight
+
     def __getitem__(self, index):
-        img, lb = self.dataset[index]
-        lb_onehot = single_label2onehot(self.num_classes, lb)
+        img, target = self.dataset[index]
+        target_onehot = single_label2onehot(self.num_classes, target)
 
         for _ in range(self.num_mix):
             r = np.random.rand(1)
@@ -34,29 +44,81 @@ class CutMix(Dataset):
             if self.beta <= 0 or r > self.prob:
                 continue
 
-            # generate mixed sample, lambd for original area
+            if self.adapt in [1, 2]:
+                # rebalance mixup
+                rand_index = random.choice(self.choices[target])
+            elif self.adapt == 3:  # random class
+                rand_class = random.choice(list(range(index, 10)))
+                class_pointer = self.class_pointers[rand_class]
+                self.class_pointers[rand_class] = \
+                    (self.class_pointers[rand_class] + 1) % \
+                    len(self.class_pointers[rand_class])
+                rand_index = self.indexes_per_cls[class_pointer]
+            elif self.adapt == 4:  # reweight class
+                rand = np.random.rand(1)
+                rand_class = -1
+
+                # see which interval it falls in.
+                # self.class_weight: [0.01, 0.xx, 0.1, xxx, 0.4]
+                # self.class_weight[:i+1]: [0,...,i]
+
+                for i in range(self.num_classes):
+                    if rand <= np.sum(self.class_weight[:i+1]):
+                        rand_class = i
+
+                        break
+                class_pointer = self.class_pointers[rand_class]
+                self.class_pointers[rand_class] = \
+                    (self.class_pointers[rand_class] + 1) % \
+                    len(self.class_pointers[rand_class])
+                rand_index = self.indexes_per_cls[class_pointer]
+            else:
+                rand_index = random.choice(range(len(self)))
+
+            img2, target2 = self.dataset[rand_index]
+            target2_onehot = single_label2onehot(self.num_classes, target2)
+
+            # generate mixed weight lambd for original area
             lambd = np.random.beta(self.beta, self.beta)
 
-            # TODO add class-specific weight prob.
-            rand_index = random.choice(range(len(self)))
-
-            img2, lb2 = self.dataset[rand_index]
-            lb2_onehot = single_label2onehot(self.num_classes, lb2)
+            if self.remix:  # the weight of choosen-to-mix img is larger.
+                lambd = lambd if lambd < 0.5 else 1-lambd
 
             bbx1, bby1, bbx2, bby2 = rand_bbox(img.size(), lambd)  # set box
             img[:, bbx1:bbx2, bby1:bby2] = img2[:, bbx1:bbx2, bby1:bby2]
+
             # 为什么要重新算weight？
             # 因为cut区域时，可能超出边界，所以实际的区域更小，故而要重新计算。
             cut_area = (bbx2 - bbx1) * (bby2 - bby1)
             whole_area = img.size(-1) * img.size(-2)  # H * W
             weight = 1 - cut_area / whole_area  # for original img
 
-            lb_onehot = lb_onehot * weight + lb2_onehot * (1. - weight)
+            target_onehot = target_onehot * weight + \
+                target2_onehot * (1. - weight)
 
-        return img, lb_onehot
+        return img, target_onehot
 
     def __len__(self):
         return len(self.dataset)
+
+    def get_choices(self):
+        targets = self.dataset.targets
+        choices = []
+
+        for i in range(self.num_classes):
+            if self.adapt == 1:  # class i only select class i+k(k>0)
+                if i == self.num_classes - 1:
+                    choices.append(targets)
+
+                    break
+                indexes = np.where(np.array(targets) > i)[0].tolist()
+            elif self.adapt == 2:  # class i select class i+k(k>=0)
+                indexes = np.where(np.array(targets) >= i)[0].tolist()
+            else:
+                indexes = []
+            choices.append(indexes)
+
+        return choices
 
 
 def single_label2onehot(size, target):
