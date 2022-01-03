@@ -10,18 +10,20 @@ class CutMix(Dataset):
 
     def __init__(self,
                  dataset,
-                 num_mix=1,
-                 beta=1.,
-                 prob=1.0,
-                 remix=False,
-                 adapt=-1):
-        """build cutmix dataset based on common custom dataset class.
+                 num_mix: int = 1,
+                 beta: float = 1.,
+                 prob: float = 1.0,
+                 remix: bool = False,
+                 adapt: int = -1):
+        """build CutMix Dataset based on common custom dataset class.
 
         Args:
             dataset(Dataset object): common custom dataset classes
-            num_mix(int): number of imgs to mix
-            beta(float): drop a lambd
-            prob(float): probability of using cutmix
+            num_mix: number of imgs to mix
+            beta: drop a lambd
+            prob: probability of using cutmix
+            remix: referred to rebalanced mixup
+            adapt: code for rebalancing adapt strategy
         """
         self.dataset = dataset
         self.num_classes = dataset.num_classes
@@ -89,20 +91,30 @@ class CutMix(Dataset):
             # generate mixed weight lambd for original area
             lambd = np.random.beta(self.beta, self.beta)
 
-            if self.remix:  # the weight of choosen-to-mix img is larger.
-                lambd = lambd if lambd < 0.5 else 1 - lambd
+            # if self.remix:  # the weight of choosen-to-mix img is larger.
+            #     lambd = lambd if lambd < 0.5 else 1 - lambd
 
             bbx1, bby1, bbx2, bby2 = rand_bbox(img.size(), lambd)  # set box
             img[:, bbx1:bbx2, bby1:bby2] = img2[:, bbx1:bbx2, bby1:bby2]
 
             # 为什么要重新算weight？
-            # 因为cut区域时，可能超出边界，所以实际的区域更小，故而要重新计算。
+            # 因为cut区域时，可能超出边界，所以实际的区域可能更小，故而要重新计算。
             cut_area = (bbx2 - bbx1) * (bby2 - bby1)
             whole_area = img.size(-1) * img.size(-2)  # H * W
-            weight = 1 - cut_area / whole_area  # for original img
+            lambda_y = 1 - cut_area / whole_area  # for original img
 
-            target_onehot = target_onehot * weight + \
-                target2_onehot * (1. - weight)
+            if self.remix:  # Directly use kappa=3 and tau=0.5
+                kappa, tau = 3, 0.5
+                n1 = self.num_samples_per_cls[target]
+                n2 = self.num_samples_per_cls[target2]
+
+                if n1 >= kappa * n2 and lambda_y < tau:
+                    lambda_y = 0
+                elif n1 * kappa <= n2 and lambda_y > 1 - tau:
+                    lambda_y = 1
+
+            target_onehot = target_onehot * lambda_y + \
+                target2_onehot * (1. - lambda_y)
 
         return img, target_onehot
 
