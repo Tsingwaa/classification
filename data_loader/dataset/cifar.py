@@ -55,28 +55,57 @@ class CIFAR10_(torchvision.datasets.CIFAR10):
         else:
             return [1000] * self.num_classes
 
+@Datasets.register_module("CIFAR100")
+class CIFAR100_(torchvision.datasets.CIFAR100):
+    num_classes = 100
+    mean = [0.4914, 0.4822, 0.4465]
+    std = [0.2023, 0.1994, 0.2010]
+
+    def __init__(self,
+                 data_root,
+                 phase,
+                 transform=None,
+                 download=True,
+                 **kwargs):
+        self.train = True if phase == 'train' else False
+        self.class_adapt = kwargs.get('class_adapt', False)
+        super(CIFAR100_, self).__init__(root=data_root,
+                                       train=self.train,
+                                       transform=transform,
+                                       download=download)
+
+    def __getitem__(self, index):
+        img, target = self.data[index], self.targets[index]
+        img = PIL.Image.fromarray(img)
+        # set_trace()
+
+        if self.transform is not None:
+            percent = (1. + target) / 100. if self.class_adapt else None
+            img = self.transform(img,
+                                 percent=percent,
+                                 mean=self.mean,
+                                 std=self.std)
+        return img, target
+
+    @property
+    def num_classes(self):
+        return len(self.classes)
+
+    @property
+    def num_samples_per_cls(self):
+        if self.train:
+            return [500] * self.num_classes
+        else:
+            return [100] * self.num_classes
 
 @Datasets.register_module("ImbalanceCIFAR10")
 class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     num_classes = 10
     mean = [0.4914, 0.4822, 0.4465]
     std = [0.2023, 0.1994, 0.2010]
-<<<<<<< HEAD
-    cls_num = 10
-    def __init__(self,
-                 data_root,
-                 phase,
-                 transform=None,
-                 download=True,
-                 imb_type='exp',
-                 imb_factor=0.01,
-                 seed=0,
-                 **kwargs):
-=======
 
     def __init__(self, data_root, phase, transform=None, download=True,
                  imb_type='exp', imb_factor=0.01, seed=0, **kwargs):
->>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
         train = True if phase == 'train' else False
         super(ImbalanceCIFAR10, self).__init__(root=data_root,
                                                train=train,

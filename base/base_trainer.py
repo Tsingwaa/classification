@@ -171,7 +171,7 @@ class BaseTrainer:
     def init_dataset(self, dataset_name, **kwargs):
         log_level = kwargs.pop("log_level", "default")
         kwargs["data_root"] = join(self.user_root, "Data", kwargs["data_root"])
-
+        
         dataset = Datasets.get(dataset_name)(**kwargs)
 
         dataset_init_log = f"===> Initialized {kwargs['phase']} "\
@@ -251,11 +251,6 @@ class BaseTrainer:
             weight = (1.0 - beta) / \
                 (1.0 - torch.pow(beta, num_samples_per_cls))
             weight /= torch.sum(weight)
-<<<<<<< HEAD
-            weight *= kwargs["num_class"]
-
-=======
->>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
         else:
             weight = None
         return weight
@@ -267,18 +262,7 @@ class BaseTrainer:
         if weight is not None:
             display_weight = weight.numpy().round(2)
             self.log(f"===> Computed class_weight:\n{display_weight}")
-<<<<<<< HEAD
-        kwargs.update({"weight": weight})
 
-        return kwargs
-
-    def init_loss(self, loss_name, **kwargs):
-        log_level = kwargs.pop("log_level", "default")
-        print(kwargs)
-        # kwargs = self.update_class_weight(**kwargs)
-=======
-
->>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
         loss = Losses.get(loss_name)(**kwargs)
 
         kwargs.pop("weight")
