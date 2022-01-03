@@ -19,11 +19,13 @@ from utils import AverageMeter, ExpStat
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__())
 
 
 class Trainer(BaseTrainer):
+
     def __init__(self, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
         self.cutmix_params = config["cutmix"]
@@ -95,11 +97,9 @@ class Trainer(BaseTrainer):
             num_samples_per_cls=trainset.num_samples_per_cls,
             **self.loss_params,  # 包含weight_type
         )
-        self.criterion = self.init_loss(
-            self.loss_name,
-            weight=weight,
-            **self.loss_params
-        )
+        self.criterion = self.init_loss(self.loss_name,
+                                        weight=weight,
+                                        **self.loss_params)
 
         #######################################################################
         # Initialize Optimizer
@@ -112,7 +112,8 @@ class Trainer(BaseTrainer):
         #######################################################################
 
         if self.local_rank != -1:
-            self.model, self.opt = amp.initialize(self.model, self.opt,
+            self.model, self.opt = amp.initialize(self.model,
+                                                  self.opt,
                                                   opt_level="O1")
             self.model = DistributedDataParallel(self.model,
                                                  device_ids=[self.local_rank],
@@ -144,19 +145,25 @@ class Trainer(BaseTrainer):
                 train_sampler.set_epoch(cur_epoch)
 
             _, train_loss = self.train_epoch(
-                cur_epoch, self.trainloader, self.model, self.criterion,
-                self.opt, trainset.num_classes,
+                cur_epoch,
+                self.trainloader,
+                self.model,
+                self.criterion,
+                self.opt,
+                trainset.num_classes,
             )
 
             if self.local_rank in [-1, 0]:
                 train_stat, train_loss = self.evaluate(
-                    cur_epoch, self.valloader_train, self.model,
-                    self.criterion, trainset.num_classes,
+                    cur_epoch,
+                    self.valloader_train,
+                    self.model,
+                    self.criterion,
+                    trainset.num_classes,
                 )
-                val_stat, val_loss = self.evaluate(
-                    cur_epoch, self.valloader, self.model,
-                    self.criterion, trainset.num_classes
-                )
+                val_stat, val_loss = self.evaluate(cur_epoch, self.valloader,
+                                                   self.model, self.criterion,
+                                                   trainset.num_classes)
 
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
@@ -179,20 +186,17 @@ class Trainer(BaseTrainer):
                     log_level='file')
 
                 # Save log by tensorboard
-                self.writer.add_scalar(
-                    f"{self.exp_name}/LR",
-                    self.opt.param_groups[-1]["lr"],
-                    cur_epoch)
-                self.writer.add_scalars(
-                    f"{self.exp_name}/Loss", {
-                        "train_loss": train_loss,
-                        "val_loss": val_loss
-                    }, cur_epoch)
-                self.writer.add_scalars(
-                    f"{self.exp_name}/Recall", {
-                        "train_mr": train_stat.mr,
-                        "val_mr": val_stat.mr
-                    }, cur_epoch)
+                self.writer.add_scalar(f"{self.exp_name}/LR",
+                                       self.opt.param_groups[-1]["lr"],
+                                       cur_epoch)
+                self.writer.add_scalars(f"{self.exp_name}/Loss", {
+                    "train_loss": train_loss,
+                    "val_loss": val_loss
+                }, cur_epoch)
+                self.writer.add_scalars(f"{self.exp_name}/Recall", {
+                    "train_mr": train_stat.mr,
+                    "val_mr": val_stat.mr
+                }, cur_epoch)
                 self.writer.add_scalars(
                     f"{self.exp_name}/TrainGroupRecall", {
                         "head_mr": train_stat.group_mr[0],
@@ -334,7 +338,9 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank", type=int, help="Local Rank for\
+    parser.add_argument("--local_rank",
+                        type=int,
+                        help="Local Rank for\
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     args = parser.parse_args()

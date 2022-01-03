@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_r32_RW"
+  name: "CF100_0.1_r32_RW"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -29,7 +29,7 @@ train_dataset:
     # img_lst_fpath: "None"
     # map_fpath: "None"
     imb_type: 'exp'
-    imb_factor: 0.01
+    imb_factor: 0.1
     rand_seed: 0
     download: False
 
@@ -61,7 +61,7 @@ network:
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: 'class_weight'
+    weight_type: 'inverse'
     label_smoothing: 0.
 
 optimizer:

@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_r32_RS"
+  name: "CF100_0.01_r32_RW"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -21,9 +21,9 @@ val_transform:
     resize: [32, 32]
 
 train_dataset:
-  name: "ImbalanceCIFAR10"
+  name: "ImbalanceCIFAR100"
   param:
-    data_root: "cifar10"
+    data_root: "cifar100"
     phase: 'train'
     # train: True
     # img_lst_fpath: "None"
@@ -34,9 +34,9 @@ train_dataset:
     download: False
 
 val_dataset:
-  name: "CIFAR10"
+  name: "CIFAR100"
   param:
-    data_root: "cifar10" # default: same as train_dataset
+    data_root: "cifar100" # default: same as train_dataset
     phase: 'val'
     # train: False
     # img_lst_fpath: "None"
@@ -44,8 +44,7 @@ val_dataset:
     download: False
 
 trainloader:
-  sampler: 'BalanceSampler'
-  retain_epoch_size: True
+  sampler: ''
   batch_size: 128
   num_workers: 4
 
@@ -56,14 +55,13 @@ valloader:
 network:
   name: "ResNet32_CIFAR"
   param:
-    num_classes: 10
     pretrained: False
     pretrained_fpath: ""
 
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: ''
+    weight_type: 'inverse'
     label_smoothing: 0.
 
 optimizer:
@@ -86,9 +84,9 @@ lr_scheduler:
     # step_size_down: 2  # 2 * iterations
     # max_lr: 5.0e-2
     # base_lr: 5.0e-7
-    
+
     # MultiStepLR
-    milestones: [120, 160]
+    milestones: [120, 160, 190]
     gamma: 0.01
 
     # CosineAnnealingWarmRestarts

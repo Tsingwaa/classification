@@ -70,6 +70,7 @@ train_dataset:
 cutmix:
   beta: 1.
   prob: 1.
+  remix: False
 
 val_dataset:
   name: "CIFAR100"
