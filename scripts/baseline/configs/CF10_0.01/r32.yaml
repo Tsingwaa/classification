@@ -11,7 +11,7 @@ experiment:
 finetune:
   name: "DRW"
   total_epochs: 10
-  unfreeze_keys: ["fc", 'linear']
+  unfreeze_keys: ["fc"]
   trainloader:
     sampler: ""
     retain_epoch_size: True
@@ -25,7 +25,7 @@ finetune:
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: "class_weight"
+      weight_type: "inverse"
       label_smoothing: 0.
   optimizer:
     name: "SGD"
