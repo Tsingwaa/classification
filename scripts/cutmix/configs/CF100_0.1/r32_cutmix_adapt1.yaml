@@ -9,11 +9,11 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: "DRW"
+  name: "DRS"
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: ""
+    sampler: "BalanceSampler"
     retain_epoch_size: True
     batch_size: 128
     num_workers: 4
@@ -25,7 +25,7 @@ finetune:
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: "inverse"
+      weight_type: ""
       label_smoothing: 0.
   optimizer:
     name: "SGD"
