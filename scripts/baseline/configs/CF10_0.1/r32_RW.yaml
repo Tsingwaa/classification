@@ -61,7 +61,7 @@ network:
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: 'class_weight'
+    weight_type: 'inverse'
     label_smoothing: 0.
 
 optimizer:
