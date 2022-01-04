@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_r32_RS"
+  name: "CF10_0.1_r32_cutmix_adapt3"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -7,6 +7,40 @@ experiment:
   resume_fpath: "best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
+
+finetune:
+  name: "DRW"
+  total_epochs: 10
+  unfreeze_keys: ["fc"]
+  trainloader:
+    sampler: ""
+    retain_epoch_size: True
+    batch_size: 128
+    num_workers: 4
+  network:
+    name: ''
+    param:
+      in_channels: 512
+      num_classes: 20
+  loss:
+    name: "CrossEntropyLoss"
+    param:
+      weight_type: "inverse"
+      label_smoothing: 0.
+  optimizer:
+    name: "SGD"
+    param:
+      lr: 1.0e-1
+      weight_decay: 1.0e-4
+      momentum: 0.9
+      nesterov: True
+  lr_scheduler:
+    name: 'StepLR'
+    param:
+      warmup_epochs: 0
+      step_size: 2
+      # milestones: [5, 10, 15, 20]
+      gamma: 0.1
 
 train_transform:
   name: "CifarTransform"
@@ -29,9 +63,15 @@ train_dataset:
     # img_lst_fpath: "None"
     # map_fpath: "None"
     imb_type: 'exp'
-    imb_factor: 0.01
+    imb_factor: 0.1
     rand_seed: 0
     download: False
+
+cutmix:
+  beta: 1.
+  prob: 1.
+  adapt: 3
+  remix: False
 
 val_dataset:
   name: "CIFAR10"
@@ -44,8 +84,7 @@ val_dataset:
     download: False
 
 trainloader:
-  sampler: 'BalanceSampler'
-  retain_epoch_size: True
+  sampler: ''
   batch_size: 128
   num_workers: 4
 
@@ -85,9 +124,9 @@ lr_scheduler:
     # step_size_down: 2  # 2 * iterations
     # max_lr: 5.0e-2
     # base_lr: 5.0e-7
-    
+
     # MultiStepLR
-    milestones: [120, 160]
+    milestones: [120, 160, 190]
     gamma: 0.01
 
     # CosineAnnealingWarmRestarts

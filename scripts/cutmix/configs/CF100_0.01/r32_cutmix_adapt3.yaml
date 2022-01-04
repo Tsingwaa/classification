@@ -71,7 +71,7 @@ cutmix:
   beta: 1.
   prob: 1.
   adapt: 3
-  remix: False
+  remix: True
 
 val_dataset:
   name: "CIFAR100"

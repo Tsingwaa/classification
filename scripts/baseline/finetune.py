@@ -22,11 +22,13 @@ from utils import AverageMeter, ExpStat
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__())
 
 
 class FineTuner(BaseTrainer):
+
     def __init__(self, local_rank=None, config=None):
 
         #######################################################################
@@ -37,6 +39,7 @@ class FineTuner(BaseTrainer):
         torch.backends.cudnn.enable = True
 
         self.local_rank = local_rank
+
         if self.local_rank != -1:
             dist.init_process_group(backend="nccl")
             torch.cuda.set_device(self.local_rank)
@@ -58,6 +61,7 @@ class FineTuner(BaseTrainer):
         self._set_configs(config)
 
         self.resume = True
+
         if "/" in self.exp_config["resume_fpath"]:
             self.resume_fpath = self.exp_config["resume_fpath"]
         else:
@@ -95,6 +99,7 @@ class FineTuner(BaseTrainer):
         self.unfreeze_keys = self.finetune_config["unfreeze_keys"]
 
         ft_network_config = self.finetune_config.pop("network", None)
+
         if ft_network_config is not None:
             self.ft_network_name = ft_network_config["name"]
             self.ft_network_params = ft_network_config["param"]
@@ -166,28 +171,31 @@ class FineTuner(BaseTrainer):
         self.model = self.init_model(self.network_name,
                                      resume=True,
                                      checkpoint=self.checkpoint,
+                                     num_classes=trainset.num_classes,
                                      **self.network_params)
         self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
 
         #######################################################################
         # Initialize Loss
         #######################################################################
-        weight = self.get_class_weight(
-            trainset.num_samples_per_cls, **self.loss_params)
-        self.criterion = self.init_loss(
-            self.loss_name, weight=weight, **self.loss_params)
+        weight = self.get_class_weight(trainset.num_samples_per_cls,
+                                       **self.loss_params)
+        self.criterion = self.init_loss(self.loss_name,
+                                        weight=weight,
+                                        **self.loss_params)
 
         #######################################################################
         # Initialize Optimizer
         #######################################################################
-        self.opt = self.init_optimizer(
-            self.opt_name, self.model.parameters(), **self.opt_params)
+        self.opt = self.init_optimizer(self.opt_name, self.model.parameters(),
+                                       **self.opt_params)
 
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.lr_scheduler = self.init_lr_scheduler(
-            self.scheduler_name, self.opt, **self.scheduler_params)
+        self.lr_scheduler = self.init_lr_scheduler(self.scheduler_name,
+                                                   self.opt,
+                                                   **self.scheduler_params)
 
         #######################################################################
         # Start Training
@@ -200,6 +208,7 @@ class FineTuner(BaseTrainer):
         last_mid_mrs = []
         last_tail_mrs = []
         start_time = datetime.now()
+
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             # learning rate decay by epoch
             self.lr_scheduler.step()
@@ -223,8 +232,7 @@ class FineTuner(BaseTrainer):
                     valloader=self.valloader,
                     model=self.model,
                     criterion=self.criterion,
-                    num_classes=trainset.num_classes
-                )
+                    num_classes=trainset.num_classes)
 
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
@@ -248,10 +256,12 @@ class FineTuner(BaseTrainer):
                     log_level="file")
 
                 is_best = val_stat.mr > best_mr
+
                 if is_best:
                     best_mr = val_stat.mr
                     best_epoch = cur_epoch
                     best_group_mr = val_stat.group_mr
+
                 if (not cur_epoch % self.save_period) or is_best:
                     self.save_checkpoint(epoch=cur_epoch,
                                          model=self.model,
@@ -282,13 +292,20 @@ class FineTuner(BaseTrainer):
                 f"{final_mid_mr:>6.2%}, {final_tail_mr:>6.2%}]\n\n"
                 f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
-                f"*********************************************************\n"
-            )
+                f"*********************************************************\n")
 
-    def train_epoch(self, cur_epoch, trainloader, model, criterion, opt,
-                    lr_scheduler, ft_model=None, num_classes=None):
+    def train_epoch(self,
+                    cur_epoch,
+                    trainloader,
+                    model,
+                    criterion,
+                    opt,
+                    lr_scheduler,
+                    ft_model=None,
+                    num_classes=None):
 
         model.train()
+
         if ft_model is not None:
             ft_model.train()
 
@@ -299,6 +316,7 @@ class FineTuner(BaseTrainer):
 
         train_loss_meter = AverageMeter()
         train_stat = ExpStat(num_classes)
+
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
 
@@ -312,6 +330,7 @@ class FineTuner(BaseTrainer):
                 batch_probs = model(batch_imgs)
 
             avg_loss = criterion(batch_probs, batch_labels)
+
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
@@ -329,8 +348,7 @@ class FineTuner(BaseTrainer):
                 train_pbar.update()
                 train_pbar.set_postfix_str(
                     f"LR:{opt.param_groups[0]['lr']:.1e} "
-                    f"Loss:{train_loss_meter.avg:>4.2f}"
-                )
+                    f"Loss:{train_loss_meter.avg:>4.2f}")
 
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(f"LR:{opt.param_groups[0]['lr']:.1e} "
@@ -344,10 +362,16 @@ class FineTuner(BaseTrainer):
 
         return train_stat, train_loss_meter.avg
 
-    def evaluate(self, cur_epoch, valloader, model, criterion, ft_model=None,
+    def evaluate(self,
+                 cur_epoch,
+                 valloader,
+                 model,
+                 criterion,
+                 ft_model=None,
                  num_classes=None):
 
         model.eval()
+
         if ft_model is not None:
             ft_model.eval()
 
@@ -378,13 +402,11 @@ class FineTuner(BaseTrainer):
                 val_pbar.update()
 
         if self.local_rank in [-1, 0]:
-            val_pbar.set_postfix_str(
-                f"Loss:{val_loss_meter.avg:>4.2f} "
-                f"MR:{val_stat.mr:>6.2%} "
-                f"[{val_stat.group_mr[0]:>3.0%}, "
-                f"{val_stat.group_mr[1]:>3.0%}, "
-                f"{val_stat.group_mr[2]:>3.0%}]"
-            )
+            val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
+                                     f"MR:{val_stat.mr:>6.2%} "
+                                     f"[{val_stat.group_mr[0]:>3.0%}, "
+                                     f"{val_stat.group_mr[1]:>3.0%}, "
+                                     f"{val_stat.group_mr[2]:>3.0%}]")
             val_pbar.close()
 
         return val_stat, val_loss_meter.avg
@@ -392,10 +414,13 @@ class FineTuner(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank", type=int, help="Local Rank for\
+    parser.add_argument("--local_rank",
+                        type=int,
+                        help="Local Rank for\
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     args = parser.parse_args()
+
     return args
 
 
