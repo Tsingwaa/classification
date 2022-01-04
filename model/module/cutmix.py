@@ -1,3 +1,4 @@
+import math
 import random
 
 import numpy as np
@@ -39,7 +40,7 @@ class CutMix(Dataset):
 
         # get all choices for each class
         self.choices = self.get_choices()  # chooice for each class
-        self.class_pointers = [0] * self.num_classes
+        # self.class_pointers = [0] * self.num_classes
 
     def __getitem__(self, index):
         img, target = self.dataset[index]
@@ -52,36 +53,40 @@ class CutMix(Dataset):
                 continue
 
             if self.adapt in [1, 2]:
-                # rebalance mixup
                 rand_index = random.choice(self.choices[target])
             elif self.adapt == 3:  # random class
                 rand_class = random.choice(
                     list(range(target, self.num_classes)))
-                class_pointer = self.class_pointers[rand_class]
-                self.class_pointers[rand_class] = \
-                    (self.class_pointers[rand_class] + 1) % \
-                    self.num_samples_per_cls[rand_class]
-                class_indexes = self.indexes_per_cls[rand_class]
-                rand_index = class_indexes[class_pointer]
-            elif self.adapt == 4:  # reweight class
-                rand = np.random.rand(1)
-                rand_class = -1
+                candidate_indexes = self.indexes_per_cls[rand_class]
+                rand_index = random.choice(candidate_indexes)
+            elif self.adapt == 4:  # inverse weight select class
+                rand_class = random.choices(
+                    range(target, self.num_classes),
+                    weights=self.class_weight[target:])[0]
+                candidate_indexes = self.indexes_per_cls[rand_class]
+                rand_index = random.choice(candidate_indexes)
+            elif self.adapt == 5:  # weight: 大类更大
+                weights = scale_(self.num_samples_per_cls, k=2)
+                rand_class = random.choices(range(target, self.num_classes),
+                                            weights=weights[target:])[0]
+                candidate_indexes = self.indexes_per_cls[rand_class]
+                rand_index = random.choice(candidate_indexes)
+            elif self.adapt == 6:  # 等可能选两边的类
+                select_num_classes = math.log10(self.num_classes)
+                floor_class = math.floor(target - 1 / 2 * select_num_classes)
+                ceil_class = math.ceil(target + 1 / 2 * select_num_classes)
 
-                # see which interval it falls in.
-                # self.class_weight: [0.01, 0.xx, 0.1, xxx, 0.4]
-                # self.class_weight[:i+1]: [0,...,i]
+                if floor_class < 0:
+                    floor_class = 0
+                    ceil_class = select_num_classes
 
-                for i in range(self.num_classes):
-                    if rand <= np.sum(self.class_weight[:i + 1]):
-                        rand_class = i
+                if ceil_class >= self.num_classes:
+                    floor_class = self.num_classes - select_num_classes - 1
+                    ceil_class = self.num_classes - 1
 
-                        break
-                class_pointer = self.class_pointers[rand_class]
-                self.class_pointers[rand_class] = \
-                    (self.class_pointers[rand_class] + 1) % \
-                    self.num_samples_per_cls[rand_class]
-                class_indexes = self.indexes_per_cls[rand_class]
-                rand_index = class_indexes[class_pointer]
+                rand_class = np.random.randint(floor_class, ceil_class + 1)
+                candidate_indexes = self.indexes_per_cls[rand_class]
+                rand_index = random.choice(candidate_indexes)
             else:
                 rand_index = random.choice(range(len(self)))
 
@@ -171,3 +176,9 @@ def rand_bbox(size, lambd):
     bby2 = np.clip(cy + cut_h // 2, 0, H)
 
     return bbx1, bby1, bbx2, bby2
+
+
+def scale_(a: np.ndarray, k: int):
+    a_ = np.power(a, k)
+
+    return a_ / sum(a_)
