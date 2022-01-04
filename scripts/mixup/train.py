@@ -41,9 +41,7 @@ class Trainer(BaseTrainer):
                  f" with {self.mixup_params}")
         trainset = MixUp(dataset=trainset,
                           num_mix=1,
-                          beta=self.mixup_params["beta"],
-                          prob=self.mixup_params["prob"],
-                          type=self.mixup_params["type"])
+                          **self.mixup_params)
                           
         train_sampler = self.init_sampler(self.train_sampler_name,
                                           dataset=trainset,

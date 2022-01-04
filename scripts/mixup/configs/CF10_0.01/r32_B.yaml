@@ -71,6 +71,7 @@ mixup:
   beta: 1.
   prob: 1.
   type: "B"
+  remix: False
 
 val_dataset:
   name: "CIFAR10"

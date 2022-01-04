@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_r32_mixup_A"
+  name: "CF10_0.1_r32_mixup_A_remix"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -63,7 +63,7 @@ train_dataset:
     # img_lst_fpath: "None"
     # map_fpath: "None"
     imb_type: 'exp'
-    imb_factor: 0.01
+    imb_factor: 0.1
     rand_seed: 0
     download: False
 
@@ -71,7 +71,7 @@ mixup:
   beta: 1.
   prob: 1.
   type: "A"
-  remix: False
+  remix: True
 
 val_dataset:
   name: "CIFAR10"

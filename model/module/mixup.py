@@ -7,7 +7,7 @@ from torch.utils.data.dataset import Dataset
 class MixUp(Dataset):
     """Referred to https://github.com/ildoonet/cutmix"""
 
-    def __init__(self, dataset, num_mix=1, beta=1., prob=1.0, type='random'):
+    def __init__(self, dataset, num_mix=1, beta=1., prob=1.0, type='random', remix=False):
         """build cutmix dataset based on common custom dataset class.
 
         Args:
@@ -23,6 +23,7 @@ class MixUp(Dataset):
         self.beta = beta
         self.prob = prob
         self.type = type
+        self.remix = remix
         self.idx_per_class = self.get_idx_per_class()
 
     def __getitem__(self, index):
@@ -33,8 +34,19 @@ class MixUp(Dataset):
             if self.beta <= 0 or r > self.prob:
                 continue
             lambd = np.random.beta(self.beta, self.beta)
-            
-            img2, lb2_onehot = self.get_img2(lb)
+            img2, lb2 = self.get_img2(lb)
+            lb2_onehot = single_label2onehot(self.num_classes, lb2)
+
+            if self.remix:  # Directly use kappa=3 and tau=0.5
+                kappa, tau = 3, 0.5
+                n1 = self.num_samples_per_cls[lb]
+                n2 = self.num_samples_per_cls[lb2]
+
+                if n1 >= kappa * n2 and lambd < tau:
+                    lambd = 0
+                elif n1 * kappa <= n2 and lambd > 1 - tau:
+                    lambd = 1
+
             img = lambd * img + (1 - lambd) * img2
             lb_onehot = lb_onehot * lambd + lb2_onehot * (1. - lambd)
 
@@ -64,8 +76,7 @@ class MixUp(Dataset):
             # print('lb: %d, lb2: %d'%(lb, lb2))
             rand_index = random.choice(range(len(self)))
             img2, lb2 = self.dataset[rand_index]
-        lb2_onehot = single_label2onehot(self.num_classes, lb2)
-        return img2, lb2_onehot
+        return img2, lb2
 
     def get_img2_B(self, lb):
         # generate mixed sample, lambd for original area
@@ -75,44 +86,41 @@ class MixUp(Dataset):
             # print('lb: %d, lb2: %d'%(lb, lb2))
             rand_index = random.choice(range(len(self)))
             img2, lb2 = self.dataset[rand_index]
-        lb2_onehot = single_label2onehot(self.num_classes, lb2)
-        return img2, lb2_onehot
+        return img2, lb2
 
     def get_img2_C(self, lb):
-        weight = np.array(self.num_samples_per_cls) / sum(self.num_samples_per_cls)
-        weight = np.exp(weight) / sum(np.exp(weight))
+        # weight = np.array(self.num_samples_per_cls) / sum(self.num_samples_per_cls)
+        # weight = np.exp(weight) / sum(np.exp(weight))
+
+        weight = np.power(self.num_samples_per_cls, 2)
+        weight = weight / sum(weight)
         # generate mixed sample, lambd for original area
         class_idx = np.random.choice(range(self.num_classes), p=weight)
         rand_index = np.random.choice(self.idx_per_class[class_idx])
         img2, lb2 = self.dataset[rand_index]
-        lb2_onehot = single_label2onehot(self.num_classes, lb2)
-        return img2, lb2_onehot
+        return img2, lb2
     
     def get_img2_D(self, lb):
         # generate mixed sample, lambd for original area
         rand_index = random.choice(range(len(self)))
         img2, lb2 = self.dataset[rand_index]
-        while abs(lb - lb2) > 1:
+        while abs(lb - lb2) > np.log(self.num_classes):
             # print('lb: %d, lb2: %d'%(lb, lb2))
             rand_index = random.choice(range(len(self)))
             img2, lb2 = self.dataset[rand_index]
-        lb2_onehot = single_label2onehot(self.num_classes, lb2)
-        return img2, lb2_onehot
+        return img2, lb2
     
     def get_img2_E(self, lb):
         # generate mixed sample, lambd for original area
         rand_index = random.choice(range(len(self.idx_per_class[lb])))
         img2, lb2 = self.dataset[rand_index]
-        lb2_onehot = single_label2onehot(self.num_classes, lb2)
-        return img2, lb2_onehot
+        return img2, lb2
     
     def get_img2_random(self, lb):
         # generate mixed sample, lambd for original area
         rand_index = random.choice(range(len(self)))
         img2, lb2 = self.dataset[rand_index]
-        lb2_onehot = single_label2onehot(self.num_classes, lb2)
-
-        return img2, lb2_onehot
+        return img2, lb2
 
     def __len__(self):
         return len(self.dataset)

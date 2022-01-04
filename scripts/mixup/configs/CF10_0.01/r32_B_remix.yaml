@@ -1,5 +1,5 @@
 experiment:
-  name: "CF10_0.01_r32_mixup_A"
+  name: "CF10_0.01_r32_mixup_B_remix"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -70,8 +70,8 @@ train_dataset:
 mixup:
   beta: 1.
   prob: 1.
-  type: "A"
-  remix: False
+  type: "B"
+  remix: True
 
 val_dataset:
   name: "CIFAR10"
