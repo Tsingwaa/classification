@@ -1,5 +1,5 @@
 experiment:
-  name: "CF100_0.01_r32_cutmix"
+  name: "CF100_0.01_r32_cutmix_testdist"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -18,7 +18,7 @@ finetune:
     batch_size: 128
     num_workers: 4
   network:
-    name: ''
+    name: ""
     param:
       in_channels: 512
       num_classes: 20
@@ -35,7 +35,7 @@ finetune:
       momentum: 0.9
       nesterov: True
   lr_scheduler:
-    name: 'StepLR'
+    name: "StepLR"
     param:
       warmup_epochs: 0
       step_size: 2
@@ -58,11 +58,11 @@ train_dataset:
   name: "ImbalanceCIFAR100"
   param:
     data_root: "cifar100"
-    phase: 'train'
+    phase: "train"
     # train: True
     # img_lst_fpath: "None"
     # map_fpath: "None"
-    imb_type: 'exp'
+    imb_type: "exp"
     imb_factor: 0.01
     rand_seed: 0
     download: False
@@ -76,18 +76,19 @@ val_dataset:
   name: "CIFAR100"
   param:
     data_root: "cifar100" # default: same as train_dataset
-    phase: 'val'
+    phase: "val"
     # train: False
     # img_lst_fpath: "None"
     # map_fpath: "None" # default: same as train_dataset
     download: False
 
 trainloader:
-  sampler: ''
+  sampler: "DistributedSampler"
   batch_size: 128
   num_workers: 4
 
 valloader:
+  sampler: "DistributedSampler"
   batch_size: 128
   num_workers: 4
 
@@ -100,7 +101,7 @@ network:
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: ''
+    weight_type: ""
     label_smoothing: 0.
 
 optimizer:

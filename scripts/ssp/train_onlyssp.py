@@ -222,7 +222,7 @@ class Trainer(BaseTrainer):
                 with amp.scale_loss(total_loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()
                 self.optimizer.step()
-                self._reduce_loss(total_loss)
+                self._reduce_tensor(total_loss)
             else:
                 total_loss.backward()
                 self.optimizer.step()

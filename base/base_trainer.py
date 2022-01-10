@@ -134,6 +134,7 @@ class BaseTrainer:
         self.valloader_params = config["valloader"]
         self.val_batchsize = self.valloader_params["batch_size"]
         self.val_workers = self.valloader_params["num_workers"]
+        self.val_sampler_name = self.valloader_params["sampler"]
 
         #######################################################################
         # Network setting
@@ -335,12 +336,14 @@ class BaseTrainer:
 
         return module
 
-    def _reduce_loss(self, tensor):
+    def _reduce_tensor(self, tensor, op='mean'):
         with torch.no_grad():
-            dist.reduce(tensor, dst=0)
+            dist.all_reduce(tensor, op=dist.reduce_op.SUM)
 
-            if not self.local_rank:
+            if not self.local_rank and op == 'mean':
                 tensor /= self.world_size
+
+        return tensor
 
     def resume_checkpoint(self, resume_fpath):
         checkpoint = torch.load(resume_fpath, map_location="cpu")
