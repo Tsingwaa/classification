@@ -162,6 +162,59 @@ class ResNet_CIFAR(nn.Module):
         else:  # Default output logits
             return self.fc(feat)  # (N, C)
 
+class ResNet_CIFAR2(nn.Module):
+    def __init__(self,
+                 block,
+                 num_blocks,
+                 num_classes=10,
+                 use_norm=False,
+                 **kwargs):
+        super(ResNet_CIFAR2, self).__init__()
+        self.in_planes = 16
+
+        self.conv1 = nn.Conv2d(3,
+                               16,
+                               kernel_size=3,
+                               stride=1,
+                               padding=1,
+                               bias=False)
+        self.bn1 = nn.BatchNorm2d(16)
+        self.layer1 = self._make_layer(block, 16, num_blocks[0], stride=1)
+        self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
+        self.layer3 = self._make_layer(block, 64, num_blocks[2], stride=2)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        
+        self.fc = nn.Linear(64, num_classes)
+
+        self.apply(_weights_init)
+
+    def _make_layer(self, block, planes, num_blocks, stride):
+        strides = [stride] + [1] * (num_blocks - 1)
+        layers = []
+        for stride in strides:
+            layers.append(block(self.in_planes, planes, stride))
+            self.in_planes = planes * block.expansion
+
+        return nn.Sequential(*layers)
+
+    def forward(self, x, out_type='fc'):
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = self.layer1(x)
+        x = self.layer2(x)
+
+        feat_map = self.layer3[:-1](x)
+        if out_type == 'map':
+            return feat_map
+        else:
+            feat_map = self.layer3[-1](feat_map)
+            feat_vec = self.avgpool(feat_map)
+            feat_vec = torch.squeeze(feat_vec)
+            if out_type == 'vec':
+                return feat_vec
+            elif out_type == 'mlp':
+                return self.mlp(feat_vec)
+            else:
+                return self.fc(feat_vec)
 
 @Networks.register_module("ResNet20_CIFAR")
 class ResNet20_CIFAR(ResNet_CIFAR):
@@ -188,6 +241,17 @@ class ResNet32_CIFAR(ResNet_CIFAR):
                                              num_blocks=num_blocks,
                                              **kwargs)
 
+@Networks.register_module("ResNet32_CIFAR2")
+class ResNet32_CIFAR2(ResNet_CIFAR2):
+    def __init__(self,
+                 num_classes,
+                 num_blocks=[5, 5, 5],
+                 use_norm=False,
+                 **kwargs):
+        super(ResNet32_CIFAR2, self).__init__(block=BasicBlock,
+                                             num_classes=num_classes,
+                                             num_blocks=num_blocks,
+                                             **kwargs)
 
 @Networks.register_module("ResNet44_CIFAR")
 class ResNet44_CIFAR(ResNet_CIFAR):

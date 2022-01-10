@@ -27,9 +27,10 @@ class DataLoaderX(DataLoader):
 
 class Trainer(BaseTrainer):
 
-    def __init__(self, local_rank=None, config=None):
+    def __init__(self, args, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
         self.cutmix_params = config["cutmix"]
+        self.args = args
 
     def train(self):
         #######################################################################
@@ -124,7 +125,6 @@ class Trainer(BaseTrainer):
         #######################################################################
 
         if self.local_rank != -1:
-            # self.model = convert_syncbn_model(self.model).cuda()
             self.model, self.opt = amp.initialize(self.model,
                                                   self.opt,
                                                   opt_level="O1")
@@ -238,7 +238,7 @@ class Trainer(BaseTrainer):
                         is_best=is_best,
                         mr=val_stat.mr,
                         group_mr=val_stat.group_mr,
-                        prefix=None,
+                        prefix='seed_%d'%(self.args.seed),
                         save_dir=self.exp_dir,
                         criterion=self.criterion,
                     )
@@ -349,12 +349,12 @@ class Trainer(BaseTrainer):
 
                 if self.local_rank in [-1, 0]:
                     val_pbar.update()
-
+        print(torch.sum(val_stat.cm))
         if self.local_rank != -1:
             # all reduce the statistical confusion matrix
             torch.distributed.barrier()
             val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
-
+        print(torch.sum(val_stat.cm))
         if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
                                      f"MR:{val_stat.mr:>6.2%} "
@@ -373,6 +373,7 @@ def parse_args():
                         help="Local Rank for\
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
+    parser.add_argument("--seed", type=int, default=0, help="rand_seed")
     args = parser.parse_args()
 
     return args
@@ -394,10 +395,10 @@ def _set_random_seed(seed=0, cuda_deterministic=False):
 
 def main(args):
     warnings.filterwarnings("ignore")
-    _set_random_seed()
+    _set_random_seed(seed=args.seed)
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    trainer = Trainer(local_rank=args.local_rank, config=config)
+    trainer = Trainer(args=args, local_rank=args.local_rank, config=config)
     trainer.train()
 
 

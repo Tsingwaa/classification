@@ -88,6 +88,13 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
+<<<<<<< HEAD
+        self.loss_params = self.update_class_weight(trainset.img_num,
+                                                    **self.loss_params)
+        self.loss2_params = self.update_class_weight(trainset.img_num,
+                                                    **self.loss2_params)
+        self.criterion = self.init_loss(self.loss_name, **self.loss_params)
+=======
         weight = self.get_class_weight(
             num_samples_per_cls=trainset.num_samples_per_cls,
             **self.loss_params,)
@@ -101,7 +108,11 @@ class Trainer(BaseTrainer):
         self.criterion2 = self.init_loss(self.loss2_name,
                                          weight=weight2,
                                          **self.loss2_params)
+>>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
 
+        self.criterion2 = self.init_loss(self.loss2_name, **self.loss2_params)
+        print(self.loss2_name)
+        print(self.loss2_params)
         #######################################################################
         # Initialize Optimizer
         #######################################################################
@@ -223,6 +234,19 @@ class Trainer(BaseTrainer):
                 if is_best:
                     best_mr = val_stat.mr
                     best_epoch = cur_epoch
+<<<<<<< HEAD
+                    best_group_mr = list(val_stat.group_mr)
+                if (not cur_epoch % self.save_period) or is_best:
+                    self.save_checkpoint(epoch=cur_epoch,
+                                         model=self.model,
+                                         optimizer=self.opt,
+                                         criterion=self.criterion2,
+                                         is_best=is_best,
+                                         mr=val_stat.mr,
+                                         group_mr=val_stat.group_mr,
+                                         prefix=None,
+                                         save_dir=self.exp_dir)
+=======
                     best_group_mr = val_stat.group_mr
                 if (not cur_epoch % self.save_period) or is_best:
                     self.save_checkpoint(
@@ -237,6 +261,7 @@ class Trainer(BaseTrainer):
                         criterion=self.criterion2,
                     )
 
+>>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
         end_time = datetime.now()
         dur_time = str(end_time - start_time)[:-7]  # 取到秒
 
@@ -277,7 +302,11 @@ class Trainer(BaseTrainer):
 
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
+<<<<<<< HEAD
+            batch_fvecs = model(batch_imgs, out_type='vec')
+=======
             batch_fvecs = model(batch_imgs, out_type='feat')
+>>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
             batch_probs = model.fc(batch_fvecs)
             loss1 = criterion(batch_probs, batch_labels)
             loss2 = criterion2(batch_fvecs, batch_labels)

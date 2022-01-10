@@ -50,7 +50,7 @@ class BaseTrainer:
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.user_root = os.environ["HOME"]
-        self.exp_root = join(self.user_root, "Experiments")
+        self.exp_root = join(self.user_root, "project/Experiments")
         self.start_epoch = self.exp_config["start_epoch"]
         self.total_epochs = self.exp_config["total_epochs"]
 
@@ -177,7 +177,7 @@ class BaseTrainer:
     def init_dataset(self, dataset_name, **kwargs):
         log_level = kwargs.pop("log_level", "default")
         kwargs["data_root"] = join(self.user_root, "Data", kwargs["data_root"])
-
+        
         dataset = Datasets.get(dataset_name)(**kwargs)
 
         dataset_init_log = f"===> Initialized {kwargs['phase']} "\

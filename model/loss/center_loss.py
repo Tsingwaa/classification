@@ -37,6 +37,7 @@ class CenterLoss(nn.Module):
         self.weight = weight
         if self.weight is not None:
             self.weight = self.weight.cuda()
+
         self.margin = margin
         self.centers = nn.Parameter(torch.randn(num_classes, feat_dim))
 

@@ -96,7 +96,7 @@ loss:
   name: "CrossEntropyLoss"
   param:
     weight_type: ''
-    label_smoothing: 0.
+    # label_smoothing: 0.
 
 optimizer:
   name: "SGD"

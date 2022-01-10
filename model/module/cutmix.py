@@ -3,6 +3,8 @@ import random
 
 import numpy as np
 import torch
+from pudb import set_trace
+from torch import serialization
 from torch.utils.data.dataset import Dataset
 
 
@@ -15,7 +17,14 @@ class CutMix(Dataset):
                  beta: float = 1.,
                  prob: float = 1.0,
                  remix: bool = False,
-                 adapt: int = -1):
+                 adapt: int = -1,
+                 lambd=0,
+                 soft_cutmix=False,
+                 soft_remix=False,
+                 remix_v2=False,
+                 remix_v3=False,
+                 kappa=3,
+                 tau2=0.5):
         """build CutMix Dataset based on common custom dataset class.
 
         Args:
@@ -37,7 +46,13 @@ class CutMix(Dataset):
         self.prob = prob
         self.remix = remix
         self.adapt = adapt
-
+        self.lambd_thres = lambd
+        self.soft_cutmix = soft_cutmix
+        self.soft_remix = soft_remix
+        self.remix_v2 = remix_v2
+        self.remix_v3 = remix_v3
+        self.kappa = kappa
+        self.tau2 = tau2
         # get all choices for each class
         self.choices = self.get_choices()  # chooice for each class
         # self.class_pointers = [0] * self.num_classes
@@ -52,7 +67,7 @@ class CutMix(Dataset):
             if self.beta <= 0 or r > self.prob:
                 continue
 
-            if self.adapt in [1, 2]:
+            if self.adapt in [1, 2, 8]:
                 rand_index = random.choice(self.choices[target])
             elif self.adapt == 3:  # random class
                 rand_class = random.choice(
@@ -87,6 +102,10 @@ class CutMix(Dataset):
                 rand_class = np.random.randint(floor_class, ceil_class + 1)
                 candidate_indexes = self.indexes_per_cls[rand_class]
                 rand_index = random.choice(candidate_indexes)
+            elif self.adapt == 7:
+                rand_class = random.choice(list(range(self.num_classes)))
+                candidate_indexes = self.indexes_per_cls[rand_class]
+                rand_index = random.choice(candidate_indexes)
             else:
                 rand_index = random.choice(range(len(self)))
 
@@ -95,31 +114,56 @@ class CutMix(Dataset):
 
             # generate mixed weight lambd for original area
             lambd = np.random.beta(self.beta, self.beta)
-
+            while lambd < self.lambd_thres:
+                lambd = np.random.beta(self.beta, self.beta)
             # if self.remix:  # the weight of choosen-to-mix img is larger.
             #     lambd = lambd if lambd < 0.5 else 1 - lambd
-
-            bbx1, bby1, bbx2, bby2 = rand_bbox(img.size(), lambd)  # set box
+            if self.soft_cutmix:
+                lambd_xc = min(lambd, 1-lambd)
+            else:
+                lambd_xc = lambd
+            bbx1, bby1, bbx2, bby2 = rand_bbox(img.size(), lambd_xc)  # set box
             img[:, bbx1:bbx2, bby1:bby2] = img2[:, bbx1:bbx2, bby1:bby2]
 
             # 为什么要重新算weight？
             # 因为cut区域时，可能超出边界，所以实际的区域可能更小，故而要重新计算。
             cut_area = (bbx2 - bbx1) * (bby2 - bby1)
             whole_area = img.size(-1) * img.size(-2)  # H * W
-            lambda_y = 1 - cut_area / whole_area  # for original img
-
+            lambda_yo = 1 - cut_area / whole_area  # for original img
             if self.remix:  # Directly use kappa=3 and tau=0.5
                 kappa, tau = 3, 0.5
                 n1 = self.num_samples_per_cls[target]
                 n2 = self.num_samples_per_cls[target2]
 
-                if n1 >= kappa * n2 and lambda_y < tau:
-                    lambda_y = 0
-                elif n1 * kappa <= n2 and lambda_y > 1 - tau:
-                    lambda_y = 1
+                if n1 >= kappa * n2 and lambda_yo < tau:
+                    lambda_yo = 0
+                elif n1 * kappa <= n2 and lambda_yo > 1 - tau:
+                    lambda_yo = 1
 
-            target_onehot = target_onehot * lambda_y + \
-                target2_onehot * (1. - lambda_y)
+            elif self.remix_v2:
+                kappa, tau = 3, 0.5
+                n1 = self.num_samples_per_cls[target]
+                n2 = self.num_samples_per_cls[target2]
+                if n1 >= self.kappa * n2 and lambda_yo < tau:
+                    lambda_yo = 0
+                elif lambda_yo > self.tau2:
+                    lambda_yo = 1
+                else:
+                    lambda_yo = min(lambda_yo, 1-lambda_yo)
+            elif self.remix_v3:
+                tau = 0.5
+                n1 = self.num_samples_per_cls[target]
+                n2 = self.num_samples_per_cls[target2]
+                if n1 >= self.kappa * n2 and lambda_yo < tau:
+                    lambda_yo = 0
+                elif lambda_yo >= self.tau2 and lambda_yo <= 1 - self.tau2:
+                    lambda_yo = min(lambda_yo, 1-lambda_yo)
+            
+            elif self.soft_remix:
+                lambda_yo = min(lambda_yo, 1-lambda_yo)
+
+            target_onehot = target_onehot * lambda_yo + \
+                target2_onehot * (1. - lambda_yo)
 
         return img, target_onehot
 
@@ -139,6 +183,8 @@ class CutMix(Dataset):
                 indexes = np.where(np.array(targets) > i)[0].tolist()
             elif self.adapt == 2:  # class i select class i+k(k>=0)
                 indexes = np.where(np.array(targets) >= i)[0].tolist()
+            elif self.adapt == 8:
+                indexes = np.where(np.array(targets) <= i)[0].tolist()
             else:
                 indexes = []
             choices.append(indexes)

@@ -25,8 +25,9 @@ class DataLoaderX(DataLoader):
 
 class Trainer(BaseTrainer):
 
-    def __init__(self, local_rank=None, config=None):
+    def __init__(self, args=None, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
+        self.args = args
 
     def train(self):
         #######################################################################
@@ -204,7 +205,7 @@ class Trainer(BaseTrainer):
                         is_best=is_best,
                         mr=val_stat.mr,
                         group_mr=val_stat.group_mr,
-                        prefix=None,
+                        prefix='seed_%d'%(self.args.seed),
                         save_dir=self.exp_dir,
                         criterion=self.criterion,
                     )
@@ -322,6 +323,7 @@ def parse_args():
                         help="Local Rank for\
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
+    parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
     return args
@@ -338,10 +340,10 @@ def _set_random_seed(seed=0):
 
 def main(args):
     warnings.filterwarnings("ignore")
-    _set_random_seed()
+    _set_random_seed(seed=args.seed)
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    trainer = Trainer(local_rank=args.local_rank, config=config)
+    trainer = Trainer(args, local_rank=args.local_rank, config=config)
     trainer.train()
 
 
