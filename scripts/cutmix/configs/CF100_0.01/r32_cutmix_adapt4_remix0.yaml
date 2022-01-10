@@ -1,5 +1,5 @@
 experiment:
-  name: "CF100_0.01_r32_cutmix_adapt3"
+  name: "CF100_0.01_r32_cutmix_adapt4_remix0"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -70,8 +70,8 @@ train_dataset:
 cutmix:
   beta: 1.
   prob: 1.
-  adapt: 3
-  remix: False
+  adapt: 4
+  remix: True
 
 val_dataset:
   name: "CIFAR100"

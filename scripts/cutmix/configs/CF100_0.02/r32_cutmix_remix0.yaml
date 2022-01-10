@@ -1,5 +1,5 @@
 experiment:
-  name: "CF100_0.01_r32_cutmix_adapt3"
+  name: "CF100_0.02_r32_cutmix_remix0"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -13,7 +13,7 @@ finetune:
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: ""
+    sampler: "BalanceSampler"
     retain_epoch_size: True
     batch_size: 128
     num_workers: 4
@@ -25,7 +25,7 @@ finetune:
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: "class_weight"
+      weight_type: ""
       label_smoothing: 0.
   optimizer:
     name: "SGD"
@@ -63,15 +63,14 @@ train_dataset:
     # img_lst_fpath: "None"
     # map_fpath: "None"
     imb_type: 'exp'
-    imb_factor: 0.01
+    imb_factor: 0.02
     rand_seed: 0
     download: False
 
 cutmix:
   beta: 1.
   prob: 1.
-  adapt: 3
-  remix: False
+  remix: True
 
 val_dataset:
   name: "CIFAR100"

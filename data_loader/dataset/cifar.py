@@ -25,7 +25,6 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
                  download=True,
                  imb_type='exp',
                  imb_factor=0.01,
-                 seed=0,
                  **kwargs):
         train = True if phase == 'train' else False
         super(ImbalanceCIFAR10, self).__init__(root=data_root,
@@ -36,8 +35,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         self.imb_type = imb_type
         self.imb_factor = imb_factor
         self.class_adapt = kwargs.get('class_adapt', False)
-        self.seed = seed
-        np.random.seed(self.seed)
+        np.random.seed(0)
 
         self.num_samples_per_cls = self.get_img_num_per_cls()
         self.img_num = self.num_samples_per_cls

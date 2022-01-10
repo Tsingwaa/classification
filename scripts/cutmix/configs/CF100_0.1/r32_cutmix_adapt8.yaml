@@ -1,5 +1,5 @@
 experiment:
-  name: "CF100_0.01_r32_cutmix_adapt3"
+  name: "CF100_0.1_r32_cutmix_adapt8"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -63,14 +63,14 @@ train_dataset:
     # img_lst_fpath: "None"
     # map_fpath: "None"
     imb_type: 'exp'
-    imb_factor: 0.01
+    imb_factor: 0.1
     rand_seed: 0
     download: False
 
 cutmix:
   beta: 1.
   prob: 1.
-  adapt: 3
+  adapt: 8
   remix: False
 
 val_dataset:
