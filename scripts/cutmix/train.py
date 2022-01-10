@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import yaml
 from apex import amp
-from apex.parallel import DistributedDataParallel, convert_syncbn_model
+from apex.parallel import DistributedDataParallel
 from base.base_trainer import BaseTrainer
 from model.module import CutMix
 from prefetch_generator import BackgroundGenerator
@@ -124,7 +124,7 @@ class Trainer(BaseTrainer):
         #######################################################################
 
         if self.local_rank != -1:
-            self.model = convert_syncbn_model(self.model).cuda(self.local_rank)
+            # self.model = convert_syncbn_model(self.model).cuda()
             self.model, self.opt = amp.initialize(self.model,
                                                   self.opt,
                                                   opt_level="O1")
