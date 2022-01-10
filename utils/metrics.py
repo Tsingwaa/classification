@@ -40,6 +40,7 @@ def get_preds_by_eudist(querys, keys):
     """
     dist_mat = eu_dist(querys, keys, sqrt=False)  # batch_size * num_classes
     preds = dist_mat.min(1)[1]  # predicted classes: batch_size * 1
+
     return preds
 
 
@@ -73,21 +74,25 @@ def get_preds_by_cossim(querys, keys):
     """
     sim_mat = cos_sim(querys, keys, device='cpu')
     preds = sim_mat.max(1)[1]
+
     return preds
 
 
 class ExpStat(object):
+
     def __init__(self, num_classes):
         self.num_classes = num_classes
         self.reset()
 
     def reset(self):
-        self._cm = np.zeros((self.num_classes, self.num_classes), dtype=int)
+        self._cm = torch.zeros((self.num_classes, self.num_classes),
+                               dtype=torch.long).cuda()
 
     def update(self, labels, preds):
         """labels and preds(batch_size*1) are both computed from iteration"""
-        labels, preds = labels.short().cpu(), preds.short().cpu()
+        labels, preds = labels.long(), preds.long()
         batch_size = preds.shape[0]
+
         for i in range(batch_size):
             self._cm[labels[i], preds[i]] += 1  # label[i] --> output[i]
 
@@ -97,8 +102,10 @@ class ExpStat(object):
 
     @property
     def recalls(self):
-        recalls = np.diag(self._cm) / np.sum(self._cm, axis=1)
+        cm = self._cm.cpu().numpy()
+        recalls = np.diag(cm) / np.sum(cm, axis=1)
         recalls[np.isnan(recalls)] = 0
+
         return recalls
 
     @property
@@ -113,6 +120,7 @@ class ExpStat(object):
         mid_mr = np.mean(self.recalls[head_cls_num:self.num_classes -
                                       tail_cls_num])
         tail_mr = np.mean(self.recalls[tail_cls_num:])
+
         return [
             np.around(head_mr, decimals=4),
             np.around(mid_mr, decimals=4),
@@ -121,8 +129,10 @@ class ExpStat(object):
 
     @property
     def precisions(self):
-        precisions = np.diag(self._cm) / np.sum(self._cm, axis=0)
+        cm = self._cm.cpu().numpy()
+        precisions = np.diag(cm) / np.sum(cm, axis=0)
         precisions[np.isnan(precisions)] = 0
+
         return precisions
 
     @property
@@ -131,7 +141,9 @@ class ExpStat(object):
 
     @property
     def accuracy(self):
-        return np.sum(np.diag(self._cm)) / self._cm.sum()
+        cm = self._cm.cpu().numpy()
+
+        return np.sum(np.diag(cm)) / cm.sum()
 
     def get_preds_by_eudist(self, querys, keys):
         """search which keys is nearest for each query.
@@ -139,6 +151,7 @@ class ExpStat(object):
         keys: num_cls * d
         """
         dist_mat = eu_dist(querys, keys, sqrt=False)  # batch_size * num_cls
+
         return dist_mat.max(1)[1]  # predicted classes: batch_size * 1
 
     def get_preds_by_cossim(self, querys, keys):
@@ -147,6 +160,7 @@ class ExpStat(object):
         keys: num_classes * d
         """
         sim_mat = cos_sim(querys, keys)
+
         return sim_mat.max(1)[1]
 
     def plot_confusion_matrix(self, normalize=False, cmap=plt.cm.Blues):
@@ -157,7 +171,8 @@ class ExpStat(object):
             title = 'Confusion matrix, without normalization'
 
         # Compute confusion matrix
-        cm = self._cm.T
+        cm = self._cm.cpu().numpy()
+        cm = cm.T
 
         fig, ax = plt.subplots()
         im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
@@ -182,6 +197,7 @@ class ExpStat(object):
         # Loop over data dimensions and create text annotations.
         fmt = '.2f' if normalize else 'd'
         thresh = cm.max() / 2.
+
         for i in range(cm.shape[0]):
             for j in range(cm.shape[1]):
                 ax.text(j,
@@ -191,4 +207,5 @@ class ExpStat(object):
                         va="center",
                         color="white" if cm[i, j] > thresh else "black")
         fig.tight_layout()
+
         return fig

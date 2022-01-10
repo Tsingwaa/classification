@@ -316,7 +316,7 @@ class Trainer(BaseTrainer):
                     scaled_loss.backward()
 
                 optimizer.step()
-                self._reduce_loss(batch_final_loss)
+                self._reduce_tensor(batch_final_loss)
             else:
                 batch_final_loss.backward()
                 optimizer.step()

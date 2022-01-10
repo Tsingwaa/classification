@@ -8,11 +8,12 @@ import numpy as np
 import torch
 import yaml
 from apex import amp
+from apex.parallel import DistributedDataParallel, convert_syncbn_model
 from base.base_trainer import BaseTrainer
 from model.module import CutMix
 from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
-from torch.nn.parallel import DistributedDataParallel
+# from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils import AverageMeter, ExpStat
@@ -39,9 +40,12 @@ class Trainer(BaseTrainer):
         trainset0 = self.init_dataset(self.trainset_name,
                                       transform=train_transform,
                                       **self.trainset_params)
-        self.log(f"===> Build Cutmix for {self.trainset_name}"
-                 f" with {self.cutmix_params}")
+
+        if self.local_rank in [-1, 0]:
+            self.log(f"===> Build Cutmix for {self.trainset_name}"
+                     f" with {self.cutmix_params}")
         trainset = CutMix(dataset=trainset0, **self.cutmix_params)
+
         train_sampler = self.init_sampler(self.train_sampler_name,
                                           dataset=trainset,
                                           **self.trainloader_params)
@@ -60,28 +64,36 @@ class Trainer(BaseTrainer):
                   f"local_rank {self.local_rank},"
                   f"sampler '{self.train_sampler_name}'")
 
-        if self.local_rank in [-1, 0]:
-            val_transform = self.init_transform(self.val_transform_name,
-                                                **self.val_transform_params)
-            valset = self.init_dataset(self.valset_name,
-                                       transform=val_transform,
-                                       **self.valset_params)
-            self.valloader = DataLoaderX(
-                valset,
-                batch_size=self.val_batchsize,
-                shuffle=False,
-                num_workers=self.val_workers,
-                pin_memory=True,
-                drop_last=False,
-            )
-            self.valloader_train = DataLoaderX(
-                trainset0,
-                batch_size=self.val_batchsize,
-                shuffle=False,
-                num_workers=self.val_workers,
-                pin_memory=True,
-                drop_last=False,
-            )
+        val_transform = self.init_transform(self.val_transform_name,
+                                            **self.val_transform_params)
+        valset = self.init_dataset(self.valset_name,
+                                   transform=val_transform,
+                                   **self.valset_params)
+
+        val_sampler = self.init_sampler(self.val_sampler_name,
+                                        dataset=valset,
+                                        **self.valloader_params)
+        self.valloader = DataLoaderX(
+            valset,
+            batch_size=self.val_batchsize,
+            shuffle=(val_sampler is None),
+            num_workers=self.val_workers,
+            pin_memory=True,
+            drop_last=False,
+            sampler=val_sampler,
+        )
+        val_sampler_train = self.init_sampler(self.val_sampler_name,
+                                              dataset=trainset,
+                                              **self.trainloader_params)
+        self.valloader_train = DataLoaderX(
+            trainset0,
+            batch_size=self.val_batchsize,
+            shuffle=(val_sampler_train is None),
+            num_workers=self.val_workers,
+            pin_memory=True,
+            drop_last=False,
+            sampler=val_sampler_train,
+        )
 
         #######################################################################
         # Initialize Network
@@ -112,13 +124,12 @@ class Trainer(BaseTrainer):
         #######################################################################
 
         if self.local_rank != -1:
+            self.model = convert_syncbn_model(self.model).cuda(self.local_rank)
             self.model, self.opt = amp.initialize(self.model,
                                                   self.opt,
                                                   opt_level="O1")
-            self.model = DistributedDataParallel(self.model,
-                                                 device_ids=[self.local_rank],
-                                                 output_device=self.local_rank,
-                                                 find_unused_parameters=True)
+            self.model = DistributedDataParallel(self.model)
+
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
@@ -136,7 +147,9 @@ class Trainer(BaseTrainer):
         last_mid_mrs = []
         last_tail_mrs = []
         self.final_epoch = self.start_epoch + self.total_epochs
-        start_time = datetime.now()
+
+        if self.local_rank in [-1, 0]:
+            start_time = datetime.now()
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.scheduler.step()
@@ -152,18 +165,18 @@ class Trainer(BaseTrainer):
                 self.opt,
                 trainset.num_classes,
             )
+            train_stat, train_loss = self.evaluate(
+                cur_epoch,
+                self.valloader_train,
+                self.model,
+                self.criterion,
+                trainset.num_classes,
+            )
+            val_stat, val_loss = self.evaluate(cur_epoch, self.valloader,
+                                               self.model, self.criterion,
+                                               trainset.num_classes)
 
             if self.local_rank in [-1, 0]:
-                train_stat, train_loss = self.evaluate(
-                    cur_epoch,
-                    self.valloader_train,
-                    self.model,
-                    self.criterion,
-                    trainset.num_classes,
-                )
-                val_stat, val_loss = self.evaluate(cur_epoch, self.valloader,
-                                                   self.model, self.criterion,
-                                                   trainset.num_classes)
 
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
@@ -230,15 +243,15 @@ class Trainer(BaseTrainer):
                         criterion=self.criterion,
                     )
 
-        end_time = datetime.now()
-        dur_time = str(end_time - start_time)[:-7]  # 取到秒
-
-        final_mr = np.around(np.mean(last_mrs), decimals=4)
-        final_head_mr = np.around(np.mean(last_head_mrs), decimals=4)
-        final_mid_mr = np.around(np.mean(last_mid_mrs), decimals=4)
-        final_tail_mr = np.around(np.mean(last_tail_mrs), decimals=4)
-
         if self.local_rank in [-1, 0]:
+            end_time = datetime.now()
+            dur_time = str(end_time - start_time)[:-7]  # 取到秒
+
+            final_mr = np.around(np.mean(last_mrs), decimals=4)
+            final_head_mr = np.around(np.mean(last_head_mrs), decimals=4)
+            final_mid_mr = np.around(np.mean(last_mid_mrs), decimals=4)
+            final_tail_mr = np.around(np.mean(last_tail_mrs), decimals=4)
+
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
                 f"===> Best mean recall: {best_mr:>6.2%} (epoch{best_epoch})\n"
@@ -267,16 +280,20 @@ class Trainer(BaseTrainer):
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
 
-            batch_imgs = batch_imgs.cuda()
-            batch_labels = batch_labels.cuda()
+            batch_imgs = batch_imgs.cuda(non_blocking=True)
+            batch_labels = batch_labels.cuda(non_blocking=True)
             batch_probs = model(batch_imgs, out_type='fc')
             avg_loss = criterion(batch_probs, batch_labels)
 
             if self.local_rank != -1:
+                torch.distributed.barrier()
+                # torch.distributed.barrier()的作用是，阻塞进程，确保每个进程都运行
+                # 到这一行代码，才能继续执行，这样计算平均loss和平均acc的时候
+                # 不会出现因为进程执行速度不一致而导致的错误
                 with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
                 opt.step()
-                self._reduce_loss(avg_loss)
+                avg_loss = self._reduce_tensor(avg_loss)
             else:
                 avg_loss.backward()
                 opt.step()
@@ -286,10 +303,16 @@ class Trainer(BaseTrainer):
             train_stat.update(batch_labels, batch_preds)
 
             if self.local_rank in [-1, 0]:
+
                 train_pbar.update()
                 train_pbar.set_postfix_str(
                     f"LR:{opt.param_groups[0]['lr']:.1e} "
                     f"Loss:{train_loss_meter.avg:>4.2f}")
+
+        if self.local_rank != -1:
+            # all reduce the statistical confusion matrix
+            torch.distributed.barrier()
+            train_stat._cm = self._reduce_tensor(train_stat._cm, op='sum')
 
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(f"LR:{opt.param_groups[0]['lr']:.1e} "
@@ -314,8 +337,8 @@ class Trainer(BaseTrainer):
         val_stat = ExpStat(num_classes)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
-                batch_imgs = batch_imgs.cuda()
-                batch_labels = batch_labels.cuda()
+                batch_imgs = batch_imgs.cuda(non_blocking=True)
+                batch_labels = batch_labels.cuda(non_blocking=True)
 
                 batch_probs = model(batch_imgs, out_type='fc')
                 batch_preds = torch.argmax(batch_probs, dim=1)
@@ -323,7 +346,14 @@ class Trainer(BaseTrainer):
 
                 val_loss_meter.update(avg_loss.item(), 1)
                 val_stat.update(batch_labels, batch_preds)
-                val_pbar.update()
+
+                if self.local_rank in [-1, 0]:
+                    val_pbar.update()
+
+        if self.local_rank != -1:
+            # all reduce the statistical confusion matrix
+            torch.distributed.barrier()
+            val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
 
         if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
@@ -348,13 +378,18 @@ def parse_args():
     return args
 
 
-def _set_random_seed(seed=0):
+def _set_random_seed(seed=0, cuda_deterministic=False):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True  # 固定内部随机性
-    torch.backends.cudnn.benchmark = True  # 输入尺寸一致，加速训练
+
+    if cuda_deterministic:  # slower, but more reproducible
+        torch.backends.cudnn.deterministic = True  # 固定内部随机性
+        torch.backends.cudnn.benchmark = False  # 输入尺寸不控制
+    else:
+        torch.backends.cudnn.deterministic = False  # 不固定内部随机性
+        torch.backends.cudnn.benchmark = True  # 输入尺寸一致，加速训练
 
 
 def main(args):

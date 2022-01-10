@@ -250,7 +250,7 @@ class Trainer(BaseTrainer):
                 with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
                 opt.step()
-                self._reduce_loss(avg_loss)
+                self._reduce_tensor(avg_loss)
             else:
                 avg_loss.backward()
                 # opt2.step()
