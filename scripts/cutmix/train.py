@@ -349,12 +349,12 @@ class Trainer(BaseTrainer):
 
                 if self.local_rank in [-1, 0]:
                     val_pbar.update()
-        print(torch.sum(val_stat.cm))
+
         if self.local_rank != -1:
             # all reduce the statistical confusion matrix
             torch.distributed.barrier()
             val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
-        print(torch.sum(val_stat.cm))
+
         if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
                                      f"MR:{val_stat.mr:>6.2%} "
