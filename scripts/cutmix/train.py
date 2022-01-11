@@ -125,6 +125,7 @@ class Trainer(BaseTrainer):
         #######################################################################
 
         if self.local_rank != -1:
+            # self.model = convert_syncbn_model(self.model).cuda()
             self.model, self.opt = amp.initialize(self.model,
                                                   self.opt,
                                                   opt_level="O1")
