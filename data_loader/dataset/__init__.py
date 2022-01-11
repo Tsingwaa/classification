@@ -4,3 +4,4 @@ from .caltech import *
 # from .lmdb_dataset import *
 from .cifar import *
 from .miniImageNet import *
+from .Imagenet_lt import *

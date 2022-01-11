@@ -50,7 +50,7 @@ class BaseTrainer:
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.user_root = os.environ["HOME"]
-        self.exp_root = join(self.user_root, "project/Experiments")
+        self.exp_root = join(self.user_root, "Projects/Experiments")
         self.start_epoch = self.exp_config["start_epoch"]
         self.total_epochs = self.exp_config["total_epochs"]
 
@@ -128,11 +128,15 @@ class BaseTrainer:
         #######################################################################
         self.trainloader_params = config["trainloader"]
         self.train_batchsize = self.trainloader_params["batch_size"]
+        if self.local_rank != -1:
+            self.train_batchsize = self.train_batchsize // self.world_size
         self.train_workers = self.trainloader_params["num_workers"]
         self.train_sampler_name = self.trainloader_params["sampler"]
 
         self.valloader_params = config["valloader"]
         self.val_batchsize = self.valloader_params["batch_size"]
+        if self.local_rank != -1:
+            self.val_batchsize = self.val_batchsize // self.world_size
         self.val_workers = self.valloader_params["num_workers"]
         self.val_sampler_name = self.valloader_params["sampler"]
 
@@ -176,7 +180,7 @@ class BaseTrainer:
 
     def init_dataset(self, dataset_name, **kwargs):
         log_level = kwargs.pop("log_level", "default")
-        kwargs["data_root"] = join(self.user_root, "Data", kwargs["data_root"])
+        # kwargs["data_root"] = join(self.user_root, "Data", kwargs["data_root"])
         
         dataset = Datasets.get(dataset_name)(**kwargs)
 
