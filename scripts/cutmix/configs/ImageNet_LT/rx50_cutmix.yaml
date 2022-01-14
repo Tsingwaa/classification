@@ -1,5 +1,5 @@
 experiment:
-  name: "ImageNet_adapt2_2_0.5"
+  name: "ImageNet_rx50_cutmix_lr_0.2_5e-4"
   start_epoch: 1
   total_epochs: 90
   log_fname: "train.log"
@@ -7,6 +7,7 @@ experiment:
   resume_fpath: "best.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
+
 
 finetune:
   name: "DRW"
@@ -42,6 +43,14 @@ finetune:
       # milestones: [5, 10, 15, 20]
       gamma: 0.1
 
+test:
+  name: "test"
+  loss:
+    name: "CrossEntropyLoss"
+    param:
+      weight_type: ""
+      label_smoothing: 0.
+
 train_transform:
   name: "ImagenetTransform"
   param:
@@ -49,6 +58,12 @@ train_transform:
     resize: [224, 224]
 
 val_transform:
+  name: "ImagenetTransform"
+  param:
+    phase: "test"
+    resize: [224, 224]
+
+test_transform:
   name: "ImagenetTransform"
   param:
     phase: "test"
@@ -69,12 +84,8 @@ train_dataset:
 cutmix:
   beta: 1.
   prob: 1.
-  adapt: 2
-  remix_v2: True
-  kappa: 2
-  tau2: 0.5
-
-
+  remix: False
+  
 val_dataset:
   name: "ImageNet_LT"
   param:
@@ -129,8 +140,8 @@ loss:
 optimizer:
   name: "SGD"
   param:
-    lr: 0.1
-    weight_decay: 2.0e-4
+    lr: 0.2
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 
@@ -160,3 +171,11 @@ lr_scheduler:
     # CosineAnnealingLR
     T_max: 90
     eta_min: 0
+
+test:
+  name: "test"
+  loss:
+    name: "CrossEntropyLoss"
+    param:
+      weight_type: ""
+      label_smoothing: 0.

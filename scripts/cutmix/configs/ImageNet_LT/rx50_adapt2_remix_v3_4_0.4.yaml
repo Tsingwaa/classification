@@ -1,5 +1,5 @@
 experiment:
-  name: "ImageNet_adapt2_2_0.5"
+  name: "ImageNet_adapt2_remix_v3_4_0.4"
   start_epoch: 1
   total_epochs: 90
   log_fname: "train.log"
@@ -42,6 +42,14 @@ finetune:
       # milestones: [5, 10, 15, 20]
       gamma: 0.1
 
+test:
+  name: "test"
+  loss:
+    name: "CrossEntropyLoss"
+    param:
+      weight_type: ""
+      label_smoothing: 0.
+
 train_transform:
   name: "ImagenetTransform"
   param:
@@ -49,6 +57,12 @@ train_transform:
     resize: [224, 224]
 
 val_transform:
+  name: "ImagenetTransform"
+  param:
+    phase: "test"
+    resize: [224, 224]
+
+test_transform:
   name: "ImagenetTransform"
   param:
     phase: "test"
@@ -70,9 +84,9 @@ cutmix:
   beta: 1.
   prob: 1.
   adapt: 2
-  remix_v2: True
-  kappa: 2
-  tau2: 0.5
+  remix_v3: True
+  kappa: 4
+  tau2: 0.4
 
 
 val_dataset:
