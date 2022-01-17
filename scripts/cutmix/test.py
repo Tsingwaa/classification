@@ -3,13 +3,13 @@ import argparse
 import os
 import random
 import warnings
-from datetime import datetime
+# from datetime import datetime
 from os.path import join
 
 import numpy as np
 import torch
 import yaml
-from apex import amp
+# from apex import amp
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
@@ -67,16 +67,14 @@ class Tester(BaseTrainer):
             self.resume_fpath = self.exp_config["resume_fpath"]
         else:
             # self.resume_fpath = join(self.exp_root, self.exp_name,
-            #                          'seed_%d_DRW_%s'%(self.args.seed, self.exp_config["resume_fpath"]))
-            # self.resume_fpath = join(self.exp_root, self.exp_name,
             #                          'DRW_%s'%(self.exp_config["resume_fpath"]))
             # self.resume_fpath = join(self.exp_root, self.exp_name,
             #                          self.exp_config["resume_fpath"])
-            self.resume_fpath = join(self.exp_root, self.exp_name,
-                                     'seed_%d_%s'%(args.seed, self.exp_config["resume_fpath"]))
+            self.resume_fpath = join(
+                self.exp_root, self.exp_name,
+                'seed_%d_%s' % (args.seed, self.exp_config["resume_fpath"]))
 
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
-
 
         if self.local_rank in [-1, 0]:
             self.eval_period = self.exp_config["eval_period"]
@@ -117,7 +115,6 @@ class Tester(BaseTrainer):
         self.loss_name = ft_loss_config["name"]
         self.loss_params = ft_loss_config["param"]
 
-    
     def evaluate(self,
                  cur_epoch,
                  valloader,
@@ -137,7 +134,8 @@ class Tester(BaseTrainer):
                             desc="                 Val")
 
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
+        val_stat = ExpStat(num_classes, self.head_class_idx,
+                           self.med_class_idx, self.tail_class_idx)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
@@ -167,12 +165,11 @@ class Tester(BaseTrainer):
 
         return val_stat, val_loss_meter.avg
 
-
     def test(self):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
-        
+
         if self.local_rank != -1:
             print(f"global_rank {self.global_rank},"
                   f"world_size {self.world_size},"
@@ -195,10 +192,10 @@ class Tester(BaseTrainer):
             )
 
             test_transform = self.init_transform(self.test_transform_name,
-                                                **self.test_transform_params)
+                                                 **self.test_transform_params)
             testset = self.init_dataset(self.testset_name,
-                                       transform=test_transform,
-                                       **self.testset_params)
+                                        transform=test_transform,
+                                        **self.testset_params)
             self.testloader = DataLoaderX(
                 dataset=testset,
                 batch_size=self.test_batchsize,
@@ -207,7 +204,6 @@ class Tester(BaseTrainer):
                 pin_memory=True,
                 drop_last=False,
             )
-
 
         #######################################################################
         # Initialize Network
@@ -229,13 +225,13 @@ class Tester(BaseTrainer):
         #######################################################################
         # Start Testing
         #######################################################################
+
         if self.local_rank in [-1, 0]:
-            val_stat, val_loss = self.evaluate(
-                cur_epoch=0,
-                valloader=self.valloader,
-                model=self.model,
-                criterion=self.criterion,
-                num_classes=self.num_classes)
+            val_stat, val_loss = self.evaluate(cur_epoch=0,
+                                               valloader=self.valloader,
+                                               model=self.model,
+                                               criterion=self.criterion,
+                                               num_classes=self.num_classes)
 
             self.log(
                 f"Val Loss={val_loss:>4.2f} "
@@ -245,12 +241,11 @@ class Tester(BaseTrainer):
                 f"{val_stat.group_mr[2]:>6.2%}",
                 log_level="file")
 
-            val_stat, val_loss = self.evaluate(
-                cur_epoch=0,
-                valloader=self.testloader,
-                model=self.model,
-                criterion=self.criterion,
-                num_classes=self.num_classes)
+            val_stat, val_loss = self.evaluate(cur_epoch=0,
+                                               valloader=self.testloader,
+                                               model=self.model,
+                                               criterion=self.criterion,
+                                               num_classes=self.num_classes)
 
             self.log(
                 f"Val Loss={val_loss:>4.2f} "

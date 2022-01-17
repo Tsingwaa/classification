@@ -3,6 +3,7 @@
 # BBN (https://github.com/Megvii-Nanjing/BBN)
 # to produce long-tailed CIFAR datasets.
 import random
+
 import numpy as np
 import PIL
 # import torch
@@ -32,9 +33,9 @@ class Add_ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
                  **kwargs):
         train = True if phase == 'train' else False
         super(Add_ImbalanceCIFAR10, self).__init__(root=data_root,
-                                               train=train,
-                                               transform=transform,
-                                               download=download)
+                                                   train=train,
+                                                   transform=transform,
+                                                   download=download)
 
         self.imb_type = imb_type
         self.imb_factor = imb_factor
@@ -42,16 +43,19 @@ class Add_ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         np.random.seed(0)
 
         self.num_samples_per_cls = self.get_img_num_per_cls()
-        
+
         self.gen_imbalanced_data()
 
         # get other property
         self.class_weight = self.get_class_weight()
         self.indexes_per_cls = self.get_indexes_per_cls()
         self.extra_classes_num = extra_classes_num
-        self.num_of_samples_per_extra_class = self.get_num_of_samples_per_extra_class(split_type, extra_samples_num)
+        self.num_of_samples_per_extra_class = \
+            self.get_num_of_samples_per_extra_class(
+                split_type, extra_samples_num)
         self.add_extra_classes()
-        self.img_num = self.num_samples_per_cls + self.num_of_samples_per_extra_class
+        self.img_num = self.num_samples_per_cls +\
+            self.num_of_samples_per_extra_class
         self.num_classes += extra_classes_num
 
     def get_img_num_per_cls(self):
@@ -104,33 +108,40 @@ class Add_ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         self.data = new_data
         self.targets = new_targets
 
-    def get_num_of_samples_per_extra_class(self, split_type, extra_samples_num):
+    def get_num_of_samples_per_extra_class(self, split_type,
+                                           extra_samples_num):
         num_of_samples_per_extra_class = []
+
         if split_type == 'same':
             for i in range(self.extra_classes_num):
-                num_of_samples_per_extra_class.append(extra_samples_num // self.extra_classes_num)
-        
+                num_of_samples_per_extra_class.append(extra_samples_num //
+                                                      self.extra_classes_num)
+
         return num_of_samples_per_extra_class
 
     def add_extra_classes(self):
-        
+
         lambd = 0.5
         c1 = self.num_classes - 1
         c2 = self.num_classes - 2
         extra_data = []
         extra_targets = []
+
         for i in range(self.extra_classes_num):
             for j in range(self.num_of_samples_per_extra_class[i]):
                 index1 = random.choice(self.indexes_per_cls[c1])
                 index2 = random.choice(self.indexes_per_cls[c2])
-                img = lambd * self.data[index1] + (1 - lambd) * self.data[index2]
+                img = lambd * self.data[index1] + (1 -
+                                                   lambd) * self.data[index2]
                 extra_data.append(img)
-                extra_targets.append(self.num_classes+i)
+                extra_targets.append(self.num_classes + i)
+
             if c2 == 0:
                 c1 = c1 - 1
                 c2 = c1 - 1
             else:
                 c2 = c2 - 1
+
         if self.extra_classes_num > 0:
             extra_data = np.array(extra_data, dtype=np.int16)
             # extra_targets = np.array(extra_targets)
@@ -193,15 +204,16 @@ class Add_ImbalanceCIFAR100(Add_ImbalanceCIFAR10):
     num_classes = 100
     cls_num = 100
 
+
 if __name__ == '__main__':
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
     trainset = Add_ImbalanceCIFAR100(data_root='./data',
-                                 train=True,
-                                 download=True,
-                                 transform=transform)
+                                     train=True,
+                                     download=True,
+                                     transform=transform)
     # trainloader = iter(trainset)
     # data, label = next(trainloader)
     # import pdb

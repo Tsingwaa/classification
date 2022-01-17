@@ -3,7 +3,6 @@ Created: Nov 15,2019 - Yuchong Gu
 Revised: Nov 15,2019 - Yuchong Gu
 """
 import os
-import pdb
 
 from PIL import Image
 from scipy.io import loadmat
@@ -55,6 +54,7 @@ class DogDataset(Dataset):
         image = self.transform(image)
 
         # return image and label
+
         return image, self.labels[item] - 1  # count begin from zero
 
     def __len__(self):
@@ -64,6 +64,7 @@ class DogDataset(Dataset):
 if __name__ == '__main__':
     ds = DogDataset('train')
     # print(len(ds))
+
     for i in range(0, 1000):
         image, label = ds[i]
         # print(image.shape, label)

@@ -10,10 +10,9 @@ import numpy as np
 import torch
 import yaml
 from apex import amp
+from apex.parallel import DistributedDataParallel
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
-from apex.parallel import DistributedDataParallel
-
 # from pudb import set_trace
 # from sklearn import metrics
 from torch import distributed as dist
@@ -71,8 +70,9 @@ class FineTuner(BaseTrainer):
         if "/" in self.exp_config["resume_fpath"]:
             self.resume_fpath = self.exp_config["resume_fpath"]
         else:
-            self.resume_fpath = join(self.exp_root, self.exp_name,
-                                     'seed_%d_%s'%(self.args.seed, self.exp_config["resume_fpath"]))
+            self.resume_fpath = join(
+                self.exp_root, self.exp_name, 'seed_%d_%s' %
+                (self.args.seed, self.exp_config["resume_fpath"]))
 
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
 
@@ -179,7 +179,7 @@ class FineTuner(BaseTrainer):
                                      num_classes=trainset.num_classes,
                                      **self.network_params)
         self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
-        
+
         #######################################################################
         # Initialize Loss
         #######################################################################
@@ -281,7 +281,8 @@ class FineTuner(BaseTrainer):
                                          is_best=is_best,
                                          mr=val_stat.mr,
                                          group_mr=val_stat.group_mr,
-                                         prefix='seed_%d_%s'%(self.args.seed, self.finetune_name),
+                                         prefix='seed_%d_%s' %
+                                         (self.args.seed, self.finetune_name),
                                          save_dir=self.exp_dir)
 
         end_time = datetime.now()
@@ -327,7 +328,8 @@ class FineTuner(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>2d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
+        train_stat = ExpStat(num_classes, self.head_class_idx,
+                             self.med_class_idx, self.tail_class_idx)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
@@ -393,7 +395,8 @@ class FineTuner(BaseTrainer):
                             desc="                 Val")
 
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
+        val_stat = ExpStat(num_classes, self.head_class_idx,
+                           self.med_class_idx, self.tail_class_idx)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)

@@ -128,6 +128,7 @@ class BaseTrainer:
         #######################################################################
         self.trainloader_params = config["trainloader"]
         self.train_batchsize = self.trainloader_params["batch_size"]
+
         if self.local_rank != -1:
             self.train_batchsize = self.train_batchsize // self.world_size
         self.train_workers = self.trainloader_params["num_workers"]
@@ -135,6 +136,7 @@ class BaseTrainer:
 
         self.valloader_params = config["valloader"]
         self.val_batchsize = self.valloader_params["batch_size"]
+
         if self.local_rank != -1:
             self.val_batchsize = self.val_batchsize // self.world_size
         self.val_workers = self.valloader_params["num_workers"]
@@ -180,8 +182,7 @@ class BaseTrainer:
 
     def init_dataset(self, dataset_name, **kwargs):
         log_level = kwargs.pop("log_level", "default")
-        # kwargs["data_root"] = join(self.user_root, "Data", kwargs["data_root"])
-        
+
         dataset = Datasets.get(dataset_name)(**kwargs)
 
         dataset_init_log = f"===> Initialized {kwargs['phase']} "\

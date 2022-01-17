@@ -1,4 +1,4 @@
-import math
+# import math
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -80,11 +80,15 @@ def get_preds_by_cossim(querys, keys):
 
 class ExpStat(object):
 
-    def __init__(self, num_classes, head_class_idx, med_class_idx, tail_class_idx):
-        self.head_class_idx = head_class_idx
-        self.med_class_idx = med_class_idx
-        self.tail_class_idx = tail_class_idx
-        self.num_classes = num_classes
+    # def __init__(self, num_classes, head_class_idx, med_class_idx,
+    #              tail_class_idx):
+    def __init__(self, num_samples_per_cls):
+        # self.head_class_idx = head_class_idx
+        # self.med_class_idx = med_class_idx
+        # self.tail_class_idx = tail_class_idx
+        self.num_classes = len(num_samples_per_cls)
+        self.med_start_idx, self.med_end_idx = self.get_group_index(
+            num_samples_per_cls)
         self.reset()
 
     def reset(self):
@@ -120,13 +124,17 @@ class ExpStat(object):
         # head_cls_num = math.floor(self.num_classes / 3)
         # tail_cls_num = head_cls_num
         # head_mr = np.mean(self.recalls[:head_cls_num])
-        
+
         # mid_mr = np.mean(self.recalls[head_cls_num:self.num_classes -
         #                               tail_cls_num])
         # tail_mr = np.mean(self.recalls[tail_cls_num:])
-        head_mr = np.mean(self.recalls[self.head_class_idx[0]: self.head_class_idx[1]])
-        mid_mr = np.mean(self.recalls[self.med_class_idx[0]: self.med_class_idx[1]])
-        tail_mr = np.mean(self.recalls[self.tail_class_idx[0]: self.tail_class_idx[1]])
+        head_mr = np.mean(
+            self.recalls[self.head_class_idx[0]:self.head_class_idx[1]])
+        mid_mr = np.mean(
+            self.recalls[self.med_class_idx[0]:self.med_class_idx[1]])
+        tail_mr = np.mean(
+            self.recalls[self.tail_class_idx[0]:self.tail_class_idx[1]])
+
         return [
             np.around(head_mr, decimals=4),
             np.around(mid_mr, decimals=4),
@@ -215,3 +223,24 @@ class ExpStat(object):
         fig.tight_layout()
 
         return fig
+
+    def get_group_index(self, num_samples_per_cls):
+        """Class imbalance setup:
+            Majority>100 images
+            20<=Medium<=100 images
+            Minority<20 images
+
+        return: the start and end index of Medium classes,
+            i.e. Med=classes[start:end]
+        """
+        start, end = 0, 0
+        last_num_samples = 0
+
+        for cls, num_samples in enumerate(num_samples_per_cls):
+            if last_num_samples > 200 and num_samples_per_cls <= 200:
+                start = cls
+            elif last_num_samples >= 20 and num_samples_per_cls < 20:
+                end = cls
+            last_num_samples = num_samples
+
+        return start, end
