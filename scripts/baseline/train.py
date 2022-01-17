@@ -15,7 +15,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils import AverageMeter, ExpStat
-from torchstat import stat
+# from torchstat import stat
 
 class DataLoaderX(DataLoader):
 

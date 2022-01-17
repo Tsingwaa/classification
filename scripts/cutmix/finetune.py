@@ -54,6 +54,10 @@ class FineTuner(BaseTrainer):
         self.head_class_idx = config['head_class_idx']
         self.med_class_idx = config['med_class_idx']
         self.tail_class_idx = config['tail_class_idx']
+<<<<<<< HEAD
+
+=======
+>>>>>>> d7b1acff054b2a3d0d888ca3d148c4fa61a1a845
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.finetune_config = config["finetune"]

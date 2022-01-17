@@ -49,18 +49,10 @@ class Tester(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
-<<<<<<< HEAD
-        self.head_class_idx = config['head_class_idx']
-        self.med_class_idx = config['med_class_idx']
-        self.tail_class_idx = config['tail_class_idx']
-
-=======
-
         self.head_class_idx = config['head_class_idx']
         self.med_class_idx = config['med_class_idx']
         self.tail_class_idx = config['tail_class_idx']
         self.num_classes = self.tail_class_idx[1]
->>>>>>> 7eb84b3a2bfd88a254e25fc0a17f604a3a186fe6
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.test_config = config["test"]
@@ -77,17 +69,11 @@ class Tester(BaseTrainer):
             # self.resume_fpath = join(self.exp_root, self.exp_name,
             #                          'seed_%d_DRW_%s'%(self.args.seed, self.exp_config["resume_fpath"]))
             # self.resume_fpath = join(self.exp_root, self.exp_name,
-<<<<<<< HEAD
-            #                          'DRS_%s'%(self.exp_config["resume_fpath"]))
-            self.resume_fpath = join(self.exp_root, self.exp_name,
-                                     'seed_%d_%s'%(self.args.seed, self.exp_config["resume_fpath"]))
-=======
             #                          'DRW_%s'%(self.exp_config["resume_fpath"]))
             # self.resume_fpath = join(self.exp_root, self.exp_name,
             #                          self.exp_config["resume_fpath"])
             self.resume_fpath = join(self.exp_root, self.exp_name,
                                      'seed_%d_%s'%(args.seed, self.exp_config["resume_fpath"]))
->>>>>>> 7eb84b3a2bfd88a254e25fc0a17f604a3a186fe6
 
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
 

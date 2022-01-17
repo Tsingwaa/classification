@@ -1,5 +1,5 @@
 experiment:
-  name: "ImageNet_CE_lr_0.2_5e-4"
+  name: "ImageNet_adapt2_remix_v4_2_0.7_lr_0.2"
   start_epoch: 1
   total_epochs: 90
   log_fname: "train.log"
@@ -13,9 +13,9 @@ finetune:
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: ""
+    sampler: "DistributedSampler"
     retain_epoch_size: True
-    batch_size: 256
+    batch_size: 128
     num_workers: 4
   network:
     name: ''
@@ -38,9 +38,17 @@ finetune:
     name: 'StepLR'
     param:
       warmup_epochs: 0
-      step_size: 3
+      step_size: 2
       # milestones: [5, 10, 15, 20]
       gamma: 0.1
+
+test:
+  name: "test"
+  loss:
+    name: "CrossEntropyLoss"
+    param:
+      weight_type: ""
+      label_smoothing: 0.
 
 train_transform:
   name: "ImagenetTransform"
@@ -60,16 +68,6 @@ test_transform:
     phase: "test"
     resize: [224, 224]
 
-head_class_idx:
-  - 0
-  - 390
-med_class_idx:
-  - 390
-  - 835
-tail_class_idx:
-  - 835
-  - 1000
-  
 train_dataset:
   name: "ImageNet_LT"
   param:
@@ -85,6 +83,21 @@ train_dataset:
 cutmix:
   beta: 1.
   prob: 1.
+  adapt: 2
+  remix_v4: True
+  kappa: 2
+  tau2: 0.7
+
+head_class_idx:
+  - 0
+  - 390
+med_class_idx:
+  - 390
+  - 835
+tail_class_idx:
+  - 835
+  - 1000
+
 
 val_dataset:
   name: "ImageNet_LT"
@@ -110,16 +123,15 @@ test_dataset:
     # map_fpath: "None"
     imb_type: 'exp'
 
-
 trainloader:
   sampler: 'DistributedSampler'
   batch_size: 512
-  num_workers: 8
+  num_workers: 16
 
 valloader:
   sampler: 'DistributedSampler'
   batch_size: 512
-  num_workers: 8
+  num_workers: 16
 
 testloader:
   sampler: 'DistributedSampler'
@@ -142,7 +154,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.2
-    weight_decay: 5.0e-4
+    weight_decay: 2.0e-4
     momentum: 0.9
     nesterov: True
 
@@ -172,11 +184,3 @@ lr_scheduler:
     # CosineAnnealingLR
     T_max: 90
     eta_min: 0
-
-test:
-  name: "test"
-  loss:
-    name: "CrossEntropyLoss"
-    param:
-      weight_type: ""
-      label_smoothing: 0.
