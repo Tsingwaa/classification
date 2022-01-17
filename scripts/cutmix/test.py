@@ -49,6 +49,10 @@ class Tester(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
+        self.head_class_idx = config['head_class_idx']
+        self.med_class_idx = config['med_class_idx']
+        self.tail_class_idx = config['tail_class_idx']
+        
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.test_config = config["test"]

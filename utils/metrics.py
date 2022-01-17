@@ -80,7 +80,10 @@ def get_preds_by_cossim(querys, keys):
 
 class ExpStat(object):
 
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, head_class_idx, med_class_idx, tail_class_idx):
+        self.head_class_idx = head_class_idx
+        self.med_class_idx = med_class_idx
+        self.tail_class_idx = tail_class_idx
         self.num_classes = num_classes
         self.reset()
 
@@ -114,13 +117,16 @@ class ExpStat(object):
 
     @property
     def group_mr(self):
-        head_cls_num = math.floor(self.num_classes / 3)
-        tail_cls_num = head_cls_num
-        head_mr = np.mean(self.recalls[:head_cls_num])
-        mid_mr = np.mean(self.recalls[head_cls_num:self.num_classes -
-                                      tail_cls_num])
-        tail_mr = np.mean(self.recalls[tail_cls_num:])
-
+        # head_cls_num = math.floor(self.num_classes / 3)
+        # tail_cls_num = head_cls_num
+        # head_mr = np.mean(self.recalls[:head_cls_num])
+        
+        # mid_mr = np.mean(self.recalls[head_cls_num:self.num_classes -
+        #                               tail_cls_num])
+        # tail_mr = np.mean(self.recalls[tail_cls_num:])
+        head_mr = np.mean(self.recalls[self.head_class_idx[0]: self.head_class_idx[1]])
+        mid_mr = np.mean(self.recalls[self.med_class_idx[0]: self.med_class_idx[1]])
+        tail_mr = np.mean(self.recalls[self.tail_class_idx[0]: self.tail_class_idx[1]])
         return [
             np.around(head_mr, decimals=4),
             np.around(mid_mr, decimals=4),

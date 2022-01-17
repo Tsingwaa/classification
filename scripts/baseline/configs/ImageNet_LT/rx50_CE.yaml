@@ -64,7 +64,7 @@ train_dataset:
   name: "ImageNet_LT"
   param:
     phase: 'train'
-    root: '/data16/Public/Datasets/ilsvrc2012'
+    root: '/data33/Public/Datasets/ilsvrc2012'
     txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_train.txt'
     map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
     # train: True
@@ -80,7 +80,7 @@ val_dataset:
   name: "ImageNet_LT"
   param:
     phase: 'val'
-    root: '/data16/Public/Datasets/ilsvrc2012'
+    root: '/data33/Public/Datasets/ilsvrc2012'
     txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_val.txt'
     map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
     # train: True
@@ -92,7 +92,7 @@ test_dataset:
   name: "ImageNet_LT"
   param:
     phase: 'test'
-    root: '/data16/Public/Datasets/ilsvrc2012'
+    root: '/data33/Public/Datasets/ilsvrc2012'
     txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_test.txt'
     map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
     # train: True
