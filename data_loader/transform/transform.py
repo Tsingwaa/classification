@@ -153,6 +153,31 @@ class CifarTransform:
         return ret_transform(x)
 
 
+@Transforms.register_module('ImagenetTransform')
+class ImagenetTransform:
+    def __init__(self, phase='train', resize=(224, 224), strong=False, **kwargs):
+        self.phase = phase
+        self.resize = resize
+        self.strong = strong
+    
+    def __call__(self, x, mean=IN_MEAN, std=IN_STD, **kwargs):
+        if self.phase == 'train':
+            ret_transform = transforms.Compose([
+                transforms.RandomResizedCrop(self.resize),
+                transforms.RandomHorizontalFlip(),
+                transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std)
+            ])
+        else:
+            ret_transform = transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(self.resize),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std)
+            ])
+        return ret_transform(x)
+
 @Transforms.register_module('NoiseBaseTransform')
 class NoiseBaseTransform:
     def __init__(self,

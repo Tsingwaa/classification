@@ -61,7 +61,6 @@ class Tester(BaseTrainer):
 
         self.user_root = os.environ["HOME"]
         self.exp_root = join(self.user_root, "project/Experiments")
-
         self._set_configs(config)
         self.resume = True
 

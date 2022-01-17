@@ -15,7 +15,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils import AverageMeter, ExpStat
-
+from torchstat import stat
 
 class DataLoaderX(DataLoader):
 
@@ -79,7 +79,7 @@ class Trainer(BaseTrainer):
         self.model = self.init_model(self.network_name,
                                      num_classes=trainset.num_classes,
                                      **self.network_params)
-
+        
         #######################################################################
         # Initialize Loss
         #######################################################################
@@ -249,7 +249,6 @@ class Trainer(BaseTrainer):
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
-
             batch_imgs = batch_imgs.cuda()
             batch_labels = batch_labels.cuda()
             batch_probs = model(batch_imgs, out_type='fc')

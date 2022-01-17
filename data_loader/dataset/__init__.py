@@ -5,3 +5,4 @@ from .caltech import *
 from .cifar import *
 from .miniImageNet import *
 from .add_cifar import *
+from .Imagenet_lt import *

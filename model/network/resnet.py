@@ -235,12 +235,12 @@ class ResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
-        self.mlp = nn.Sequential(
-            nn.Linear(512 * block.expansion, 256 * block.expansion),
-            nn.ReLU(inplace=True),
-            nn.Linear(256 * block.expansion, 128 * block.expansion),
-            nn.ReLU(inplace=True), nn.Linear(128 * block.expansion,
-                                             num_classes))
+        # self.mlp = nn.Sequential(
+        #     nn.Linear(512 * block.expansion, 256 * block.expansion),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(256 * block.expansion, 128 * block.expansion),
+        #     nn.ReLU(inplace=True), nn.Linear(128 * block.expansion,
+        #                                      num_classes))
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -302,19 +302,26 @@ class ResNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        feat_map = self.layer4[:-1](x)
-        if out_type == 'map':
-            return feat_map
-        else:
-            feat_map = self.layer4[-1](feat_map)
-            feat_vec = self.avgpool(feat_map)
-            feat_vec = torch.squeeze(feat_vec)
-            if out_type == 'vec':
-                return feat_vec
-            elif out_type == 'mlp':
-                return self.mlp(feat_vec)
-            else:
-                return self.fc(feat_vec)
+        
+        # feat_map = self.layer4[:-1](x)
+        # if out_type == 'map':
+        #     return feat_map
+        # else:
+        #     feat_map = self.layer4[-1](feat_map)
+        #     feat_vec = self.avgpool(feat_map)
+        #     feat_vec = torch.squeeze(feat_vec)
+        #     if out_type == 'vec':
+        #         return feat_vec
+        #     elif out_type == 'mlp':
+        #         return self.mlp(feat_vec)
+        #     else:
+        #         return self.fc(feat_vec)
+
+        x = self.layer4(x)
+        x = self.avgpool(x)
+        x = torch.squeeze(x)
+        return self.fc(x)
+
 
     def bfc(self, feat_map):
         feat_map = self.layer4[-1](feat_map)
@@ -366,3 +373,13 @@ class ResNet152(ResNet):
                                         layers=[3, 8, 36, 3],
                                         num_classes=num_classes,
                                         **kwargs)
+
+@Networks.register_module('ResNeXt50')
+class ResNeXt50(ResNet):
+    def __init__(self, num_classes, **kwargs):
+        super(ResNeXt50, self).__init__(block=Bottleneck,
+                                       layers=[3, 4, 6, 3],
+                                       num_classes=num_classes,
+                                       groups=32,
+                                       width_per_group=4,
+                                       **kwargs)

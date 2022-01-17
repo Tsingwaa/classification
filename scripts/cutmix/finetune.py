@@ -12,6 +12,8 @@ import yaml
 from apex import amp
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
+from apex.parallel import DistributedDataParallel
+
 # from pudb import set_trace
 # from sklearn import metrics
 from torch import distributed as dist
@@ -60,7 +62,8 @@ class FineTuner(BaseTrainer):
         self.finetune_name = self.finetune_config["name"]
 
         self.user_root = os.environ["HOME"]
-        self.exp_root = join(self.user_root, "project/Experiments")
+
+        self.exp_root = join(self.user_root, "Projects/Experiments")
         self.total_epochs = self.finetune_config["total_epochs"]
 
         self._set_configs(config)
@@ -178,7 +181,7 @@ class FineTuner(BaseTrainer):
                                      num_classes=trainset.num_classes,
                                      **self.network_params)
         self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
-
+        
         #######################################################################
         # Initialize Loss
         #######################################################################
@@ -193,6 +196,13 @@ class FineTuner(BaseTrainer):
         #######################################################################
         self.opt = self.init_optimizer(self.opt_name, self.model.parameters(),
                                        **self.opt_params)
+
+        if self.local_rank != -1:
+            # self.model = convert_syncbn_model(self.model).cuda()
+            self.model, self.opt = amp.initialize(self.model,
+                                                  self.opt,
+                                                  opt_level="O1")
+            self.model = DistributedDataParallel(self.model)
 
         #######################################################################
         # Initialize LR Scheduler
