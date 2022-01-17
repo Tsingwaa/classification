@@ -9,7 +9,7 @@ import torch.distributed as dist
 # from torch.utils.data.distributed import DistributedSampler
 from data_loader.sampler.builder import Samplers
 from torch.utils.data.sampler import Sampler
-
+from .builder import Samplers
 # from tqdm import tqdm
 
 
@@ -25,13 +25,13 @@ class DistributedRandomCategorySampler(Sampler):
     """
 
     def __init__(self,
-                 labels,
+                 dataset, 
                  batch_size,
                  num_instances=8,
                  num_replicas=None,
                  rank=None,
-                 manual_seed=0):
-        self.labels = labels
+                 manual_seed=0, **kwargs):
+        self.labels = dataset.targets
         self.batch_size = batch_size
         self.num_instances = num_instances
         self.num_labels_per_batch = self.batch_size // self.num_instances

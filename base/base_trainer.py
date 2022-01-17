@@ -262,8 +262,10 @@ class BaseTrainer:
             weight = num_samples / (num_classes * num_samples_per_cls)
             weight /= torch.sum(weight)
         elif weight_type == "proportion":
+            num_classes = len(num_samples_per_cls)
             num_samples = torch.sum(num_samples_per_cls)
-            weight = num_samples_per_cls / num_samples
+            weight = num_classes * num_samples_per_cls / num_samples
+            # weight = 1 / weight
             weight /= torch.sum(weight)
         elif weight_type == "Class-balanced":
             beta = kwargs["beta"]

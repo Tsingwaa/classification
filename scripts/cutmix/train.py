@@ -31,8 +31,12 @@ class Trainer(BaseTrainer):
         super(Trainer, self).__init__(local_rank, config)
         self.cutmix_params = config["cutmix"]
         self.args = args
+        self.head_class_idx = config['head_class_idx']
+        self.med_class_idx = config['med_class_idx']
+        self.tail_class_idx = config['tail_class_idx']
 
     def train(self):
+        
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
@@ -276,7 +280,7 @@ class Trainer(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_classes)
+        train_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
@@ -335,7 +339,7 @@ class Trainer(BaseTrainer):
                             ncols=0,
                             desc="                 Val")
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes)
+        val_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)

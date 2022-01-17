@@ -1,5 +1,5 @@
 experiment:
-  name: "ImageNet_adapt2_remix_v2_4_0.6_lr_0.2"
+  name: "ImageNet_adapt2_remix_v2_4_0.6_lr_0.2_5e-4"
   start_epoch: 1
   total_epochs: 90
   log_fname: "train.log"
@@ -13,9 +13,10 @@ finetune:
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
+    # sampler: "BalanceSampler"
     sampler: ""
     retain_epoch_size: True
-    batch_size: 128
+    batch_size: 256
     num_workers: 4
   network:
     name: ''
@@ -25,7 +26,9 @@ finetune:
   loss:
     name: "CrossEntropyLoss"
     param:
+      # weight_type: ""
       weight_type: "inverse"
+      beta: 0.9999
       label_smoothing: 0.
   optimizer:
     name: "SGD"
@@ -38,9 +41,17 @@ finetune:
     name: 'StepLR'
     param:
       warmup_epochs: 0
-      step_size: 2
+      step_size: 3
       # milestones: [5, 10, 15, 20]
       gamma: 0.1
+
+test:
+  name: "test"
+  loss:
+    name: "CrossEntropyLoss"
+    param:
+      weight_type: ""
+      label_smoothing: 0.
 
 train_transform:
   name: "ImagenetTransform"
@@ -54,17 +65,33 @@ val_transform:
     phase: "test"
     resize: [224, 224]
 
+test_transform:
+  name: "ImagenetTransform"
+  param:
+    phase: "test"
+    resize: [224, 224]
+
 train_dataset:
   name: "ImageNet_LT"
   param:
     phase: 'train'
-    root: '/data15/data15_5/Public/Datasets/ilsvrc2012/ilsvrc2012'
-    txt: '/home/20/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_train.txt'
-    map_fpath: '/home/20/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
+    root: '/data16/Public/Datasets/ilsvrc2012'
+    txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_train.txt'
+    map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
     # train: True
     # img_lst_fpath: "None"
     # map_fpath: "None"
     imb_type: 'exp'
+
+head_class_idx:
+  - 0
+  - 390
+med_class_idx:
+  - 390
+  - 835
+tail_class_idx:
+  - 835
+  - 1000
 
 cutmix:
   beta: 1.
@@ -79,9 +106,21 @@ val_dataset:
   name: "ImageNet_LT"
   param:
     phase: 'val'
-    root: '/data15/data15_5/Public/Datasets/ilsvrc2012/ilsvrc2012'
-    txt: '/home/20/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_val.txt'
-    map_fpath: '/home/20/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
+    root: '/data16/Public/Datasets/ilsvrc2012'
+    txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_val.txt'
+    map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
+    # train: True
+    # img_lst_fpath: "None"
+    # map_fpath: "None"
+    imb_type: 'exp'
+
+test_dataset:
+  name: "ImageNet_LT"
+  param:
+    phase: 'test'
+    root: '/data16/Public/Datasets/ilsvrc2012'
+    txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_test.txt'
+    map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
     # train: True
     # img_lst_fpath: "None"
     # map_fpath: "None"
@@ -96,6 +135,11 @@ valloader:
   sampler: 'DistributedSampler'
   batch_size: 512
   num_workers: 16
+
+testloader:
+  sampler: 'DistributedSampler'
+  batch_size: 128
+  num_workers: 4
 
 network:
   name: "ResNeXt50"
@@ -113,7 +157,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.2
-    weight_decay: 2.0e-4
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 

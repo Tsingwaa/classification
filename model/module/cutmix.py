@@ -23,6 +23,7 @@ class CutMix(Dataset):
                  soft_remix=False,
                  remix_v2=False,
                  remix_v3=False,
+                 remix_v4=False,
                  kappa=3,
                  tau2=0.5):
         """build CutMix Dataset based on common custom dataset class.
@@ -51,6 +52,7 @@ class CutMix(Dataset):
         self.soft_remix = soft_remix
         self.remix_v2 = remix_v2
         self.remix_v3 = remix_v3
+        self.remix_v4 = remix_v4
         self.kappa = kappa
         self.tau2 = tau2
         # get all choices for each class
@@ -158,7 +160,15 @@ class CutMix(Dataset):
                     lambda_yo = 0
                 elif lambda_yo >= self.tau2 and lambda_yo <= 1 - self.tau2:
                     lambda_yo = min(lambda_yo, 1-lambda_yo)
-            
+            elif self.remix_v4:
+                tau = 0.5
+                n1 = self.num_samples_per_cls[target]
+                n2 = self.num_samples_per_cls[target2]
+                if n1 >= self.kappa * n2 and lambda_yo < tau:
+                    lambda_yo = 0
+                elif n1 >= self.kappa * n2 and tau <= lambda_yo <= self.tau2: 
+                    lambda_yo = 1-lambda_yo
+
             elif self.soft_remix:
                 lambda_yo = min(lambda_yo, 1-lambda_yo)
 
