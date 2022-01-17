@@ -52,11 +52,7 @@ med_class_idx:
 tail_class_idx:
   - 835
   - 1000
-<<<<<<< HEAD
-
-=======
   
->>>>>>> d7b1acff054b2a3d0d888ca3d148c4fa61a1a845
 test:
   name: "test"
   loss:
