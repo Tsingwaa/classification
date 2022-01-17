@@ -26,8 +26,7 @@ class DataLoaderX(DataLoader):
 class Trainer(BaseTrainer):
 
     def __init__(self, local_rank=None, config=None, seed=None):
-        super(Trainer, self).__init__(local_rank, config)
-        self.seed = seed
+        super(Trainer, self).__init__(local_rank, config, seed)
 
     def train(self):
         #######################################################################
@@ -49,26 +48,29 @@ class Trainer(BaseTrainer):
                                        drop_last=True,
                                        sampler=train_sampler)
 
-        if self.local_rank != -1:
-            print(f"global_rank {self.global_rank},"
-                  f"world_size {self.world_size},"
-                  f"local_rank {self.local_rank},"
-                  f"sampler '{self.train_sampler_name}'")
+        # 无论多卡还是单卡，都需要新建val_loader
+        val_transform = self.init_transform(self.val_transform_name,
+                                            **self.val_transform_params)
+        valset = self.init_dataset(self.valset_name,
+                                   transform=val_transform,
+                                   **self.valset_params)
+        val_sampler = self.init_sampler(self.val_sampler_name,
+                                        dataset=valset,
+                                        **self.trainloader_params)
+        self.valloader = DataLoaderX(valset,
+                                     batch_size=self.val_batchsize,
+                                     shuffle=(val_sampler is None),
+                                     num_workers=self.val_workers,
+                                     pin_memory=True,
+                                     drop_last=False,
+                                     sampler=val_sampler)
 
-        if self.local_rank in [-1, 0]:
-            val_transform = self.init_transform(self.val_transform_name,
-                                                **self.val_transform_params)
-            valset = self.init_dataset(self.valset_name,
-                                       transform=val_transform,
-                                       **self.valset_params)
-            self.valloader = DataLoaderX(
-                valset,
-                batch_size=self.val_batchsize,
-                shuffle=False,
-                num_workers=self.val_workers,
-                pin_memory=True,
-                drop_last=False,
-            )
+        if self.local_rank != -1:
+            self.log(f"global_rank {self.global_rank},"
+                     f"world_size {self.world_size},"
+                     f"local_rank {self.local_rank},"
+                     f"train '{self.train_sampler_name}'"
+                     f"val '{self.val_sampler_name}'")
 
         #######################################################################
         # Initialize Network
@@ -80,10 +82,8 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        weight = self.get_class_weight(
-            num_samples_per_cls=trainset.num_samples_per_cls,
-            **self.loss_params,  # 包含weight_type
-        )
+        weight = self.get_class_weight(trainset.num_samples_per_cls,
+                                       **self.loss_params)  # 包含weight_type
         self.criterion = self.init_loss(self.loss_name,
                                         weight=weight,
                                         **self.loss_params)
@@ -103,14 +103,17 @@ class Trainer(BaseTrainer):
             self.model, self.optimizer = amp.initialize(self.model,
                                                         self.optimizer,
                                                         opt_level="O1")
-            self.model = DistributedDataParallel(self.model)
+            self.model = DistributedDataParallel(self.model,
+                                                 device_ids=[self.local_rank],
+                                                 output_device=self.local_rank,
+                                                 find_unused_parameters=True)
 
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.scheduler = self.init_lr_scheduler(self.scheduler_name,
-                                                self.optimizer,
-                                                **self.scheduler_params)
+        self.lr_scheduler = self.init_lr_scheduler(self.scheduler_name,
+                                                   self.optimizer,
+                                                   **self.scheduler_params)
 
         #######################################################################
         # Start Training
@@ -118,19 +121,20 @@ class Trainer(BaseTrainer):
         best_mr = 0.
         best_epoch = 1
         best_group_mr = []
-        last_mrs = []
-        last_head_mrs = []
-        last_mid_mrs = []
-        last_tail_mrs = []
+        # average of mean recall in the last several epochs(default: 5 epochs)
+        last_mrs = []  # General: include all classes.
+        last_maj_mrs = []  # Majority classes: > 100 images
+        last_med_mrs = []  # Medium classes: 20 ~ 100 images
+        last_min_mrs = []  # Minority classes: < 20 images
         start_time = datetime.now()
-
         self.final_epoch = self.start_epoch + self.total_epochs
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
-            self.scheduler.step()
+            self.lr_scheduler.step()
 
             if self.local_rank != -1:
                 train_sampler.set_epoch(cur_epoch)
+                val_sampler.set_epoch(cur_epoch)
 
             train_stat, train_loss = self.train_epoch(
                 cur_epoch=cur_epoch,
@@ -138,8 +142,7 @@ class Trainer(BaseTrainer):
                 model=self.model,
                 criterion=self.criterion,
                 optimizer=self.optimizer,
-                num_samples_per_cls=trainset.num_samples_per_cls,
-            )
+                num_samples_per_cls=trainset.num_samples_per_cls)
 
             val_stat, val_loss = self.evaluate(
                 cur_epoch=cur_epoch,
@@ -147,14 +150,16 @@ class Trainer(BaseTrainer):
                 model=self.model,
                 criterion=self.criterion,
                 num_samples_per_cls=trainset.num_samples_per_cls)
+            # num_samples_per_cls ==> get the medium class index start and end
 
-            if self.local_rank in [-1, 0]:
+            if self.local_rank <= 0:
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
-                    last_head_mrs.append(val_stat.group_mr[0])
-                    last_mid_mrs.append(val_stat.group_mr[1])
-                    last_tail_mrs.append(val_stat.group_mr[2])
+                    last_maj_mrs.append(val_stat.group_mr[0])
+                    last_med_mrs.append(val_stat.group_mr[1])
+                    last_min_mrs.append(val_stat.group_mr[2])
 
+                # log message into file "train.log" in the self.save_dir
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                     f"Trainset Loss={train_loss:>4.2f} "
@@ -162,7 +167,8 @@ class Trainer(BaseTrainer):
                     f"[{train_stat.group_mr[0]:>6.2%}, "
                     f"{train_stat.group_mr[1]:>6.2%}, "
                     f"{train_stat.group_mr[2]:>6.2%}"
-                    f" || Valset Loss={val_loss:>4.2f} "
+                    f" || "
+                    f"Valset Loss={val_loss:>4.2f} "
                     f"MR={val_stat.mr:>6.2%} "
                     f"[{val_stat.group_mr[0]:>6.2%}, "
                     f"{val_stat.group_mr[1]:>6.2%}, "
@@ -202,27 +208,25 @@ class Trainer(BaseTrainer):
                     best_group_mr = val_stat.group_mr
 
                 if (not cur_epoch % self.save_period) or is_best:
-                    self.save_checkpoint(
-                        epoch=cur_epoch,
-                        model=self.model,
-                        optimizer=self.optimizer,
-                        is_best=is_best,
-                        mr=val_stat.mr,
-                        group_mr=val_stat.group_mr,
-                        prefix=f"seed{self.seed}",
-                        save_dir=self.exp_dir,
-                        criterion=self.criterion,
-                    )
+                    self.save_checkpoint(save_epoch=cur_epoch,
+                                         model=self.model,
+                                         optimizer=self.optimizer,
+                                         is_best=is_best,
+                                         mr=val_stat.mr,
+                                         group_mr=val_stat.group_mr,
+                                         prefix=f"seed{self.seed}",
+                                         save_dir=self.exp_dir,
+                                         criterion=self.criterion)
 
         end_time = datetime.now()
         dur_time = str(end_time - start_time)[:-7]  # 取到秒
 
         final_mr = np.around(np.mean(last_mrs), decimals=4)
-        final_head_mr = np.around(np.mean(last_head_mrs), decimals=4)
-        final_mid_mr = np.around(np.mean(last_mid_mrs), decimals=4)
-        final_tail_mr = np.around(np.mean(last_tail_mrs), decimals=4)
+        final_head_mr = np.around(np.mean(last_maj_mrs), decimals=4)
+        final_mid_mr = np.around(np.mean(last_med_mrs), decimals=4)
+        final_tail_mr = np.around(np.mean(last_min_mrs), decimals=4)
 
-        if self.local_rank in [-1, 0]:
+        if self.local_rank <= 0:
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
                 f"===> Best mean recall: {best_mr:>6.2%} (epoch{best_epoch})\n"
@@ -236,16 +240,8 @@ class Trainer(BaseTrainer):
                 f"*********************************************************"
                 f"*********************************************************\n")
 
-    def train_epoch(
-        self,
-        cur_epoch,
-        trainloader,
-        model,
-        criterion,
-        optimizer,
-        num_samples_per_cls,
-        **kwargs,
-    ):
+    def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
+                    num_samples_per_cls, **kwargs):
         model.train()
 
         if self.local_rank in [-1, 0]:
@@ -295,15 +291,9 @@ class Trainer(BaseTrainer):
 
         return train_stat, train_loss_meter.avg
 
-    def evaluate(
-        self,
-        cur_epoch,
-        valloader,
-        model,
-        criterion,
-        num_samples_per_cls,
-        **kwargs,
-    ):
+    def evaluate(self, cur_epoch, valloader, model, criterion,
+                 num_samples_per_cls, **kwargs):
+
         model.eval()
 
         if self.local_rank in [-1, 0]:
@@ -351,15 +341,25 @@ def parse_args():
 
 
 def _set_random_seed(seed=0, cuda_deterministic=False):
+    """Set seed and control the balance between reproducity and efficiency
+
+    Reproducity: cuda_deterministic = True
+    Efficiency: cuda_deterministic = False
+    """
+
     random.seed(seed)
     np.random.seed(seed)
-    torch.manual_seed(seed)
+
+    assert torch.cuda.is_available()
+    torch.manual_seed(seed)  # sets the seed for generating random numbers.
     torch.cuda.manual_seed_all(seed)
 
     if cuda_deterministic:  # slower, but more reproducible
+        torch.backends.cudnn.enabled = False
         torch.backends.cudnn.deterministic = True  # 固定内部随机性
         torch.backends.cudnn.benchmark = False
     else:
+        torch.backends.cudnn.enabled = True
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True  # 输入尺寸一致，加速训练
 

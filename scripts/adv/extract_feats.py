@@ -68,7 +68,7 @@ class Extractor(BaseTrainer):
         self.save_dir = join(self.user_root, 'Experiments', self.exp_name)
         os.makedirs(self.save_dir, exist_ok=True)
 
-        self._set_configs(config)
+        self.set(config)
 
     def extract(self):
         #######################################################################

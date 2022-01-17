@@ -71,7 +71,7 @@ class Validater(BaseTrainer):
                                           self.log_fpath,)
         self.logger.info(exp_init_log)
 
-        self._set_configs(config)
+        self.set(config)
 
     def evaluate(self):
         #######################################################################

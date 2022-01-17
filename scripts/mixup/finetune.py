@@ -58,7 +58,7 @@ class FineTuner(BaseTrainer):
         self.exp_root = join(self.user_root, "Experiments")
         self.total_epochs = self.finetune_config["total_epochs"]
 
-        self._set_configs(config)
+        self.set(config)
 
         self.resume = True
 
