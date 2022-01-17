@@ -1,7 +1,7 @@
 experiment:
-  name: "ImageNet_adapt2_2_0.5"
+  name: "CF100_0.01_r32_cutmix_adapt1_remix_v2"
   start_epoch: 1
-  total_epochs: 90
+  total_epochs: 200
   log_fname: "train.log"
   resume: False
   resume_fpath: "best.pth.tar"
@@ -13,7 +13,7 @@ finetune:
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: "DistributedSampler"
+    sampler: ""
     retain_epoch_size: True
     batch_size: 128
     num_workers: 4
@@ -25,7 +25,7 @@ finetune:
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: "inverse"
+      weight_type: "class_weight"
       label_smoothing: 0.
   optimizer:
     name: "SGD"
@@ -43,79 +43,57 @@ finetune:
       gamma: 0.1
 
 train_transform:
-  name: "ImagenetTransform"
+  name: "CifarTransform"
   param:
     phase: "train"
-    resize: [224, 224]
+    resize: [32, 32]
 
 val_transform:
-  name: "ImagenetTransform"
+  name: "CifarTransform"
   param:
     phase: "test"
-    resize: [224, 224]
+    resize: [32, 32]
 
 train_dataset:
-  name: "ImageNet_LT"
+  name: "ImbalanceCIFAR100"
   param:
+    data_root: "cifar100"
     phase: 'train'
-    root: '/data16/Public/Datasets/ilsvrc2012'
-    txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_train.txt'
-    map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
     # train: True
     # img_lst_fpath: "None"
     # map_fpath: "None"
     imb_type: 'exp'
+    imb_factor: 0.01
+    rand_seed: 0
+    download: False
 
 cutmix:
   beta: 1.
   prob: 1.
-  adapt: 2
+  adapt: 1
   remix_v2: True
-  kappa: 2
-  tau2: 0.5
-
 
 val_dataset:
-  name: "ImageNet_LT"
+  name: "CIFAR100"
   param:
+    data_root: "cifar100" # default: same as train_dataset
     phase: 'val'
-    root: '/data16/Public/Datasets/ilsvrc2012'
-    txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_val.txt'
-    map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
-    # train: True
+    # train: False
     # img_lst_fpath: "None"
-    # map_fpath: "None"
-    imb_type: 'exp'
-
-test_dataset:
-  name: "ImageNet_LT"
-  param:
-    phase: 'test'
-    root: '/data16/Public/Datasets/ilsvrc2012'
-    txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_test.txt'
-    map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
-    # train: True
-    # img_lst_fpath: "None"
-    # map_fpath: "None"
-    imb_type: 'exp'
+    # map_fpath: "None" # default: same as train_dataset
+    download: False
 
 trainloader:
-  sampler: 'DistributedSampler'
-  batch_size: 512
-  num_workers: 16
+  sampler: ''
+  batch_size: 128
+  num_workers: 4
 
 valloader:
-  sampler: 'DistributedSampler'
-  batch_size: 512
-  num_workers: 16
-
-testloader:
-  sampler: 'DistributedSampler'
   batch_size: 128
   num_workers: 4
 
 network:
-  name: "ResNeXt50"
+  name: "ResNet32_CIFAR"
   param:
     pretrained: False
     pretrained_fpath: ""
@@ -137,11 +115,10 @@ optimizer:
 lr_scheduler:
   # name: "CyclicLR"
   # name: "StepLR"
-  # name: "MultiStepLR"
+  name: "MultiStepLR"
   # name: "CosineAnnealingWarmRestarts"
-  name: "CosineAnnealingLR"
   param:
-    warmup_epochs: 0
+    warmup_epochs: 5
     # CyclicLR
     # step_size_up: 3  # 3 * iterations
     # step_size_down: 2  # 2 * iterations
@@ -149,14 +126,10 @@ lr_scheduler:
     # base_lr: 5.0e-7
 
     # MultiStepLR
-    # milestones: [120, 160, 190]
-    # gamma: 0.01
+    milestones: [120, 160, 190]
+    gamma: 0.01
 
     # CosineAnnealingWarmRestarts
-    # T_0: 0
+    # T_0: 5
     # T_mult: 1
     # eta_min: 0
-
-    # CosineAnnealingLR
-    T_max: 90
-    eta_min: 0

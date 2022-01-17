@@ -54,13 +54,17 @@ class FineTuner(BaseTrainer):
         self.head_class_idx = config['head_class_idx']
         self.med_class_idx = config['med_class_idx']
         self.tail_class_idx = config['tail_class_idx']
+<<<<<<< HEAD
 
+=======
+>>>>>>> d7b1acff054b2a3d0d888ca3d148c4fa61a1a845
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.finetune_config = config["finetune"]
         self.finetune_name = self.finetune_config["name"]
 
         self.user_root = os.environ["HOME"]
+
         self.exp_root = join(self.user_root, "Projects/Experiments")
         self.total_epochs = self.finetune_config["total_epochs"]
 
@@ -281,7 +285,7 @@ class FineTuner(BaseTrainer):
                                          is_best=is_best,
                                          mr=val_stat.mr,
                                          group_mr=val_stat.group_mr,
-                                         prefix=self.finetune_name,
+                                         prefix='seed_%d_%s'%(self.args.seed, self.finetune_name),
                                          save_dir=self.exp_dir)
 
         end_time = datetime.now()

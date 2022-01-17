@@ -43,6 +43,16 @@ finetune:
       # milestones: [5, 10, 15, 20]
       gamma: 0.1
 
+head_class_idx:
+  - 0
+  - 390
+med_class_idx:
+  - 390
+  - 835
+tail_class_idx:
+  - 835
+  - 1000
+  
 test:
   name: "test"
   loss:

@@ -52,17 +52,15 @@ class Tester(BaseTrainer):
         self.head_class_idx = config['head_class_idx']
         self.med_class_idx = config['med_class_idx']
         self.tail_class_idx = config['tail_class_idx']
-        
+        self.num_classes = self.tail_class_idx[1]
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.test_config = config["test"]
         self.test_name = self.test_config["name"]
 
         self.user_root = os.environ["HOME"]
-        self.exp_root = join(self.user_root, "Projects/Experiments")
-
+        self.exp_root = join(self.user_root, "project/Experiments")
         self._set_configs(config)
-
         self.resume = True
 
         if "/" in self.exp_config["resume_fpath"]:
@@ -70,8 +68,12 @@ class Tester(BaseTrainer):
         else:
             # self.resume_fpath = join(self.exp_root, self.exp_name,
             #                          'seed_%d_DRW_%s'%(self.args.seed, self.exp_config["resume_fpath"]))
+            # self.resume_fpath = join(self.exp_root, self.exp_name,
+            #                          'DRW_%s'%(self.exp_config["resume_fpath"]))
+            # self.resume_fpath = join(self.exp_root, self.exp_name,
+            #                          self.exp_config["resume_fpath"])
             self.resume_fpath = join(self.exp_root, self.exp_name,
-                                     'DRW_%s'%(self.exp_config["resume_fpath"]))
+                                     'seed_%d_%s'%(args.seed, self.exp_config["resume_fpath"]))
 
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
 
@@ -135,7 +137,7 @@ class Tester(BaseTrainer):
                             desc="                 Val")
 
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes)
+        val_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
@@ -158,9 +160,9 @@ class Tester(BaseTrainer):
         if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
                                      f"MR:{val_stat.mr:>6.2%} "
-                                     f"[{val_stat.group_mr[0]:>3.0%}, "
-                                     f"{val_stat.group_mr[1]:>3.0%}, "
-                                     f"{val_stat.group_mr[2]:>3.0%}]")
+                                     f"[{val_stat.group_mr[0]:>6.2%}, "
+                                     f"{val_stat.group_mr[1]:>6.2%}, "
+                                     f"{val_stat.group_mr[2]:>6.2%}]")
             val_pbar.close()
 
         return val_stat, val_loss_meter.avg
@@ -213,7 +215,7 @@ class Tester(BaseTrainer):
         self.model = self.init_model(self.network_name,
                                      resume=True,
                                      checkpoint=self.checkpoint,
-                                     num_classes=1000,
+                                     num_classes=self.num_classes,
                                      **self.network_params)
 
         #######################################################################
@@ -233,7 +235,7 @@ class Tester(BaseTrainer):
                 valloader=self.valloader,
                 model=self.model,
                 criterion=self.criterion,
-                num_classes=1000)
+                num_classes=self.num_classes)
 
             self.log(
                 f"Val Loss={val_loss:>4.2f} "
@@ -248,7 +250,7 @@ class Tester(BaseTrainer):
                 valloader=self.testloader,
                 model=self.model,
                 criterion=self.criterion,
-                num_classes=1000)
+                num_classes=self.num_classes)
 
             self.log(
                 f"Val Loss={val_loss:>4.2f} "

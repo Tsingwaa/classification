@@ -50,6 +50,16 @@ test:
       weight_type: ""
       label_smoothing: 0.
 
+head_class_idx:
+  - 0
+  - 390
+med_class_idx:
+  - 390
+  - 835
+tail_class_idx:
+  - 835
+  - 1000
+  
 train_transform:
   name: "ImagenetTransform"
   param:

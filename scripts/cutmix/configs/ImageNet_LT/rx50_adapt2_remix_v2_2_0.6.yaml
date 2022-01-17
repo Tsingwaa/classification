@@ -1,5 +1,5 @@
 experiment:
-  name: "ImageNet_adapt2_remix_v2_2_0.6_lr_0.2"
+  name: "ImageNet_adapt2_remix_v2_2_0.6_lr_0.2_5e-4"
   start_epoch: 1
   total_epochs: 90
   log_fname: "train.log"
@@ -9,13 +9,15 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: "DRW"
+  name: "DRS"
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: "DistributedSampler"
+    sampler: "BalanceSampler"
+
+    # sampler: "DistributedSampler"
     retain_epoch_size: True
-    batch_size: 128
+    batch_size: 256
     num_workers: 4
   network:
     name: ''
@@ -25,13 +27,14 @@ finetune:
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: "inverse"
+      # weight_type: "Class-balanced"
+      weight_type: ""
       label_smoothing: 0.
   optimizer:
     name: "SGD"
     param:
-      lr: 1.0e-1
-      weight_decay: 1.0e-4
+      lr: 5.0e-2
+      weight_decay: 5.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -80,6 +83,16 @@ train_dataset:
     # map_fpath: "None"
     imb_type: 'exp'
 
+head_class_idx:
+  - 0
+  - 390
+med_class_idx:
+  - 390
+  - 835
+tail_class_idx:
+  - 835
+  - 1000
+
 cutmix:
   beta: 1.
   prob: 1.
@@ -119,14 +132,14 @@ trainloader:
   num_workers: 16
 
 valloader:
-  sampler: 'DistributedSampler'
+  sampler: ''
   batch_size: 512
   num_workers: 16
 
 testloader:
   sampler: 'DistributedSampler'
   batch_size: 128
-  num_workers: 4
+  num_workers: 16
 
 network:
   name: "ResNeXt50"
@@ -144,7 +157,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.2
-    weight_decay: 2.0e-4
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 
