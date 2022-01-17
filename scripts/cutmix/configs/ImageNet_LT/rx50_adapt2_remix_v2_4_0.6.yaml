@@ -1,5 +1,5 @@
 experiment:
-  name: "ImageNet_CE_lr_0.2"
+  name: "ImageNet_adapt2_remix_v2_4_0.6_lr_0.2"
   start_epoch: 1
   total_epochs: 90
   log_fname: "train.log"
@@ -58,9 +58,9 @@ train_dataset:
   name: "ImageNet_LT"
   param:
     phase: 'train'
-    root: '/data16/Public/Datasets/ilsvrc2012'
-    txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_train.txt'
-    map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
+    root: '/data15/data15_5/Public/Datasets/ilsvrc2012/ilsvrc2012'
+    txt: '/home/20/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_train.txt'
+    map_fpath: '/home/20/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
     # train: True
     # img_lst_fpath: "None"
     # map_fpath: "None"
@@ -69,14 +69,19 @@ train_dataset:
 cutmix:
   beta: 1.
   prob: 1.
+  adapt: 2
+  remix_v2: True
+  kappa: 4
+  tau2: 0.6
+
 
 val_dataset:
   name: "ImageNet_LT"
   param:
     phase: 'val'
-    root: '/data16/Public/Datasets/ilsvrc2012'
-    txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_val.txt'
-    map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
+    root: '/data15/data15_5/Public/Datasets/ilsvrc2012/ilsvrc2012'
+    txt: '/home/20/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_val.txt'
+    map_fpath: '/home/20/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
     # train: True
     # img_lst_fpath: "None"
     # map_fpath: "None"
@@ -85,12 +90,12 @@ val_dataset:
 trainloader:
   sampler: 'DistributedSampler'
   batch_size: 512
-  num_workers: 8
+  num_workers: 16
 
 valloader:
   sampler: 'DistributedSampler'
   batch_size: 512
-  num_workers: 8
+  num_workers: 16
 
 network:
   name: "ResNeXt50"
