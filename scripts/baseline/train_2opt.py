@@ -17,11 +17,13 @@ from utils import AverageMeter, ExpStat
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__())
 
 
 class Trainer(BaseTrainer):
+
     def __init__(self, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
 
@@ -98,6 +100,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
+
         if self.local_rank != -1:
             self.model, self.opt = amp.initialize(self.model,
                                                   self.opt,
@@ -126,9 +129,11 @@ class Trainer(BaseTrainer):
         last_mid_mrs = []
         last_tail_mrs = []
         self.final_epoch = self.start_epoch + self.total_epochs
+
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.scheduler.step()
             self.scheduler2.step()
+
             if self.local_rank != -1:
                 train_sampler.set_epoch(cur_epoch)
 
@@ -192,10 +197,12 @@ class Trainer(BaseTrainer):
                     }, cur_epoch)
 
                 is_best = val_stat.mr > best_mr
+
                 if is_best:
                     best_mr = val_stat.mr
                     best_epoch = cur_epoch
                     best_group_mr = val_stat.group_mr
+
                 if (not cur_epoch % self.save_period) or is_best:
                     self.save_checkpoint(epoch=cur_epoch,
                                          model=self.model,
@@ -229,6 +236,7 @@ class Trainer(BaseTrainer):
         # opt2 = kwargs['opt2']
         model.train()
         # criterion.train()
+
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
@@ -236,6 +244,7 @@ class Trainer(BaseTrainer):
 
         train_loss_meter = AverageMeter()
         train_stat = ExpStat(num_classes)
+
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
             # opt2.zero_grad()
@@ -246,6 +255,7 @@ class Trainer(BaseTrainer):
             avg_loss = criterion(batch_probs, batch_labels)
             # batch_vecs = model(batch_imgs, out='vec')
             # avg_loss = criterion(batch_vecs, batch_labels)
+
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
@@ -267,6 +277,7 @@ class Trainer(BaseTrainer):
                 train_pbar.set_postfix_str(
                     f"LR:{opt.param_groups[0]['lr']:.1e} "
                     f"Loss:{train_loss_meter.avg:.4f}")
+
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(f"LR:{opt.param_groups[0]['lr']:.1e} "
                                        f"Loss:{train_loss_meter.avg:.2f} "
@@ -314,6 +325,7 @@ class Trainer(BaseTrainer):
                                      f"Mid:{val_stat.group_mr[1]:.0%} "
                                      f"Tail:{val_stat.group_mr[2]:.0%}")
             val_pbar.close()
+
         return val_stat, val_loss_meter.avg
 
 
@@ -325,6 +337,7 @@ def parse_args():
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     args = parser.parse_args()
+
     return args
 
 

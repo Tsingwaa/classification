@@ -42,32 +42,46 @@ class Trainer(BaseTrainer):
         #######################################################################
         train_transform = self.init_transform(self.train_transform_name,
                                               **self.train_transform_params)
-        trainset0 = self.init_dataset(self.trainset_name,
-                                      transform=train_transform,
-                                      **self.trainset_params)
+        trainset = self.init_dataset(self.trainset_name,
+                                     transform=train_transform,
+                                     **self.trainset_params)
 
         if self.local_rank in [-1, 0]:
             self.log(f"===> Build Cutmix for {self.trainset_name}"
                      f" with {self.cutmix_params}")
-        trainset = CutMix(dataset=trainset0, **self.cutmix_params)
+        mix_trainset = CutMix(dataset=trainset, **self.cutmix_params)
 
-        train_sampler = self.init_sampler(self.train_sampler_name,
-                                          dataset=trainset,
-                                          **self.trainloader_params)
+        mix_train_sampler = self.init_sampler(self.train_sampler_name,
+                                              dataset=mix_trainset,
+                                              **self.trainloader_params)
 
-        self.trainloader = DataLoaderX(trainset,
-                                       batch_size=self.train_batchsize,
-                                       shuffle=(train_sampler is None),
-                                       num_workers=self.train_workers,
-                                       pin_memory=True,
-                                       drop_last=True,
-                                       sampler=train_sampler)
+        self.mix_loader = DataLoaderX(mix_trainset,
+                                      batch_size=self.train_batchsize,
+                                      shuffle=(mix_train_sampler is None),
+                                      num_workers=self.train_workers,
+                                      pin_memory=True,
+                                      drop_last=True,
+                                      sampler=mix_train_sampler)
 
         if self.local_rank != -1:
             print(f"global_rank {self.global_rank},"
                   f"world_size {self.world_size},"
                   f"local_rank {self.local_rank},"
                   f"sampler '{self.train_sampler_name}'")
+
+        # build original train dataloader for evaluate
+        train_sampler = self.init_sampler(self.val_sampler_name,
+                                          dataset=trainset,
+                                          **self.trainloader_params)
+        self.valloader_train = DataLoaderX(
+            trainset,
+            batch_size=self.val_batchsize,
+            shuffle=(train_sampler is None),
+            num_workers=self.val_workers,
+            pin_memory=True,
+            drop_last=False,
+            sampler=train_sampler,
+        )
 
         val_transform = self.init_transform(self.val_transform_name,
                                             **self.val_transform_params)
@@ -87,31 +101,19 @@ class Trainer(BaseTrainer):
             drop_last=False,
             sampler=val_sampler,
         )
-        val_sampler_train = self.init_sampler(self.val_sampler_name,
-                                              dataset=trainset,
-                                              **self.trainloader_params)
-        self.valloader_train = DataLoaderX(
-            trainset0,
-            batch_size=self.val_batchsize,
-            shuffle=(val_sampler_train is None),
-            num_workers=self.val_workers,
-            pin_memory=True,
-            drop_last=False,
-            sampler=val_sampler_train,
-        )
 
         #######################################################################
         # Initialize Network
         #######################################################################
         self.model = self.init_model(self.network_name,
-                                     num_classes=trainset.num_classes,
+                                     num_classes=mix_trainset.num_classes,
                                      **self.network_params)
 
         #######################################################################
         # Initialize Loss
         #######################################################################
         weight = self.get_class_weight(
-            num_samples_per_cls=trainset.num_samples_per_cls,
+            num_samples_per_cls=mix_trainset.num_samples_per_cls,
             **self.loss_params,  # 包含weight_type
         )
         self.criterion = self.init_loss(self.loss_name,
@@ -160,26 +162,26 @@ class Trainer(BaseTrainer):
             self.scheduler.step()
 
             if self.local_rank != -1:
-                train_sampler.set_epoch(cur_epoch)
+                mix_train_sampler.set_epoch(cur_epoch)
 
             _, train_loss = self.train_epoch(
                 cur_epoch,
-                self.trainloader,
+                self.mix_loader,
                 self.model,
                 self.criterion,
                 self.opt,
-                trainset.num_classes,
+                mix_trainset.num_classes,
             )
             train_stat, train_loss = self.evaluate(
                 cur_epoch,
                 self.valloader_train,
                 self.model,
                 self.criterion,
-                trainset.num_classes,
+                mix_trainset.num_classes,
             )
             val_stat, val_loss = self.evaluate(cur_epoch, self.valloader,
                                                self.model, self.criterion,
-                                               trainset.num_classes)
+                                               mix_trainset.num_classes)
 
             if self.local_rank in [-1, 0]:
 

@@ -1,6 +1,6 @@
 """finetune script """
 import argparse
-import math
+# import math
 import os
 import random
 import warnings
@@ -23,11 +23,13 @@ from utils import AverageMeter, ExpStat, switch_clean
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__(), max_prefetch=8)
 
 
 class FineTuner(BaseTrainer):
+
     def __init__(self, local_rank=None, config=None):
 
         #######################################################################
@@ -38,6 +40,7 @@ class FineTuner(BaseTrainer):
         torch.backends.cudnn.enable = True
 
         self.local_rank = local_rank
+
         if self.local_rank != -1:
             dist.init_process_group(backend='nccl')
             torch.cuda.set_device(self.local_rank)
@@ -59,6 +62,7 @@ class FineTuner(BaseTrainer):
         self._set_configs(config)
 
         self.resume = True
+
         if '/' in self.exp_config['resume_fpath']:
             self.resume_fpath = self.exp_config['resume_fpath']
         else:
@@ -166,23 +170,21 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        self.loss_params = self.get_class_weight(
-            trainset.num_samples_per_cls, **self.loss_params)
+        self.loss_params = self.get_class_weight(trainset.num_samples_per_cls,
+                                                 **self.loss_params)
         self.criterion = self.init_loss(self.loss_name, **self.loss_params)
 
         #######################################################################
         # Initialize opt
         #######################################################################
-        self.opt = self.init_optimizer(self.opt_name,
-                                       self.model.parameters(),
+        self.opt = self.init_optimizer(self.opt_name, self.model.parameters(),
                                        **self.opt_params)
 
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.lr_scheduler = self.self(self.scheduler_name,
-                                                   self.opt,
-                                                   **self.scheduler_params)
+        self.lr_scheduler = self.self(self.scheduler_name, self.opt,
+                                      **self.scheduler_params)
 
         #######################################################################
         # Start Training
@@ -196,6 +198,7 @@ class FineTuner(BaseTrainer):
         last_tail_mrs = []
         start_time = datetime.now()
         self.model.apply(switch_clean)
+
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             # learning rate decay by epoch
             self.lr_scheduler.step()
@@ -242,10 +245,12 @@ class FineTuner(BaseTrainer):
                     log_level='file')
 
                 is_best = val_stat.mr > best_mr
+
                 if is_best:
                     best_mr = val_stat.mr
                     best_epoch = cur_epoch
                     best_group_mr = val_stat.group_mr
+
                 if (not cur_epoch % self.save_period) or is_best:
                     self.save_checkpoint(epoch=cur_epoch,
                                          model=self.model,
@@ -289,6 +294,7 @@ class FineTuner(BaseTrainer):
 
         model.train()
         model.apply(switch_clean)
+
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
@@ -296,12 +302,14 @@ class FineTuner(BaseTrainer):
 
         train_loss_meter = AverageMeter()
         train_stat = ExpStat(num_classes)
+
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
             batch_prob = model(batch_imgs)
             avg_loss = criterion(batch_prob, batch_labels)
+
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
@@ -337,6 +345,7 @@ class FineTuner(BaseTrainer):
 
         model.eval()
         model.apply(switch_clean)
+
         if self.local_rank in [-1, 0]:
             val_pbar = tqdm(total=len(valloader),
                             ncols=0,
@@ -376,6 +385,7 @@ def parse_args():
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     args = parser.parse_args()
+
     return args
 
 

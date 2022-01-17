@@ -1,28 +1,31 @@
 """TRAINING
 """
+import argparse
 import os
 import warnings
-import argparse
-import torch
-import yaml
-import numpy as np
 # import pandas as pd
 # from pudb import set_trace
 from os.path import join
-from torch.utils.data import DataLoader
-from sklearn import metrics
-from tqdm import tqdm
-from prefetch_generator import BackgroundGenerator
+
+import numpy as np
+import torch
+import yaml
 from base.base_trainer import BaseTrainer
+from prefetch_generator import BackgroundGenerator
+from sklearn import metrics
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 from utils.utils import get_cm_with_labels
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__(), max_prefetch=10)
 
 
 class Validater(BaseTrainer):
+
     def __init__(self, local_rank, config):
         """ Base validater for all experiments.  """
 
@@ -45,10 +48,9 @@ class Validater(BaseTrainer):
         if '/' in self.experiment_config['resume_fpath']:
             self.resume_fpath = self.experiment_config['resume_fpath']
         else:
-            self.resume_fpath = join(
-                self.user_root, 'Experiments', self.exp_name,
-                self.experiment_config['resume_fpath']
-            )
+            self.resume_fpath = join(self.user_root, 'Experiments',
+                                     self.exp_name,
+                                     self.experiment_config['resume_fpath'])
 
         self.checkpoint, resume_log = self.resume_checkpoint()
         self.test_epoch = self.checkpoint['epoch']
@@ -117,10 +119,7 @@ class Validater(BaseTrainer):
         #######################################################################
         # Start evaluating
         #######################################################################
-        val_pbar = tqdm(
-            total=len(self.valloader),
-            desc='Evaluate'
-        )
+        val_pbar = tqdm(total=len(self.valloader), desc='Evaluate')
 
         self.model.eval()
 
@@ -141,40 +140,32 @@ class Validater(BaseTrainer):
                 val_pbar.update()
 
         val_acc = metrics.accuracy_score(all_labels, all_preds)
-        val_mr = metrics.recall_score(all_labels, all_preds,
-                                      average='macro')
-        val_ap = metrics.precision_score(all_labels, all_preds,
+        val_mr = metrics.recall_score(all_labels, all_preds, average='macro')
+        val_ap = metrics.precision_score(all_labels,
+                                         all_preds,
                                          average='macro')
-        val_pbar.set_postfix_str(
-            'Acc:{:.2%} MR:{:.2%} AP:{:.2%}'.format(val_acc, val_mr, val_ap)
-        )
+        val_pbar.set_postfix_str('Acc:{:.2%} MR:{:.2%} AP:{:.2%}'.format(
+            val_acc, val_mr, val_ap))
         val_pbar.close()
 
         classification_report = metrics.classification_report(
-            all_labels, all_preds, target_names=valset.classes
-        )
-        self.logger.info(
-            "===> Classification Report:\n" + classification_report
-        )
+            all_labels, all_preds, target_names=valset.classes)
+        self.logger.info("===> Classification Report:\n" +
+                         classification_report)
 
         cm_df = get_cm_with_labels(all_labels, all_preds, valset.classes)
-        self.logger.info(
-            '===> Confusion Matrix:\n' + cm_df.to_string() + '\n'
-        )
+        self.logger.info('===> Confusion Matrix:\n' + cm_df.to_string() + '\n')
 
         # save true_list and pred_list
         np.save(
             join(self.save_dir, f"val_epoch{self.test_epoch}_label_list.npy"),
-            np.array(all_labels)
-        )
+            np.array(all_labels))
         np.save(
             join(self.save_dir, f"val_epoch{self.test_epoch}_pred_list.npy"),
-            np.array(all_preds)
-        )
+            np.array(all_preds))
         np.save(
             join(self.save_dir, f"val_epoch{self.test_epoch}_prob_list.npy"),
-            np.array(all_probs)
-        )
+            np.array(all_probs))
 
         save_log = f"===> Results of epoch{self.test_epoch} "\
             f" in '{self.exp_name}'  are saved at:\n"\
@@ -186,10 +177,13 @@ class Validater(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--local_rank', type=int, help='Local Rank for\
+    parser.add_argument('--local_rank',
+                        type=int,
+                        help='Local Rank for\
                         distributed training. if single-GPU, default: -1')
     parser.add_argument("--config_path", type=str)
     args = parser.parse_args()
+
     return args
 
 

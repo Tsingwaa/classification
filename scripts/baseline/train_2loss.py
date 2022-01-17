@@ -18,11 +18,13 @@ from utils import AverageMeter, ExpStat
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__())
 
 
 class Trainer(BaseTrainer):
+
     def __init__(self, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
 
@@ -88,27 +90,21 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-<<<<<<< HEAD
-        self.loss_params = self.update_class_weight(trainset.img_num,
-                                                    **self.loss_params)
-        self.loss2_params = self.update_class_weight(trainset.img_num,
-                                                    **self.loss2_params)
-        self.criterion = self.init_loss(self.loss_name, **self.loss_params)
-=======
         weight = self.get_class_weight(
             num_samples_per_cls=trainset.num_samples_per_cls,
-            **self.loss_params,)
+            **self.loss_params,
+        )
         self.criterion = self.init_loss(self.loss_name,
                                         weight=weight,
                                         **self.loss_params)
 
         weight2 = self.get_class_weight(
             num_samples_per_cls=trainset.num_samples_per_cls,
-            **self.loss2_params,)
+            **self.loss2_params,
+        )
         self.criterion2 = self.init_loss(self.loss2_name,
                                          weight=weight2,
                                          **self.loss2_params)
->>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
 
         self.criterion2 = self.init_loss(self.loss2_name, **self.loss2_params)
         print(self.loss2_name)
@@ -116,8 +112,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Optimizer
         #######################################################################
-        self.opt = self.init_optimizer(self.opt_name,
-                                       self.model.parameters(),
+        self.opt = self.init_optimizer(self.opt_name, self.model.parameters(),
                                        **self.opt_params)
         self.opt2 = self.init_optimizer(self.opt2_name,
                                         self.criterion2.parameters(),
@@ -126,6 +121,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
+
         if self.local_rank != -1:
             self.model, self.opt = amp.initialize(self.model,
                                                   self.opt,
@@ -137,8 +133,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.scheduler = self.init_lr_scheduler(self.scheduler_name,
-                                                self.opt,
+        self.scheduler = self.init_lr_scheduler(self.scheduler_name, self.opt,
                                                 **self.scheduler_params)
         self.scheduler2 = self.init_lr_scheduler(self.scheduler2_name,
                                                  self.opt2,
@@ -156,9 +151,11 @@ class Trainer(BaseTrainer):
         last_tail_mrs = []
         self.final_epoch = self.start_epoch + self.total_epochs
         start_time = datetime.now()
+
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.scheduler.step()
             self.scheduler2.step()
+
             if self.local_rank != -1:
                 train_sampler.set_epoch(cur_epoch)
 
@@ -170,7 +167,7 @@ class Trainer(BaseTrainer):
                 self.opt,
                 criterion2=self.criterion2,
                 optimizer2=self.opt2,
-                num_classes=trainset.num_classes,
+                num_samples_per_cls=trainset.num_classes,
             )
 
             if self.local_rank in [-1, 0]:
@@ -179,7 +176,7 @@ class Trainer(BaseTrainer):
                     self.valloader,
                     self.model,
                     self.criterion,
-                    num_classes=trainset.num_classes,
+                    num_samples_per_cls=trainset.num_classes,
                 )
 
                 if self.final_epoch - cur_epoch <= 5:
@@ -231,23 +228,12 @@ class Trainer(BaseTrainer):
                         "tail_mr": val_stat.group_mr[2]
                     }, cur_epoch)
                 is_best = val_stat.mr > best_mr
+
                 if is_best:
                     best_mr = val_stat.mr
                     best_epoch = cur_epoch
-<<<<<<< HEAD
-                    best_group_mr = list(val_stat.group_mr)
-                if (not cur_epoch % self.save_period) or is_best:
-                    self.save_checkpoint(epoch=cur_epoch,
-                                         model=self.model,
-                                         optimizer=self.opt,
-                                         criterion=self.criterion2,
-                                         is_best=is_best,
-                                         mr=val_stat.mr,
-                                         group_mr=val_stat.group_mr,
-                                         prefix=None,
-                                         save_dir=self.exp_dir)
-=======
                     best_group_mr = val_stat.group_mr
+
                 if (not cur_epoch % self.save_period) or is_best:
                     self.save_checkpoint(
                         epoch=cur_epoch,
@@ -261,7 +247,6 @@ class Trainer(BaseTrainer):
                         criterion=self.criterion2,
                     )
 
->>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
         end_time = datetime.now()
         dur_time = str(end_time - start_time)[:-7]  # 取到秒
 
@@ -284,9 +269,17 @@ class Trainer(BaseTrainer):
                 f"*********************************************************"
                 f"*********************************************************\n")
 
-    def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
-                    criterion2=None, optimizer2=None, num_classes=None):
+    def train_epoch(self,
+                    cur_epoch,
+                    trainloader,
+                    model,
+                    criterion,
+                    optimizer,
+                    criterion2=None,
+                    optimizer2=None,
+                    num_samples_per_cls=None):
         model.train()
+
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
@@ -295,22 +288,20 @@ class Trainer(BaseTrainer):
         train_loss_meter = AverageMeter()
         loss1_meter = AverageMeter()
         loss2_meter = AverageMeter()
-        train_stat = ExpStat(num_classes)
+        train_stat = ExpStat(num_samples_per_cls)
+
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             optimizer.zero_grad()
             optimizer2.zero_grad()
 
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
-<<<<<<< HEAD
-            batch_fvecs = model(batch_imgs, out_type='vec')
-=======
             batch_fvecs = model(batch_imgs, out_type='feat')
->>>>>>> b349e3cc565245fbd7d5a578dcb44ded193d6ac0
             batch_probs = model.fc(batch_fvecs)
             loss1 = criterion(batch_probs, batch_labels)
             loss2 = criterion2(batch_fvecs, batch_labels)
             avg_loss = loss1 + loss2 * self.lambda_weight
+
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
@@ -319,6 +310,7 @@ class Trainer(BaseTrainer):
             else:
                 avg_loss.backward()
                 optimizer.step()
+
                 for param in criterion2.parameters():
                     param.grad.data *= (1. / self.lambda_weight)
                 optimizer2.step()
@@ -359,14 +351,16 @@ class Trainer(BaseTrainer):
 
         return train_stat, train_loss
 
-    def evaluate(self, cur_epoch, valloader, model, criterion, num_classes):
+    def evaluate(self, cur_epoch, valloader, model, criterion,
+                 num_samples_per_cls):
         model.eval()
 
         if self.local_rank in [-1, 0]:
             val_pbar = tqdm(total=len(valloader),
-                            ncols=0, desc="                 Val")
+                            ncols=0,
+                            desc="                 Val")
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes)
+        val_stat = ExpStat(num_samples_per_cls)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
@@ -393,10 +387,13 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank", type=int, help="Local Rank for\
+    parser.add_argument("--local_rank",
+                        type=int,
+                        help="Local Rank for\
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     args = parser.parse_args()
+
     return args
 
 

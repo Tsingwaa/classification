@@ -29,11 +29,13 @@ from utils import AverageMeter, ExpStat, switch_clean, switch_mix
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__(), max_prefetch=8)
 
 
 class Trainer(BaseTrainer):
+
     def __init__(self, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
         adv_config = config['adv']
@@ -115,6 +117,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
+
         if self.local_rank != -1:
             self.model, self.opt = amp.initialize(self.model,
                                                   self.opt,
@@ -127,9 +130,8 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.lr_scheduler = self.self(self.scheduler_name,
-                                                   self.opt,
-                                                   **self.scheduler_params)
+        self.lr_scheduler = self.self(self.scheduler_name, self.opt,
+                                      **self.scheduler_params)
 
         #######################################################################
         # Start Training
@@ -143,6 +145,7 @@ class Trainer(BaseTrainer):
         last_tail_mrs = []
         self.final_epoch = self.start_epoch + self.total_epochs
         start_time = datetime.now()
+
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.lr_scheduler.step()
 
@@ -233,20 +236,21 @@ class Trainer(BaseTrainer):
                         "tail_mr": val_stat.group_mr[2]
                     }, cur_epoch)
                 is_best = val_stat.mr > best_mr
+
                 if is_best:
                     best_mr = val_stat.mr
                     best_epoch = cur_epoch
                     best_group_mr = val_stat.group_mr
+
                 if (not cur_epoch % self.save_period) or is_best:
-                    self.save_checkpoint(
-                        epoch=cur_epoch,
-                        model=self.model,
-                        optimizer=self.opt,
-                        is_best=is_best,
-                        mr=val_stat.mr,
-                        group_mr=val_stat.group_mr,
-                        prefix=None,
-                        save_dir=self.exp_dir)
+                    self.save_checkpoint(epoch=cur_epoch,
+                                         model=self.model,
+                                         optimizer=self.opt,
+                                         is_best=is_best,
+                                         mr=val_stat.mr,
+                                         group_mr=val_stat.group_mr,
+                                         prefix=None,
+                                         save_dir=self.exp_dir)
 
         end_time = datetime.now()
         dur_time = str(end_time - start_time)[:-7]  # 取到秒
@@ -289,6 +293,7 @@ class Trainer(BaseTrainer):
         cln_loss_meter = AverageMeter()
         adv_stat = ExpStat(num_classes)
         cln_stat = ExpStat(num_classes)
+
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             optimizer.zero_grad()
             batch_imgs = batch_imgs.cuda(non_blocking=True)
@@ -408,6 +413,7 @@ def parse_args():
                         distributed training. if single-GPU, default: -1')
     parser.add_argument('--config_path', type=str, help='path of config file')
     args = parser.parse_args()
+
     return args
 
 

@@ -150,13 +150,13 @@ class Trainer(BaseTrainer):
                 self.model,
                 self.criterion,
                 self.opt,
-                trainset.num_classes,
+                trainset.num_samples_per_cls,
             )
 
             if self.local_rank in [-1, 0]:
-                val_stat, val_loss = self.evaluate(cur_epoch, self.valloader,
-                                                   self.model, self.criterion,
-                                                   trainset.num_classes)
+                val_stat, val_loss = self.evaluate(
+                    cur_epoch, self.valloader, self.model, self.criterion,
+                    trainset.num_samples_per_cls)
 
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
@@ -246,7 +246,7 @@ class Trainer(BaseTrainer):
                 f"*********************************************************\n")
 
     def train_epoch(self, cur_epoch, trainloader, trainloader2, model,
-                    criterion, opt, num_classes, **kwargs):
+                    criterion, opt, num_samples_per_cls, **kwargs):
         model.train()
 
         if self.local_rank in [-1, 0]:
@@ -255,7 +255,7 @@ class Trainer(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_classes)
+        train_stat = ExpStat(num_samples_per_cls)
 
         for i, data in enumerate(zip(trainloader, trainloader2)):
             # for i, (batch_imgs, batch_labels) in enumerate(trainloader):

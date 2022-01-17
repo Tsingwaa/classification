@@ -15,7 +15,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils import AverageMeter, ExpStat
-# from torchstat import stat
+
 
 class DataLoaderX(DataLoader):
 
@@ -25,12 +25,9 @@ class DataLoaderX(DataLoader):
 
 class Trainer(BaseTrainer):
 
-    def __init__(self, args=None, local_rank=None, config=None):
+    def __init__(self, local_rank=None, config=None, seed=None):
         super(Trainer, self).__init__(local_rank, config)
-        self.args = args
-        self.head_class_idx = config['head_class_idx']
-        self.med_class_idx = config['med_class_idx']
-        self.tail_class_idx = config['tail_class_idx']
+        self.seed = seed
 
     def train(self):
         #######################################################################
@@ -79,7 +76,7 @@ class Trainer(BaseTrainer):
         self.model = self.init_model(self.network_name,
                                      num_classes=trainset.num_classes,
                                      **self.network_params)
-        
+
         #######################################################################
         # Initialize Loss
         #######################################################################
@@ -94,25 +91,25 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Optimizer
         #######################################################################
-        self.opt = self.init_optimizer(self.opt_name, self.model.parameters(),
-                                       **self.opt_params)
+        self.optimizer = self.init_optimizer(self.opt_name,
+                                             self.model.parameters(),
+                                             **self.opt_params)
 
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
 
         if self.local_rank != -1:
-            self.model, self.opt = amp.initialize(self.model,
-                                                  self.opt,
-                                                  opt_level="O1")
-            self.model = DistributedDataParallel(self.model,
-                                                 device_ids=[self.local_rank],
-                                                 output_device=self.local_rank,
-                                                 find_unused_parameters=True)
+            self.model, self.optimizer = amp.initialize(self.model,
+                                                        self.optimizer,
+                                                        opt_level="O1")
+            self.model = DistributedDataParallel(self.model)
+
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.scheduler = self.init_lr_scheduler(self.scheduler_name, self.opt,
+        self.scheduler = self.init_lr_scheduler(self.scheduler_name,
+                                                self.optimizer,
                                                 **self.scheduler_params)
 
         #######################################################################
@@ -125,8 +122,9 @@ class Trainer(BaseTrainer):
         last_head_mrs = []
         last_mid_mrs = []
         last_tail_mrs = []
-        self.final_epoch = self.start_epoch + self.total_epochs
         start_time = datetime.now()
+
+        self.final_epoch = self.start_epoch + self.total_epochs
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.scheduler.step()
@@ -135,19 +133,22 @@ class Trainer(BaseTrainer):
                 train_sampler.set_epoch(cur_epoch)
 
             train_stat, train_loss = self.train_epoch(
-                cur_epoch,
-                self.trainloader,
-                self.model,
-                self.criterion,
-                self.opt,
-                trainset.num_classes,
+                cur_epoch=cur_epoch,
+                trainloader=self.trainloader,
+                model=self.model,
+                criterion=self.criterion,
+                optimizer=self.optimizer,
+                num_samples_per_cls=trainset.num_samples_per_cls,
             )
 
-            if self.local_rank in [-1, 0]:
-                val_stat, val_loss = self.evaluate(cur_epoch, self.valloader,
-                                                   self.model, self.criterion,
-                                                   trainset.num_classes)
+            val_stat, val_loss = self.evaluate(
+                cur_epoch=cur_epoch,
+                valloader=self.valloader,
+                model=self.model,
+                criterion=self.criterion,
+                num_samples_per_cls=trainset.num_samples_per_cls)
 
+            if self.local_rank in [-1, 0]:
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
                     last_head_mrs.append(val_stat.group_mr[0])
@@ -170,7 +171,7 @@ class Trainer(BaseTrainer):
 
                 # Save log by tensorboard
                 self.writer.add_scalar(f"{self.exp_name}/LR",
-                                       self.opt.param_groups[-1]["lr"],
+                                       self.optimizer.param_groups[-1]["lr"],
                                        cur_epoch)
                 self.writer.add_scalars(f"{self.exp_name}/Loss", {
                     "train_loss": train_loss,
@@ -182,15 +183,15 @@ class Trainer(BaseTrainer):
                 }, cur_epoch)
                 self.writer.add_scalars(
                     f"{self.exp_name}/TrainGroupRecall", {
-                        "head_mr": train_stat.group_mr[0],
-                        "mid_mr": train_stat.group_mr[1],
-                        "tail_mr": train_stat.group_mr[2]
+                        "maj_mr": train_stat.group_mr[0],
+                        "med_mr": train_stat.group_mr[1],
+                        "min_mr": train_stat.group_mr[2]
                     }, cur_epoch)
                 self.writer.add_scalars(
                     f"{self.exp_name}/ValGroupRecall", {
-                        "head_mr": val_stat.group_mr[0],
-                        "mid_mr": val_stat.group_mr[1],
-                        "tail_mr": val_stat.group_mr[2]
+                        "maj_mr": val_stat.group_mr[0],
+                        "med_mr": val_stat.group_mr[1],
+                        "min_mr": val_stat.group_mr[2]
                     }, cur_epoch)
 
                 is_best = val_stat.mr > best_mr
@@ -204,11 +205,11 @@ class Trainer(BaseTrainer):
                     self.save_checkpoint(
                         epoch=cur_epoch,
                         model=self.model,
-                        optimizer=self.opt,
+                        optimizer=self.optimizer,
                         is_best=is_best,
                         mr=val_stat.mr,
                         group_mr=val_stat.group_mr,
-                        prefix='seed_%d'%(self.args.seed),
+                        prefix=f"seed{self.seed}",
                         save_dir=self.exp_dir,
                         criterion=self.criterion,
                     )
@@ -235,8 +236,16 @@ class Trainer(BaseTrainer):
                 f"*********************************************************"
                 f"*********************************************************\n")
 
-    def train_epoch(self, cur_epoch, trainloader, model, criterion, opt,
-                    num_classes, **kwargs):
+    def train_epoch(
+        self,
+        cur_epoch,
+        trainloader,
+        model,
+        criterion,
+        optimizer,
+        num_samples_per_cls,
+        **kwargs,
+    ):
         model.train()
 
         if self.local_rank in [-1, 0]:
@@ -245,23 +254,23 @@ class Trainer(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
+        train_stat = ExpStat(num_samples_per_cls)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
-            opt.zero_grad()
+            optimizer.zero_grad()
             batch_imgs = batch_imgs.cuda()
             batch_labels = batch_labels.cuda()
             batch_probs = model(batch_imgs, out_type='fc')
             avg_loss = criterion(batch_probs, batch_labels)
 
             if self.local_rank != -1:
-                with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
+                with amp.scale_loss(avg_loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()
-                opt.step()
+                optimizer.step()
                 self._reduce_tensor(avg_loss)
             else:
                 avg_loss.backward()
-                opt.step()
+                optimizer.step()
 
             batch_preds = torch.argmax(batch_probs, dim=1)
             train_loss_meter.update(avg_loss.item(), 1)
@@ -270,22 +279,31 @@ class Trainer(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str(
-                    f"LR:{opt.param_groups[0]['lr']:.1e} "
+                    f"LR:{optimizer.param_groups[0]['lr']:.1e} "
                     f"Loss:{train_loss_meter.avg:>4.2f}")
 
         if self.local_rank in [-1, 0]:
-            train_pbar.set_postfix_str(f"LR:{opt.param_groups[0]['lr']:.1e} "
-                                       f"Loss:{train_loss_meter.avg:>4.2f} "
-                                       f"MR:{train_stat.mr:>6.2%} "
-                                       f"[{train_stat.group_mr[0]:>3.0%}, "
-                                       f"{train_stat.group_mr[1]:>3.0%}, "
-                                       f"{train_stat.group_mr[2]:>3.0%}]")
+            train_pbar.set_postfix_str(
+                f"LR:{optimizer.param_groups[0]['lr']:.1e} "
+                f"Loss:{train_loss_meter.avg:>4.2f} "
+                f"MR:{train_stat.mr:>6.2%} "
+                f"[{train_stat.group_mr[0]:>3.0%}, "
+                f"{train_stat.group_mr[1]:>3.0%}, "
+                f"{train_stat.group_mr[2]:>3.0%}]")
 
             train_pbar.close()
 
         return train_stat, train_loss_meter.avg
 
-    def evaluate(self, cur_epoch, valloader, model, criterion, num_classes):
+    def evaluate(
+        self,
+        cur_epoch,
+        valloader,
+        model,
+        criterion,
+        num_samples_per_cls,
+        **kwargs,
+    ):
         model.eval()
 
         if self.local_rank in [-1, 0]:
@@ -293,7 +311,8 @@ class Trainer(BaseTrainer):
                             ncols=0,
                             desc="                 Val")
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
+        val_stat = ExpStat(num_samples_per_cls)
+
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda()
@@ -322,8 +341,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--local_rank",
                         type=int,
-                        help="Local Rank for\
-                        distributed training. if single-GPU, default: -1")
+                        help="Local Rank for distributed training. "
+                        "if single-GPU, default set to -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
@@ -331,13 +350,18 @@ def parse_args():
     return args
 
 
-def _set_random_seed(seed=0):
+def _set_random_seed(seed=0, cuda_deterministic=False):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True  # 固定内部随机性
-    torch.backends.cudnn.benchmark = True  # 输入尺寸一致，加速训练
+
+    if cuda_deterministic:  # slower, but more reproducible
+        torch.backends.cudnn.deterministic = True  # 固定内部随机性
+        torch.backends.cudnn.benchmark = False
+    else:
+        torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.benchmark = True  # 输入尺寸一致，加速训练
 
 
 def main(args):
@@ -345,7 +369,11 @@ def main(args):
     _set_random_seed(seed=args.seed)
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    trainer = Trainer(args, local_rank=args.local_rank, config=config)
+    trainer = Trainer(
+        local_rank=args.local_rank,
+        config=config,
+        seed=args.seed,
+    )
     trainer.train()
 
 

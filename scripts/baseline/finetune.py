@@ -72,8 +72,9 @@ class FineTuner(BaseTrainer):
         else:
             # self.resume_fpath = join(self.exp_root, self.exp_name,
             #                          self.exp_config["resume_fpath"])
-            self.resume_fpath = join(self.exp_root, self.exp_name,
-                                     'seed_%d_%s'%(args.seed, self.exp_config["resume_fpath"]))
+            self.resume_fpath = join(
+                self.exp_root, self.exp_name,
+                'seed_%d_%s' % (args.seed, self.exp_config["resume_fpath"]))
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
 
         self.start_epoch = 1
@@ -321,7 +322,8 @@ class FineTuner(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>2d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
+        train_stat = ExpStat(num_classes, self.head_class_idx,
+                             self.med_class_idx, self.tail_class_idx)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
@@ -387,7 +389,8 @@ class FineTuner(BaseTrainer):
                             desc="                 Val")
 
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
+        val_stat = ExpStat(num_classes, self.head_class_idx,
+                           self.med_class_idx, self.tail_class_idx)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)

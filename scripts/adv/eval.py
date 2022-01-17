@@ -20,11 +20,13 @@ from utils.utils import get_cm_with_labels
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__(), max_prefetch=10)
 
 
 class Validater(BaseTrainer):
+
     def __init__(self, local_rank, config):
         """ Base validater for all experiments.  """
 
@@ -137,6 +139,7 @@ class Validater(BaseTrainer):
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
+
                 if self.adv_param['test_adv']:
                     batch_imgs = self.attacker.attack(batch_imgs, batch_labels)
                 batch_labels = batch_labels.cuda(non_blocking=True)
@@ -192,6 +195,7 @@ def parse_args():
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str)
     args = parser.parse_args()
+
     return args
 
 
