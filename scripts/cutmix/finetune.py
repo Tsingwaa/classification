@@ -51,6 +51,10 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
+        self.head_class_idx = config['head_class_idx']
+        self.med_class_idx = config['med_class_idx']
+        self.tail_class_idx = config['tail_class_idx']
+
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.finetune_config = config["finetune"]
@@ -323,7 +327,7 @@ class FineTuner(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>2d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_classes)
+        train_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
@@ -389,7 +393,7 @@ class FineTuner(BaseTrainer):
                             desc="                 Val")
 
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes)
+        val_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)

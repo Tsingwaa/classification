@@ -1,5 +1,5 @@
 experiment:
-  name: "ImageNet_adapt2_remix_v2_8_0.6_lr_0.2"
+  name: "ImageNet_adapt2_remix_v2_8_0.6_lr_0.2_5e-4"
   start_epoch: 1
   total_epochs: 90
   log_fname: "train.log"
@@ -42,6 +42,16 @@ finetune:
       # milestones: [5, 10, 15, 20]
       gamma: 0.1
 
+head_class_idx:
+  - 0
+  - 390
+med_class_idx:
+  - 390
+  - 835
+tail_class_idx:
+  - 835
+  - 1000
+  
 test:
   name: "test"
   loss:
@@ -144,7 +154,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.2
-    weight_decay: 2.0e-4
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 

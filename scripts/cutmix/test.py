@@ -49,6 +49,10 @@ class Tester(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
+        self.head_class_idx = config['head_class_idx']
+        self.med_class_idx = config['med_class_idx']
+        self.tail_class_idx = config['tail_class_idx']
+
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.test_config = config["test"]
@@ -66,8 +70,10 @@ class Tester(BaseTrainer):
         else:
             # self.resume_fpath = join(self.exp_root, self.exp_name,
             #                          'seed_%d_DRW_%s'%(self.args.seed, self.exp_config["resume_fpath"]))
+            # self.resume_fpath = join(self.exp_root, self.exp_name,
+            #                          'DRS_%s'%(self.exp_config["resume_fpath"]))
             self.resume_fpath = join(self.exp_root, self.exp_name,
-                                     'DRW_%s'%(self.exp_config["resume_fpath"]))
+                                     'seed_%d_%s'%(self.args.seed, self.exp_config["resume_fpath"]))
 
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
 
@@ -131,7 +137,7 @@ class Tester(BaseTrainer):
                             desc="                 Val")
 
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes)
+        val_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)

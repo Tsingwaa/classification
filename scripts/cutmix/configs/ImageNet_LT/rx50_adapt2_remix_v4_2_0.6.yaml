@@ -1,5 +1,5 @@
 experiment:
-  name: "ImageNet_rx50_cutmix_lr_0.2_5e-4"
+  name: "ImageNet_adapt2_remix_v4_2_0.6_lr_0.2_5e-4"
   start_epoch: 1
   total_epochs: 90
   log_fname: "train.log"
@@ -8,15 +8,14 @@ experiment:
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
-
 finetune:
-  name: "DRW"
-  total_epochs: 10
+  name: "DRS"
+  total_epochs: 20
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: "DistributedSampler"
+    sampler: "BalanceSampler"
     retain_epoch_size: True
-    batch_size: 128
+    batch_size: 256
     num_workers: 4
   network:
     name: ''
@@ -26,33 +25,23 @@ finetune:
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: "inverse"
+      weight_type: ""
       label_smoothing: 0.
   optimizer:
     name: "SGD"
     param:
       lr: 1.0e-1
-      weight_decay: 1.0e-4
+      weight_decay: 5.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
     name: 'StepLR'
     param:
       warmup_epochs: 0
-      step_size: 2
+      step_size: 3
       # milestones: [5, 10, 15, 20]
       gamma: 0.1
 
-head_class_idx:
-  - 0
-  - 390
-med_class_idx:
-  - 390
-  - 835
-tail_class_idx:
-  - 835
-  - 1000
-  
 test:
   name: "test"
   loss:
@@ -91,11 +80,25 @@ train_dataset:
     # map_fpath: "None"
     imb_type: 'exp'
 
+head_class_idx:
+  - 0
+  - 390
+med_class_idx:
+  - 390
+  - 835
+tail_class_idx:
+  - 835
+  - 1000
+
 cutmix:
   beta: 1.
   prob: 1.
-  remix: False
-  
+  adapt: 2
+  remix_v4: True
+  kappa: 2
+  tau2: 0.6
+
+
 val_dataset:
   name: "ImageNet_LT"
   param:
@@ -181,11 +184,3 @@ lr_scheduler:
     # CosineAnnealingLR
     T_max: 90
     eta_min: 0
-
-test:
-  name: "test"
-  loss:
-    name: "CrossEntropyLoss"
-    param:
-      weight_type: ""
-      label_smoothing: 0.

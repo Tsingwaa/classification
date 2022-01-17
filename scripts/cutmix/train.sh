@@ -1,9 +1,9 @@
 export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 
 # Distributed Training
-CUDA_VISIBLE_DEVICES=4,2 python3 -W ignore -m torch.distributed.launch\
-    --nproc_per_node=2 --master_addr 127.0.0.111 --master_port 30003 \
-    train.py --config_path "configs/ImageNet_LT/rx50_cutmix.yaml"
+CUDA_VISIBLE_DEVICES=0,1 python3 -W ignore -m torch.distributed.launch\
+    --nproc_per_node=2 --master_addr 127.0.0.111 --master_port 30002 \
+    train.py --config_path "configs/ImageNet_LT/rx50_adapt2_remix_v4_2_0.6.yaml"
 
 
 # Baseline

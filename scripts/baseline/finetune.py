@@ -29,7 +29,7 @@ class DataLoaderX(DataLoader):
 
 class FineTuner(BaseTrainer):
 
-    def __init__(self, local_rank=None, config=None):
+    def __init__(self, args, local_rank=None, config=None):
 
         #######################################################################
         # Device setting
@@ -49,13 +49,18 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
+
+        self.head_class_idx = config['head_class_idx']
+        self.med_class_idx = config['med_class_idx']
+        self.tail_class_idx = config['tail_class_idx']
+
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.finetune_config = config["finetune"]
         self.finetune_name = self.finetune_config["name"]
 
         self.user_root = os.environ["HOME"]
-        self.exp_root = join(self.user_root, "Experiments")
+        self.exp_root = join(self.user_root, "Projects/Experiments")
         self.total_epochs = self.finetune_config["total_epochs"]
 
         self._set_configs(config)
@@ -65,9 +70,10 @@ class FineTuner(BaseTrainer):
         if "/" in self.exp_config["resume_fpath"]:
             self.resume_fpath = self.exp_config["resume_fpath"]
         else:
+            # self.resume_fpath = join(self.exp_root, self.exp_name,
+            #                          self.exp_config["resume_fpath"])
             self.resume_fpath = join(self.exp_root, self.exp_name,
-                                     self.exp_config["resume_fpath"])
-
+                                     'seed_%d_%s'%(args.seed, self.exp_config["resume_fpath"]))
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
 
         self.start_epoch = 1
@@ -315,7 +321,7 @@ class FineTuner(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>2d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_classes)
+        train_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
@@ -381,7 +387,7 @@ class FineTuner(BaseTrainer):
                             desc="                 Val")
 
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes)
+        val_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
@@ -419,6 +425,7 @@ def parse_args():
                         help="Local Rank for\
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
+    parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
     return args
@@ -438,7 +445,7 @@ def main(args):
     _set_seed()
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    finetuner = FineTuner(local_rank=args.local_rank, config=config)
+    finetuner = FineTuner(args, local_rank=args.local_rank, config=config)
     finetuner.finetune()
 
 
