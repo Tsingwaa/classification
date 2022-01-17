@@ -1,9 +1,5 @@
 experiment:
-<<<<<<< HEAD
-  name: "ImageNet_CE_lr_0.2"
-=======
   name: "ImageNet_CE_lr_0.2_5e-4"
->>>>>>> 4fa8d1177996781482b1cb34c54284166e968d26
   start_epoch: 1
   total_epochs: 90
   log_fname: "train.log"
@@ -146,11 +142,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.2
-<<<<<<< HEAD
-    weight_decay: 2.0e-4
-=======
     weight_decay: 5.0e-4
->>>>>>> 4fa8d1177996781482b1cb34c54284166e968d26
     momentum: 0.9
     nesterov: True
 

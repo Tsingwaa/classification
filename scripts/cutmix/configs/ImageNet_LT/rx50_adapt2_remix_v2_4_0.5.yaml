@@ -1,9 +1,5 @@
 experiment:
-<<<<<<< HEAD:scripts/cutmix/configs/ImageNet_LT/rx50_adapt2_remix_v2_4_0.5.yaml
-  name: "ImageNet_adapt2_remix_v2_4_0.5_lr_0.2"
-=======
   name: "ImageNet_adapt2_2_0.5"
->>>>>>> 4fa8d1177996781482b1cb34c54284166e968d26:scripts/cutmix/configs/ImageNet_LT/rx50_adapt2_2_0.5.yaml
   start_epoch: 1
   total_epochs: 90
   log_fname: "train.log"
