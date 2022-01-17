@@ -160,7 +160,6 @@ class CutMix(Dataset):
                     lambda_yo = 0
                 elif lambda_yo >= self.tau2 and lambda_yo <= 1 - self.tau2:
                     lambda_yo = min(lambda_yo, 1-lambda_yo)
-
             elif self.remix_v4:
                 tau = 0.5
                 n1 = self.num_samples_per_cls[target]

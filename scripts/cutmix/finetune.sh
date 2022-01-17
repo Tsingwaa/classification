@@ -1,4 +1,4 @@
-export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
+export PYTHONPATH=$PYTHONPATH:$HOME/project/classification
 
 # Distributed Training
 # CUDA_VISIBLE_DEVICES=2,4 python3 -W ignore -m torch.distributed.launch\

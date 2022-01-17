@@ -1,0 +1,136 @@
+experiment:
+  name: "CF100_0.01_r32_cutmix_adapt2_remix_v2_16"
+  start_epoch: 1
+  total_epochs: 200
+  log_fname: "train.log"
+  resume: False
+  resume_fpath: "best.pth.tar"
+  save_period: 10
+  eval_period: 1  # if 0, remove validate process when training.
+
+finetune:
+  name: "DRS"
+  total_epochs: 10
+  unfreeze_keys: ["fc"]
+  trainloader:
+    sampler: "BalanceSampler"
+    retain_epoch_size: True
+    batch_size: 128
+    num_workers: 4
+  network:
+    name: ''
+    param:
+      in_channels: 512
+      num_classes: 20
+  loss:
+    name: "CrossEntropyLoss"
+    param:
+      weight_type: ""
+      label_smoothing: 0.
+  optimizer:
+    name: "SGD"
+    param:
+      lr: 1.0e-1
+      weight_decay: 1.0e-4
+      momentum: 0.9
+      nesterov: True
+  lr_scheduler:
+    name: 'StepLR'
+    param:
+      warmup_epochs: 0
+      step_size: 2
+      # milestones: [5, 10, 15, 20]
+      gamma: 0.1
+
+train_transform:
+  name: "CifarTransform"
+  param:
+    phase: "train"
+    resize: [32, 32]
+
+val_transform:
+  name: "CifarTransform"
+  param:
+    phase: "test"
+    resize: [32, 32]
+
+train_dataset:
+  name: "ImbalanceCIFAR100"
+  param:
+    data_root: "cifar100"
+    phase: 'train'
+    # train: True
+    # img_lst_fpath: "None"
+    # map_fpath: "None"
+    imb_type: 'exp'
+    imb_factor: 0.01
+    rand_seed: 0
+    download: False
+
+cutmix:
+  beta: 1.
+  prob: 1.
+  adapt: 2
+  remix_v2: True
+  kappa: 16
+
+val_dataset:
+  name: "CIFAR100"
+  param:
+    data_root: "cifar100" # default: same as train_dataset
+    phase: 'val'
+    # train: False
+    # img_lst_fpath: "None"
+    # map_fpath: "None" # default: same as train_dataset
+    download: False
+
+trainloader:
+  sampler: ''
+  batch_size: 128
+  num_workers: 4
+
+valloader:
+  batch_size: 128
+  num_workers: 4
+
+network:
+  name: "ResNet32_CIFAR"
+  param:
+    pretrained: False
+    pretrained_fpath: ""
+
+loss:
+  name: "CrossEntropyLoss"
+  param:
+    weight_type: ''
+    label_smoothing: 0.
+
+optimizer:
+  name: "SGD"
+  param:
+    lr: 0.1
+    weight_decay: 2.0e-4
+    momentum: 0.9
+    nesterov: True
+
+lr_scheduler:
+  # name: "CyclicLR"
+  # name: "StepLR"
+  name: "MultiStepLR"
+  # name: "CosineAnnealingWarmRestarts"
+  param:
+    warmup_epochs: 5
+    # CyclicLR
+    # step_size_up: 3  # 3 * iterations
+    # step_size_down: 2  # 2 * iterations
+    # max_lr: 5.0e-2
+    # base_lr: 5.0e-7
+
+    # MultiStepLR
+    milestones: [120, 160, 190]
+    gamma: 0.01
+
+    # CosineAnnealingWarmRestarts
+    # T_0: 5
+    # T_mult: 1
+    # eta_min: 0

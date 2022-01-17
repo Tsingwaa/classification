@@ -36,6 +36,7 @@ class Trainer(BaseTrainer):
         self.tail_class_idx = config['tail_class_idx']
 
     def train(self):
+        
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################

@@ -1,4 +1,4 @@
-export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
+export PYTHONPATH=$PYTHONPATH:$HOME/project/classification
 
 # Distributed Training
 CUDA_VISIBLE_DEVICES=0,1 python3 -W ignore -m torch.distributed.launch\
@@ -7,7 +7,7 @@ CUDA_VISIBLE_DEVICES=0,1 python3 -W ignore -m torch.distributed.launch\
 
 
 # Baseline
-# CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path $2
+CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path $2 --seed $3
 
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path 'configs/CIFAR10_0.01/r32.yaml'
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path 'configs/CIFAR10_0.01/r32_RS.yaml'
