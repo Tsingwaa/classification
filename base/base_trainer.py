@@ -26,17 +26,14 @@ from utils import GradualWarmupScheduler
 
 class BaseTrainer:
 
-    def __init__(self, local_rank=-1, config=None):
+    def __init__(self, local_rank=-1, config=None, seed=None):
         """ Base trainer for all experiments.  """
 
         #######################################################################
         # Device setting
         #######################################################################
-        assert torch.cuda.is_available()
-        torch.backends.cudnn.enable = True
-        torch.backends.cudnn.benchmark = True
-
         self.local_rank = local_rank
+        self.seed = seed
 
         if self.local_rank != -1:
             dist.init_process_group(backend="nccl")
@@ -50,11 +47,11 @@ class BaseTrainer:
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.user_root = os.environ["HOME"]
-        self.exp_root = join(self.user_root, "Projects/Experiments")
+        self.exp_root = join(self.user_root, "Experiments")
         self.start_epoch = self.exp_config["start_epoch"]
         self.total_epochs = self.exp_config["total_epochs"]
 
-        self._set_configs(config)  # set common configs
+        self._set_configs(config)  # set common configs to run exp
         self.resume = self.exp_config["resume"]
 
         if self.resume:
@@ -110,7 +107,6 @@ class BaseTrainer:
         train_transform_config = config["train_transform"]
         self.train_transform_name = train_transform_config["name"]
         self.train_transform_params = train_transform_config["param"]
-
         trainset_config = config["train_dataset"]
         self.trainset_name = trainset_config["name"]
         self.trainset_params = trainset_config["param"]
@@ -118,7 +114,6 @@ class BaseTrainer:
         val_transform_config = config["val_transform"]
         self.val_transform_name = val_transform_config["name"]
         self.val_transform_params = val_transform_config["param"]
-
         valset_config = config["val_dataset"]
         self.valset_name = valset_config["name"]
         self.valset_params = valset_config["param"]
@@ -171,10 +166,10 @@ class BaseTrainer:
         self.scheduler_params = scheduler_config["param"]
 
     def init_transform(self, transform_name, **kwargs):
-        log_level = kwargs.get("log_level", "default")
-        kwargs.pop("log_level", None)
+        log_level = kwargs.pop("log_level", "default")
 
         transform = Transforms.get(transform_name)(**kwargs)
+
         transform_init_log = f"===> Initialized {transform_name}: {kwargs}"
         self.log(transform_init_log, log_level)
 
@@ -182,11 +177,12 @@ class BaseTrainer:
 
     def init_dataset(self, dataset_name, **kwargs):
         log_level = kwargs.pop("log_level", "default")
+        _prefix = kwargs.pop("prefix", "")  # tag dataset phase
 
         dataset = Datasets.get(dataset_name)(**kwargs)
 
         dataset_init_log = f"===> Initialized {kwargs['phase']} "\
-            f"{dataset_name}: size={len(dataset)}, "\
+            f"{_prefix}{dataset_name}: size={len(dataset)}, "\
             f"classes={dataset.num_classes}\n"\
             f"imgs_per_cls={dataset.num_samples_per_cls}"
         self.log(dataset_init_log, log_level)
@@ -221,38 +217,24 @@ class BaseTrainer:
         total_params = self.count_model_params(model)
         model.cuda()
 
-        prefix = "Initialized"
+        _prefix = "Initialized"
 
         if resume:
-            model = self.update_state_dict(model, checkpoint["model"])
-            prefix = "Resumed checkpoint model_params to"
-        elif kwargs.get("pretrained", False):
-            state_dict = torch.load(kwargs["pretrained_fpath"],
-                                    map_location="cpu")
+            state_dict = checkpoint["model"]
             model = self.update_state_dict(model, state_dict)
-            prefix = "Resumed pretrained model_params to"
+            _prefix = "Resumed checkpoint model_params to"
+        elif kwargs.get("pretrained", False):
+            pretrained_path = checkpoint["pretrained_path"]
+            state_dict = torch.load(pretrained_path, map_location="cpu")
+            model = self.update_state_dict(model, state_dict)
+            _prefix = "Resumed pretrained model_params to"
 
-        kwargs.pop("checkpoint", None)
-        model_init_log = f"===> {prefix} {network_name}(total_params"\
+        del kwargs["checkpoint"]
+        model_init_log = f"===> {_prefix} {network_name}(total_params"\
             f"={total_params:.2f}m): {kwargs}"
         self.log(model_init_log, log_level)
 
         return model
-
-    def freeze_model(self, model, unfreeze_keys=["fc"]):
-        """Freeze model parameters except some given keys
-        Default: leave fc unfreezed
-        """
-        self.log(f"===> Freeze model except for keys{unfreeze_keys}")
-
-        for named_key, var in model.named_parameters():
-            if unfreeze_keys is None:
-                var.requires_grad = False
-            else:
-                if any(key in named_key for key in unfreeze_keys):
-                    var.requires_grad = True
-                else:
-                    var.requires_grad = False
 
     def get_class_weight(self, num_samples_per_cls, weight_type, **kwargs):
         num_samples_per_cls = torch.FloatTensor(num_samples_per_cls)
@@ -268,7 +250,7 @@ class BaseTrainer:
             weight = num_classes * num_samples_per_cls / num_samples
             # weight = 1 / weight
             weight /= torch.sum(weight)
-        elif weight_type == "Class-balanced":
+        elif weight_type == "class-balanced":
             beta = kwargs["beta"]
             weight = (1.0 - beta) / \
                 (1.0 - torch.pow(beta, num_samples_per_cls))
@@ -305,15 +287,15 @@ class BaseTrainer:
         log_level = kwargs.pop("log_level", "default")
 
         optimizer = getattr(torch.optim, opt_name)(model_params, **kwargs)
-        prefix = "Initialized"
+        _prefix = "Initialized"
 
         if kwargs.get("resume", False):
             checkpoint = kwargs.pop("checkpoint", None)
             optimizer = self.update_state_dict(optimizer,
                                                checkpoint["optimizer"])
-            prefix = "Resumed"
+            _prefix = "Resumed"
 
-        self.log(f"===> {prefix} {opt_name}: {kwargs}", log_level)
+        self.log(f"===> {_prefix} {opt_name}: {kwargs}", log_level)
 
         return optimizer
 
@@ -325,12 +307,10 @@ class BaseTrainer:
         self.log(f"===> Initialized {scheduler_name}: {kwargs}")
 
         if warmup_epochs > 0:
-            lr_scheduler = GradualWarmupScheduler(
-                optimizer,
-                multiplier=1,
-                warmup_epochs=warmup_epochs,
-                after_scheduler=lr_scheduler,
-            )
+            lr_scheduler = GradualWarmupScheduler(optimizer,
+                                                  multiplier=1,
+                                                  warmup_epochs=warmup_epochs,
+                                                  after_scheduler=lr_scheduler)
             self.log(f"===> Initialized gradual warmup scheduler: "
                      f"warmup_epochs={warmup_epochs}")
 
@@ -354,11 +334,14 @@ class BaseTrainer:
 
     def resume_checkpoint(self, resume_fpath):
         checkpoint = torch.load(resume_fpath, map_location="cpu")
+        epoch = checkpoint["epoch"]
+        is_best = checkpoint["is_best"]
         mr = checkpoint["mr"]
-        recalls = checkpoint.get("group_recalls", "-")
+        group_mr = checkpoint.get("group_mr", "-")
 
         resume_log = f"===> Resume checkpoint from '{resume_fpath}'.\n"\
-            f"Mean recall:{mr:.2%}\nGroup recalls:{recalls}\n"
+            f"checkpoint epoch: {epoch}\nIs_best: {is_best}\n"\
+            f"Mean recall: {mr:.2%}\nGroup mean recalls: {group_mr}\n"
 
         return checkpoint, resume_log
 
@@ -371,29 +354,28 @@ class BaseTrainer:
                         group_mr,
                         save_dir,
                         prefix=None,
-                        criterion=None):
-        checkpoint = {
-            "model":
-            model.state_dict()
+                        **kwargs):
 
-            if self.local_rank == -1 else model.module.state_dict(),
-            "optimizer":
-            optimizer.state_dict(),
-            "criterion":
-            criterion.state_dict() if criterion is not None else None,
-            "best":
-            is_best,
-            "epoch":
-            epoch,
-            "mr":
-            mr,
-            "group_mr":
-            group_mr
+        if self.local_rank == -1:
+            model_state_dict = model.state_dict()
+        else:
+            model_state_dict = model.module.state_dict()
+
+        checkpoint = {
+            "model": model_state_dict,
+            "optimizer": optimizer.state_dict(),
+            "epoch": epoch,
+            "is_best": is_best,
+            "mr": mr,
+            "group_mr": group_mr,
         }
+        checkpoint.update(kwargs)  # Add custom state dict.
+
         save_fname = "best.pth.tar" if is_best else "last.pth.tar"
 
         if prefix is not None:
             save_fname = prefix + "_" + save_fname
+
         save_path = join(save_dir, save_fname)
         torch.save(checkpoint, save_path)
 
@@ -432,6 +414,21 @@ class BaseTrainer:
             elif log_level == "file":
                 self.logger.debug(log)
 
+    def freeze_model(self, model, unfreeze_keys=["fc"]):
+        """Freeze model parameters except some given keys
+        Default: leave fc unfreezed
+        """
+        self.log(f"===> Freeze model except for keys{unfreeze_keys}")
+
+        for named_key, var in model.named_parameters():
+            if unfreeze_keys is None:
+                var.requires_grad = False
+            else:
+                if any(key in named_key for key in unfreeze_keys):
+                    var.requires_grad = True
+                else:
+                    var.requires_grad = False
+
     def count_model_params(self, model):
         total_params = 0.
 
@@ -445,20 +442,21 @@ class BaseTrainer:
         """Only update state dict that the module needs and print those
         unupdated keys of the module"""
         module_state_dict = module.state_dict()
-        update_items = {
+        items_to_update = {
             key: value
 
             for key, value in checkpoint_state_dict.items()
 
             if key in module_state_dict.keys()
         }
-        unupdated_keys = [
+        keys_unupdate = [
             key for key in module_state_dict.keys()
 
-            if key not in update_items.keys()
+            if key not in items_to_update.keys()
         ]
-        self.log(f"Found unused keys from checkpoint: {unupdated_keys}")
-        module_state_dict.update(update_items)
+
+        self.log(f"Found unupdated keys from checkpoint: {keys_unupdate}")
+        module_state_dict.update(items_to_update)
         module.load_state_dict(module_state_dict)
 
         return module
