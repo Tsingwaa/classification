@@ -26,7 +26,7 @@ from utils import GradualWarmupScheduler
 
 class BaseTrainer:
 
-    def __init__(self, local_rank=-1, config=None, seed=None):
+    def __init__(self, local_rank, config, seed):
         """ Base trainer for all experiments.  """
 
         #######################################################################
@@ -52,14 +52,16 @@ class BaseTrainer:
         self.total_epochs = self.exp_config["total_epochs"]
 
         self._set_configs(config)  # set common configs to run exp
+
         self.resume = self.exp_config["resume"]
 
         if self.resume:
             if "/" in self.exp_config["resume_fpath"]:
                 self.resume_fpath = self.exp_config["resume_fpath"]
             else:
-                self.resume_fpath = join(self.exp_root, self.exp_name,
-                                         self.exp_config["resume_fpath"])
+                self.resume_fpath = join(
+                    self.exp_root, self.exp_name,
+                    f"seed{self.seed}_{self.exp_config['resume_fpath']}")
             self.checkpoint, resume_log =\
                 self.resume_checkpoint(self.resume_fpath)
             self.start_epoch = self.checkpoint["epoch"] + 1
@@ -67,17 +69,17 @@ class BaseTrainer:
         if self.local_rank in [-1, 0]:
             self.eval_period = self.exp_config["eval_period"]
 
-            # directory to save experiment result
+            # Save experiment result
             self.save_period = self.exp_config["save_period"]
             self.exp_dir = join(self.exp_root, self.exp_name)
             os.makedirs(self.exp_dir, exist_ok=True)
 
-            # directory to save tensorboard record
+            # Save tensorboard record
             self.tb_dir = join(self.exp_root, "Tensorboard", self.exp_name)
             os.makedirs(self.tb_dir, exist_ok=True)
             self.writer = SummaryWriter(log_dir=self.tb_dir)
 
-            # path to save logging record
+            # Save stream and file logging record
             self.log_fpath = join(self.exp_dir, self.exp_config["log_fname"])
             self.logger = self.init_logger(self.log_fpath)
 
@@ -229,7 +231,7 @@ class BaseTrainer:
             model = self.update_state_dict(model, state_dict)
             _prefix = "Resumed pretrained model_params to"
 
-        del kwargs["checkpoint"]
+        kwargs.pop("checkpoint", None)
         model_init_log = f"===> {_prefix} {network_name}(total_params"\
             f"={total_params:.2f}m): {kwargs}"
         self.log(model_init_log, log_level)

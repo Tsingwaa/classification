@@ -85,7 +85,7 @@ lr_scheduler:
     # step_size_down: 2  # 2 * iterations
     # max_lr: 5.0e-2
     # base_lr: 5.0e-7
-    
+
     # MultiStepLR
     milestones: [80, 120, 150, 170, 180]
     gamma: 0.1

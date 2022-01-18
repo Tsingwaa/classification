@@ -67,16 +67,6 @@ train_dataset:
     rand_seed: 0
     download: False
 
-head_class_idx:
-  - 0
-  - 36
-med_class_idx:
-  - 36
-  - 71
-tail_class_idx:
-  - 71
-  - 100
-
 val_dataset:
   name: "CIFAR100"
   param:
@@ -88,12 +78,12 @@ val_dataset:
     download: False
 
 trainloader:
-  sampler: ''
+  sampler: 'DistributedSampler'
   batch_size: 128
   num_workers: 4
 
 valloader:
-  sampler: ''
+  sampler: 'DistributedSampler'
   batch_size: 128
   num_workers: 4
 

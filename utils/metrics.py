@@ -84,7 +84,7 @@ class ExpStat(object):
         self.num_classes = len(num_samples_per_cls)
 
         # Get Med classes: cls_list[med_start:med_end]
-        self.medium_start, self.medium_end = self.get_group_index(
+        self.med_start, self.med_end = self.get_group_index(
             num_samples_per_cls)
         self.reset()
 
@@ -118,9 +118,23 @@ class ExpStat(object):
 
     @property
     def group_mr(self):
-        major_mr = np.mean(self.recalls[0:self.medium_start])
-        medium_mr = np.mean(self.recalls[self.medium_start:self.medium_end])
-        minor_mr = np.mean(self.recalls[self.medium_end:])
+        major_mr = np.mean(self.recalls[:self.med_start])
+        medium_mr = np.mean(self.recalls[self.med_start:self.med_end])
+        minor_mr = np.mean(self.recalls[self.med_end:])
+
+        if self.med_start < self.num_classes:  # 最小类不足100张
+            major_mr = np.mean(self.recalls[:self.med_start])
+
+            if self.med_end == 0:  # 最小类不足20张
+                medium_mr = np.mean(self.recalls[self.med_start:])
+                minor_mr = 0.
+            else:  # 最小类 20～100张
+                medium_mr = np.mean(self.recalls[self.med_start:self.med_end])
+                minor_mr = np.mean(self.recalls[self.med_end:])
+
+        elif self.med_start == 0:  # 最小类多于100张
+            major_mr = np.mean(self.recalls)
+            medium_mr, minor_mr = 0, 0
 
         return [
             np.around(major_mr, decimals=4),
@@ -224,9 +238,9 @@ class ExpStat(object):
         last_num_samples = 0
 
         for cls, num_samples in enumerate(num_samples_per_cls):
-            if last_num_samples > 200 and num_samples_per_cls <= 200:
+            if last_num_samples > 100 and num_samples <= 100:
                 start = cls
-            elif last_num_samples >= 20 and num_samples_per_cls < 20:
+            elif last_num_samples >= 20 and num_samples < 20:
                 end = cls
             last_num_samples = num_samples
 

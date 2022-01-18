@@ -56,7 +56,7 @@ class Trainer(BaseTrainer):
                                    **self.valset_params)
         val_sampler = self.init_sampler(self.val_sampler_name,
                                         dataset=valset,
-                                        **self.trainloader_params)
+                                        **self.valloader_params)
         self.valloader = DataLoaderX(valset,
                                      batch_size=self.val_batchsize,
                                      shuffle=(val_sampler is None),
@@ -66,11 +66,12 @@ class Trainer(BaseTrainer):
                                      sampler=val_sampler)
 
         if self.local_rank != -1:
-            self.log(f"global_rank {self.global_rank},"
-                     f"world_size {self.world_size},"
-                     f"local_rank {self.local_rank},"
-                     f"train '{self.train_sampler_name}'"
-                     f"val '{self.val_sampler_name}'")
+            torch.distributed.barrier()
+            print(f"global_rank={self.global_rank}, "
+                  f"world_size={self.world_size}, "
+                  f"local_rank={self.local_rank}, "
+                  f"train_sampler='{self.train_sampler_name}', "
+                  f"val_sampler='{self.val_sampler_name}'\n")
 
         #######################################################################
         # Initialize Network

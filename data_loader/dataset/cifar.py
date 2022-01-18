@@ -3,6 +3,9 @@
 # BBN (https://github.com/Megvii-Nanjing/BBN)
 # to produce long-tailed CIFAR datasets.
 
+import os
+from os.path import join
+
 import numpy as np
 import PIL
 # import torch
@@ -10,6 +13,8 @@ import torchvision
 # from pudb import set_trace
 from data_loader.dataset.builder import Datasets
 from torchvision import transforms
+
+DATASETS_ROOT = join(os.environ["HOME"], "Datasets")
 
 
 @Datasets.register_module("ImbalanceCIFAR10")
@@ -27,6 +32,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
                  imb_factor=0.01,
                  **kwargs):
         train = True if phase == 'train' else False
+        data_root = join(DATASETS_ROOT, data_root)
         super(ImbalanceCIFAR10, self).__init__(root=data_root,
                                                train=train,
                                                transform=transform,
@@ -34,11 +40,10 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
 
         self.imb_type = imb_type
         self.imb_factor = imb_factor
-        self.class_adapt = kwargs.get('class_adapt', False)
+        # self.class_adapt = kwargs.get('class_adapt', False)
         np.random.seed(0)
 
         self.num_samples_per_cls = self.get_img_num_per_cls()
-        self.img_num = self.num_samples_per_cls
         self.gen_imbalanced_data()
 
         # get other property
@@ -52,8 +57,8 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         if self.imb_type == 'exp':
             for class_index in range(self.num_classes):
                 num_samples =\
-                        max_num_samples * (self.imb_factor ** (
-                            class_index / (self.num_classes - 1.0)))
+                    max_num_samples * (self.imb_factor ** (
+                        class_index / (self.num_classes - 1.0)))
                 num_samples_per_cls.append(int(num_samples))
         elif self.imb_type == 'step':
             # One step: the former half {img_max} imgs,
@@ -144,7 +149,6 @@ class ImbalanceCIFAR100(ImbalanceCIFAR10):
         'md5': '7973b15100ade9c7d40fb424638fde48',
     }
     num_classes = 100
-    cls_num = 100
 
 
 @Datasets.register_module("CIFAR10")
@@ -160,7 +164,7 @@ class CIFAR10_(torchvision.datasets.CIFAR10):
                  download=True,
                  **kwargs):
         self.train = True if phase == 'train' else False
-        self.class_adapt = kwargs.get('class_adapt', False)
+        data_root = join(DATASETS_ROOT, data_root)
         super(CIFAR10_, self).__init__(root=data_root,
                                        train=self.train,
                                        transform=transform,
@@ -171,11 +175,7 @@ class CIFAR10_(torchvision.datasets.CIFAR10):
         img = PIL.Image.fromarray(img)
 
         if self.transform is not None:
-            percent = (1. + target) / 10. if self.class_adapt else None
-            img = self.transform(img,
-                                 percent=percent,
-                                 mean=self.mean,
-                                 std=self.std)
+            img = self.transform(img, mean=self.mean, std=self.std)
 
         return img, target
 
@@ -204,7 +204,7 @@ class CIFAR100_(torchvision.datasets.CIFAR100):
                  download=True,
                  **kwargs):
         self.train = True if phase == 'train' else False
-        self.class_adapt = kwargs.get('class_adapt', False)
+        data_root = join(DATASETS_ROOT, data_root)
         super(CIFAR100_, self).__init__(root=data_root,
                                         train=self.train,
                                         transform=transform,
@@ -215,11 +215,7 @@ class CIFAR100_(torchvision.datasets.CIFAR100):
         img = PIL.Image.fromarray(img)
 
         if self.transform is not None:
-            percent = (1. + target) / 10. if self.class_adapt else None
-            img = self.transform(img,
-                                 percent=percent,
-                                 mean=self.mean,
-                                 std=self.std)
+            img = self.transform(img, mean=self.mean, std=self.std)
 
         return img, target
 

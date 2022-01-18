@@ -83,6 +83,7 @@ trainloader:
   num_workers: 4
 
 valloader:
+  sampler: ''
   batch_size: 128
   num_workers: 4
 
@@ -96,7 +97,7 @@ loss:
   name: "CrossEntropyLoss"
   param:
     weight_type: ''
-    # label_smoothing: 0.
+    label_smoothing: 0.
 
 optimizer:
   name: "SGD"
