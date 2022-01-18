@@ -57,7 +57,7 @@ val_transform:
 train_dataset:
   name: "Add_ImbalanceCIFAR10"
   param:
-    data_root: "cifar10"
+    data_root: "/data/huijuan/Data/cifar10"
     phase: 'train'
     imb_type: 'exp'
     imb_factor: 0.01
@@ -79,7 +79,7 @@ tail_class_idx:
 val_dataset:
   name: "CIFAR10"
   param:
-    data_root: "cifar10" # default: same as train_dataset
+    data_root: "/data/huijuan/Data/cifar10" # default: same as train_dataset
     phase: 'val'
     download: False
 

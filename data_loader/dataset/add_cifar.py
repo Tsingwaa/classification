@@ -132,7 +132,7 @@ class Add_ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
             else:
                 c2 = c2 - 1
         if self.extra_classes_num > 0:
-            extra_data = np.array(extra_data, dtype=np.int16)
+            extra_data = np.array(extra_data, dtype=np.uint8)
             # extra_targets = np.array(extra_targets)
             print(extra_data.shape)
             # print(extra_targets.shape)
