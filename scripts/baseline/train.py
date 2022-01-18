@@ -25,7 +25,7 @@ class DataLoaderX(DataLoader):
 
 class Trainer(BaseTrainer):
 
-    def __init__(self, local_rank=None, config=None, seed=None):
+    def __init__(self, local_rank, config, seed):
         super(Trainer, self).__init__(local_rank, config, seed)
 
     def train(self):
@@ -278,7 +278,7 @@ class Trainer(BaseTrainer):
                 train_pbar.update()
                 train_pbar.set_postfix_str(
                     f"LR:{optimizer.param_groups[0]['lr']:.1e} "
-                    f"Loss:{train_loss_meter.avg:>4.2f}")
+                    f"Loss:{train_loss_meter.avg:>3.1f}")
 
         if self.local_rank != -1:
             # all reduce the statistical confusion matrix
@@ -328,7 +328,11 @@ class Trainer(BaseTrainer):
 
                 val_loss_meter.update(avg_loss.item(), 1)
                 val_stat.update(batch_labels, batch_preds)
-                val_pbar.update()
+
+                if self.local_rank <= 0:
+                    val_pbar.update()
+                    val_pbar.set_postfix_str(
+                        f"Loss:{val_loss_meter.avg:>3.1f}")
 
         if self.local_rank != -1:
             # all reduce the statistical confusion matrix

@@ -40,7 +40,6 @@ class Tester(BaseTrainer):
         if self.local_rank != -1:
             dist.init_process_group(backend="nccl")
             torch.cuda.set_device(self.local_rank)
-            self.local_rank = dist.get_rank()
             self.world_size = dist.get_world_size()
 
         #######################################################################

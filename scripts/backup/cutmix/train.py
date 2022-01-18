@@ -25,7 +25,7 @@ class DataLoaderX(DataLoader):
 
 class Trainer(BaseTrainer):
 
-    def __init__(self, local_rank=None, config=None, seed=None):
+    def __init__(self, local_rank, config, seed):
         super(Trainer, self).__init__(local_rank, config, seed)
         self.cutmix_params = config["cutmix"]
 
