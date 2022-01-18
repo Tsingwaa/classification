@@ -34,15 +34,15 @@ class Trainer(BaseTrainer):
         self.tail_class_idx = config['tail_class_idx']
 
     def train(self):
-        
+
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
         train_transform = self.init_transform(self.train_transform_name,
                                               **self.train_transform_params)
         trainset = self.init_dataset(self.trainset_name,
-                                      transform=train_transform,
-                                      **self.trainset_params)
+                                     transform=train_transform,
+                                     **self.trainset_params)
 
         train_sampler = self.init_sampler(self.train_sampler_name,
                                           dataset=trainset,
@@ -236,7 +236,7 @@ class Trainer(BaseTrainer):
                         is_best=is_best,
                         mr=val_stat.mr,
                         group_mr=val_stat.group_mr,
-                        prefix='seed_%d'%(self.args.seed),
+                        prefix='seed_%d' % (self.args.seed),
                         save_dir=self.exp_dir,
                         criterion=self.criterion,
                     )
@@ -273,7 +273,8 @@ class Trainer(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
+        train_stat = ExpStat(num_classes, self.head_class_idx,
+                             self.med_class_idx, self.tail_class_idx)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
@@ -332,7 +333,8 @@ class Trainer(BaseTrainer):
                             ncols=0,
                             desc="                 Val")
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes, self.head_class_idx, self.med_class_idx, self.tail_class_idx)
+        val_stat = ExpStat(num_classes, self.head_class_idx,
+                           self.med_class_idx, self.tail_class_idx)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)

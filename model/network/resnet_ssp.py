@@ -14,12 +14,14 @@ model_urls = {
 
 def weights_init_kaiming(m):
     classname = m.__class__.__name__
+
     if classname.find('Linear') != -1:
         nn.init.kaiming_normal_(m.weight, a=0, model='fan_out')
         nn.init.constant_(m.bias, 0.0)
 
     elif classname.find('Conv') != -1:
         nn.init.kaiming_normal_(m.weight, a=0, model='fan_in')
+
         if m.bias is not None:
             nn.init.constant_(m.bias, 0.0)
     elif classname.find('BatchNorm') != -1:
@@ -30,6 +32,7 @@ def weights_init_kaiming(m):
 
 def weights_init_kaiming_embedding(m):
     classname = m.__class__.__name__
+
     if classname.find('Linear') != -1:
         nn.init.kaiming_normal_(m.weight, a=0)
         nn.init.constant_(m.bias, 0.0)
@@ -38,6 +41,7 @@ def weights_init_kaiming_embedding(m):
 def weights_init(m):
     if isinstance(m, nn.Conv2d):
         nn.init.kaiming_normal(m.weight, mode='fan_out')
+
         if m.bias is not None:
             nn.init.constant(m.bias, 0)
     elif isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
@@ -45,12 +49,14 @@ def weights_init(m):
         nn.init.constant(m.bias, 0)
     elif isinstance(m, nn.Linear):
         nn.init.normal(m.weight, std=0.001)
+
         if m.bias is not None:
             nn.init.constant(m.bias, 0)
 
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
     """3x3 convolution with padding"""
+
     return nn.Conv2d(in_planes,
                      out_planes,
                      kernel_size=3,
@@ -63,6 +69,7 @@ def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
 
 def conv1x1(in_planes, out_planes, stride=1):
     """1x1 convolution"""
+
     return nn.Conv2d(in_planes,
                      out_planes,
                      kernel_size=1,
@@ -83,11 +90,14 @@ class BasicBlock(nn.Module):
                  dilation=1,
                  norm_layer=None):
         super(BasicBlock, self).__init__()
+
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
+
         if groups != 1 or base_width != 64:
             raise ValueError(
                 'BasicBlock only supports groups=1 and base_width=64')
+
         if dilation > 1:
             raise NotImplementedError(
                 "Dilation > 1 not supported in BasicBlock")
@@ -142,6 +152,7 @@ class Bottleneck(nn.Module):
                  dilation=1,
                  norm_layer=None):
         super(Bottleneck, self).__init__()
+
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         width = int(planes * (base_width / 64.)) * groups
@@ -181,6 +192,7 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
+
     def __init__(self,
                  block,
                  layers,
@@ -192,6 +204,7 @@ class ResNet(nn.Module):
                  replace_stride_with_dilation=None,
                  norm_layer=None):
         super(ResNet, self).__init__()
+
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
@@ -199,10 +212,12 @@ class ResNet(nn.Module):
 
         self.inplanes = 64
         self.dilation = 1
+
         if replace_stride_with_dilation is None:
             # each element in the tuple indicates if we should replace
             # the 2x2 stride with a dilated convolution instead
             replace_stride_with_dilation = [False, False, False]
+
         if len(replace_stride_with_dilation) != 3:
             raise ValueError("replace_stride_with_dilation should be None "
                              "or a 3-element tuple, got {}".format(
@@ -241,6 +256,7 @@ class ResNet(nn.Module):
         # self.projector = BasicBlock(512 * block.expansion,
         #                             512 * block.expansion)
         # add an output head for self-supervision, rotation respectively.
+
         if isinstance(self.ssp_classes, int):
             self.inplanes = 256
             self.ssp_layer4 = self._make_layer(
@@ -265,6 +281,7 @@ class ResNet(nn.Module):
         # block behaves like an identity.
         # This improves the model by 0.2~0.3% according to
         # https://arxiv.org/abs/1706.02677
+
         if zero_init_residual:
             for m in self.modules():
                 if isinstance(m, Bottleneck):
@@ -276,9 +293,11 @@ class ResNet(nn.Module):
         norm_layer = self._norm_layer
         downsample = None
         previous_dilation = self.dilation
+
         if dilate:
             self.dilation *= stride
             stride = 1
+
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
                 conv1x1(self.inplanes, planes * block.expansion, stride),
@@ -290,6 +309,7 @@ class ResNet(nn.Module):
                   self.base_width, previous_dilation, norm_layer)
         ]
         self.inplanes = planes * block.expansion
+
         for _ in range(1, blocks):
             layers.append(
                 block(self.inplanes,
@@ -320,6 +340,7 @@ class ResNet(nn.Module):
             ssp_featmap4 = self.ssp_layer4(featmap3)
             ssp_featvec = self.avgpool(ssp_featmap4)
             ssp_featvec = torch.flatten(ssp_featvec, 1)
+
             if 'feat' in output_type:
                 return ssp_featvec
             else:
@@ -328,6 +349,7 @@ class ResNet(nn.Module):
             sp_featmap4 = self.layer4(featmap3)
             sp_featvec = self.avgpool(sp_featmap4)
             sp_featvec = torch.flatten(sp_featvec, 1)
+
             if 'feat' in output_type:
                 return sp_featvec
             else:  # Default outputs logits
@@ -338,6 +360,7 @@ class ResNet(nn.Module):
 
 @Networks.register_module('ResNet18_ssp')
 class ResNet18(ResNet):
+
     def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet18, self).__init__(block=BasicBlock,
                                        layers=[2, 2, 2, 2],
@@ -347,6 +370,7 @@ class ResNet18(ResNet):
 
 @Networks.register_module('ResNet34_ssp')
 class ResNet34(ResNet):
+
     def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet34, self).__init__(block=BasicBlock,
                                        layers=[3, 4, 6, 3],
@@ -356,6 +380,7 @@ class ResNet34(ResNet):
 
 @Networks.register_module('ResNet50_ssp')
 class ResNet50(ResNet):
+
     def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet50, self).__init__(block=Bottleneck,
                                        layers=[3, 4, 6, 3],
@@ -365,6 +390,7 @@ class ResNet50(ResNet):
 
 @Networks.register_module('ResNet101_ssp')
 class ResNet101(ResNet):
+
     def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet101, self).__init__(block=Bottleneck,
                                         layers=[3, 4, 23, 3],
@@ -374,6 +400,7 @@ class ResNet101(ResNet):
 
 @Networks.register_module('ResNet152_ssp')
 class ResNet152(ResNet):
+
     def __init__(self, num_classes, ssp_classes, **kwargs):
         super(ResNet152, self).__init__(block=Bottleneck,
                                         layers=[3, 8, 36, 3],

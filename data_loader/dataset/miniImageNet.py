@@ -40,8 +40,15 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
     num_classes = 100
 
     # set_trace()
-    def __init__(self, data_root, phase, img_lst_fpath=None, transform=None,
-                 imb_type='exp', imb_factor=0.1, seed=0, adapt=False,
+    def __init__(self,
+                 data_root,
+                 phase,
+                 img_lst_fpath=None,
+                 transform=None,
+                 imb_type='exp',
+                 imb_factor=0.1,
+                 seed=0,
+                 adapt=False,
                  **kwargs):
         self.img_paths = []
         self.targets = []
@@ -50,6 +57,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         self.phase = phase
 
         # build img_path-target pairs
+
         if img_lst_fpath is not None and '/' not in img_lst_fpath:
             img_lst_fpath = join(data_root, img_lst_fpath)
         else:
@@ -58,6 +66,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
             for line in f:
                 img_path = join(data_root, line.split()[0][1:])
                 # line starts with '/', so index by [1:]
+
                 if imghdr.what(img_path) == '.tiff':
                     print(img_path)
                 self.img_paths.append(img_path)
@@ -87,6 +96,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         """
         max_num_samples = len(self.img_paths) / num_classes
         num_samples_per_cls = []
+
         if imb_type == 'exp':  # exponential moving
             for cls_idx in range(num_classes):
                 img_num = max_num_samples * imb_factor**(cls_idx /
@@ -96,6 +106,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
             head_classes = math.floor(num_classes / 3)  # head=tail
             tail_classes = head_classes
             # 3step, 20classes： 7-7-6
+
             for cls_idx in range(num_classes):
                 if cls_idx < head_classes:
                     step = 0
@@ -117,6 +128,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
         classes = np.unique(targets_np)
 
         self.cls2nsamples = dict()
+
         for cls, n_samples in zip(classes, num_samples_per_cls):
             self.cls2nsamples[cls] = n_samples
             # random shuffle indexs and select num_samples of the class
@@ -156,23 +168,28 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
     @property
     def label2ctg(self):
         label2ctg = dict()
+
         for i in range(len(self.targets)):
             if self.targets[i] not in label2ctg:
                 category = self.img_paths[i].split('/')[-2]
                 label2ctg[self.targets[i]] = category
+
         return label2ctg
 
     def get_class_weight(self):
         samplers_per_cls = np.array(self.num_samples_per_cls)
         weight = 1.0 / samplers_per_cls
         weight /= np.sum(weight)
+
         return weight
 
     def _check_channel(self, Image_obj):
         img_arr = np.array(Image_obj)
+
         if len(img_arr.shape) < 3:
             img_arr_expand = np.repeat(img_arr[:, :, np.newaxis], 3, axis=2)
             Image_obj = Image.fromarray(img_arr_expand)
+
         return Image_obj
 
 
@@ -220,6 +237,7 @@ class ImbalanceMiniImageNet20_tail(ImbalanceMiniImageNet):
         self.transform = transform
 
         # build img_path-target pairs
+
         if img_lst_fpath is not None and '/' not in img_lst_fpath:
             img_lst_fpath = join(data_root, img_lst_fpath)
         else:
@@ -228,6 +246,7 @@ class ImbalanceMiniImageNet20_tail(ImbalanceMiniImageNet):
             for line in f:
                 img_path = join(data_root, line.split()[0][1:])
                 # line starts with '/', so index by [1:]
+
                 if imghdr.what(img_path) == '.tiff':
                     print(img_path)
                 self.img_paths.append(img_path)
@@ -287,9 +306,11 @@ class miniImageNet(ImageFolder):
 
     def _check_channel(self, Image_obj):
         img_arr = np.array(Image_obj)
+
         if len(img_arr.shape) < 3:
             img_arr_expand = np.repeat(img_arr[:, :, np.newaxis], 3, axis=2)
             Image_obj = Image.fromarray(img_arr_expand)
+
         return Image_obj
 
 
@@ -319,7 +340,9 @@ class miniImageNet_eval(ImageFolder):
 
     def _check_channel(self, Image_obj):
         img_arr = np.array(Image_obj)
+
         if len(img_arr.shape) < 3:
             img_arr_expand = np.repeat(img_arr[:, :, np.newaxis], 3, axis=2)
             Image_obj = Image.fromarray(img_arr_expand)
+
         return Image_obj

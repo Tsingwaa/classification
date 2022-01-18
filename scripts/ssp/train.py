@@ -18,11 +18,13 @@ from utils import AverageMeter, get_weight_scheduler, rotation
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__(), max_prefetch=8)
 
 
 class Trainer(BaseTrainer):
+
     def __init__(self, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
         # adv_config = config['adv']
@@ -62,6 +64,7 @@ class Trainer(BaseTrainer):
             sampler=train_sampler
         )
         """
+
         if self.local_rank != -1:
             print(f'global_rank {self.global_rank}/{self.world_size},'
                   f'local_rank {self.local_rank},'
@@ -97,6 +100,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
+
         if self.local_rank != -1:
             self.model, self.optimizer = amp.initialize(self.model,
                                                         self.optimizer,
@@ -116,8 +120,10 @@ class Trainer(BaseTrainer):
         best_mr = 0.
         best_epoch = 1
         best_recalls = []
+
         for cur_epoch in range(self.start_epoch, self.num_epochs + 1):
             # learning rate decay by epoch
+
             if self.lr_scheduler_mode == 'epoch':
                 self.lr_scheduler.step()
 
@@ -158,6 +164,7 @@ class Trainer(BaseTrainer):
                 }, cur_epoch)
 
                 is_best = val_mr > best_mr
+
                 if is_best:
                     best_mr = val_mr
                     best_epoch = cur_epoch
@@ -183,6 +190,7 @@ class Trainer(BaseTrainer):
         all_labels = []
         all_preds = []
         train_loss_meter = AverageMeter()
+
         for batch_imgs, batch_labels in self.trainloader:
             if self.lr_scheduler_mode == 'iteration':
                 self.lr_scheduler.step()
@@ -213,6 +221,7 @@ class Trainer(BaseTrainer):
                 weight=self.network_param['weight'])
             total_loss = sp_weight * sp_loss + (1 - sp_weight) * ssp_loss
             # total_loss = sp_loss + selfsp_loss
+
             if self.local_rank != -1:
                 with amp.scale_loss(total_loss, self.optimizer) as scaled_loss:
                     scaled_loss.backward()
@@ -286,6 +295,7 @@ def parse_args():
                         distributed training. if single-GPU, default: -1')
     parser.add_argument('--config_path', type=str, help='path of config file')
     args = parser.parse_args()
+
     return args
 
 
