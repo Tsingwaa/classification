@@ -30,29 +30,22 @@ class DataLoaderX(DataLoader):
 
 class FineTuner(BaseTrainer):
 
-    def __init__(self, args, local_rank=None, config=None):
+    def __init__(self, local_rank, config, seed):
 
         #######################################################################
         # Device setting
         #######################################################################
-        assert torch.cuda.is_available()
-        torch.backends.cudnn.benchmark = True
-        torch.backends.cudnn.enable = True
-        self.args = args
         self.local_rank = local_rank
+        self.seed = seed
 
         if self.local_rank != -1:
             dist.init_process_group(backend="nccl")
             torch.cuda.set_device(self.local_rank)
-            self.global_rank = dist.get_rank()
             self.world_size = dist.get_world_size()
 
         #######################################################################
         # Experiment setting
         #######################################################################
-        self.head_class_idx = config['head_class_idx']
-        self.med_class_idx = config['med_class_idx']
-        self.tail_class_idx = config['tail_class_idx']
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.finetune_config = config["finetune"]
@@ -60,10 +53,10 @@ class FineTuner(BaseTrainer):
 
         self.user_root = os.environ["HOME"]
 
-        self.exp_root = join(self.user_root, "Projects/Experiments")
+        self.exp_root = join(self.user_root, "Experiments")
         self.total_epochs = self.finetune_config["total_epochs"]
 
-        self.set(config)
+        self._set_configs(config)
 
         self.resume = True
 
@@ -71,8 +64,8 @@ class FineTuner(BaseTrainer):
             self.resume_fpath = self.exp_config["resume_fpath"]
         else:
             self.resume_fpath = join(
-                self.exp_root, self.exp_name, 'seed_%d_%s' %
-                (self.args.seed, self.exp_config["resume_fpath"]))
+                self.exp_root, self.exp_name,
+                f"seed{self.seed}_{self.exp_config['resume_fpath']}")
 
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
 

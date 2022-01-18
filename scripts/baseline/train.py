@@ -118,15 +118,18 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Start Training
         #######################################################################
-        best_mr = 0.
-        best_epoch = 1
-        best_group_mr = []
-        # average of mean recall in the last several epochs(default: 5 epochs)
-        last_mrs = []  # General: include all classes.
-        last_maj_mrs = []  # Majority classes: > 100 images
-        last_med_mrs = []  # Medium classes: 20 ~ 100 images
-        last_min_mrs = []  # Minority classes: < 20 images
-        start_time = datetime.now()
+
+        if self.local_rank <= 0:
+            best_mr = 0.
+            best_epoch = 1
+            best_group_mr = []
+            # average of mean recall in the last several epochs(default: 5)
+            last_mrs = []  # General: include all classes.
+            last_maj_mrs = []  # Majority classes: > 100 images
+            last_med_mrs = []  # Medium classes: 20 ~ 100 images
+            last_min_mrs = []  # Minority classes: < 20 images
+            start_time = datetime.now()
+
         self.final_epoch = self.start_epoch + self.total_epochs
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
@@ -208,25 +211,23 @@ class Trainer(BaseTrainer):
                     best_group_mr = val_stat.group_mr
 
                 if (not cur_epoch % self.save_period) or is_best:
-                    self.save_checkpoint(save_epoch=cur_epoch,
+                    self.save_checkpoint(epoch=cur_epoch,
                                          model=self.model,
                                          optimizer=self.optimizer,
                                          is_best=is_best,
                                          mr=val_stat.mr,
                                          group_mr=val_stat.group_mr,
                                          prefix=f"seed{self.seed}",
-                                         save_dir=self.exp_dir,
-                                         criterion=self.criterion)
-
-        end_time = datetime.now()
-        dur_time = str(end_time - start_time)[:-7]  # 取到秒
-
-        final_mr = np.around(np.mean(last_mrs), decimals=4)
-        final_head_mr = np.around(np.mean(last_maj_mrs), decimals=4)
-        final_mid_mr = np.around(np.mean(last_med_mrs), decimals=4)
-        final_tail_mr = np.around(np.mean(last_min_mrs), decimals=4)
+                                         save_dir=self.exp_dir)
 
         if self.local_rank <= 0:
+            end_time = datetime.now()
+            dur_time = str(end_time - start_time)[:-7]  # 取到秒
+
+            final_mr = np.around(np.mean(last_mrs), decimals=4)
+            final_head_mr = np.around(np.mean(last_maj_mrs), decimals=4)
+            final_mid_mr = np.around(np.mean(last_med_mrs), decimals=4)
+            final_tail_mr = np.around(np.mean(last_min_mrs), decimals=4)
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
                 f"===> Best mean recall: {best_mr:>6.2%} (epoch{best_epoch})\n"
@@ -244,7 +245,7 @@ class Trainer(BaseTrainer):
                     num_samples_per_cls, **kwargs):
         model.train()
 
-        if self.local_rank in [-1, 0]:
+        if self.local_rank <= 0:
             train_pbar = tqdm(
                 total=len(trainloader),
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
@@ -254,16 +255,17 @@ class Trainer(BaseTrainer):
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             optimizer.zero_grad()
-            batch_imgs = batch_imgs.cuda()
-            batch_labels = batch_labels.cuda()
+
+            batch_imgs = batch_imgs.cuda(non_blocking=True)
+            batch_labels = batch_labels.cuda(non_blocking=True)
             batch_probs = model(batch_imgs, out_type='fc')
             avg_loss = criterion(batch_probs, batch_labels)
 
             if self.local_rank != -1:
-                with amp.scale_loss(avg_loss, self.optimizer) as scaled_loss:
+                with amp.scale_loss(avg_loss, optimizer) as scaled_loss:
                     scaled_loss.backward()
                 optimizer.step()
-                self._reduce_tensor(avg_loss)
+                avg_loss = self._reduce_tensor(avg_loss)
             else:
                 avg_loss.backward()
                 optimizer.step()
@@ -272,13 +274,18 @@ class Trainer(BaseTrainer):
             train_loss_meter.update(avg_loss.item(), 1)
             train_stat.update(batch_labels, batch_preds)
 
-            if self.local_rank in [-1, 0]:
+            if self.local_rank <= 0:
                 train_pbar.update()
                 train_pbar.set_postfix_str(
                     f"LR:{optimizer.param_groups[0]['lr']:.1e} "
                     f"Loss:{train_loss_meter.avg:>4.2f}")
 
-        if self.local_rank in [-1, 0]:
+        if self.local_rank != -1:
+            # all reduce the statistical confusion matrix
+            torch.distributed.barrier()
+            train_stat._cm = self._reduce_tensor(train_stat._cm, op='sum')
+
+        if self.local_rank <= 0:
             train_pbar.set_postfix_str(
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
@@ -293,13 +300,13 @@ class Trainer(BaseTrainer):
 
     def evaluate(self, cur_epoch, valloader, model, criterion,
                  num_samples_per_cls, **kwargs):
-
         model.eval()
 
-        if self.local_rank in [-1, 0]:
+        if self.local_rank <= 0:
+            desc = kwargs.pop("desc", "Val")
             val_pbar = tqdm(total=len(valloader),
                             ncols=0,
-                            desc="                 Val")
+                            desc=f"                 {desc}")
         val_loss_meter = AverageMeter()
         val_stat = ExpStat(num_samples_per_cls)
 
@@ -312,11 +319,23 @@ class Trainer(BaseTrainer):
                 batch_preds = torch.argmax(batch_probs, dim=1)
                 avg_loss = criterion(batch_probs, batch_labels)
 
+                if self.local_rank != -1:
+                    torch.distributed.barrier()
+                    # torch.distributed.barrier()的作用是，阻塞进程，确保每个进程都运行
+                    # 到这一行代码，才能继续执行，这样计算平均loss和平均acc的时候
+                    # 不会出现因为进程执行速度不一致而导致的错误
+                    avg_loss = self._reduce_tensor(avg_loss)
+
                 val_loss_meter.update(avg_loss.item(), 1)
                 val_stat.update(batch_labels, batch_preds)
                 val_pbar.update()
 
-        if self.local_rank in [-1, 0]:
+        if self.local_rank != -1:
+            # all reduce the statistical confusion matrix
+            torch.distributed.barrier()
+            val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
+
+        if self.local_rank <= 0:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
                                      f"MR:{val_stat.mr:>6.2%} "
                                      f"[{val_stat.group_mr[0]:>3.0%}, "
@@ -329,6 +348,7 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    # Local rank设定：单卡手动指定为-1，多卡不设定，ddp自动设定为0,1,...
     parser.add_argument("--local_rank",
                         type=int,
                         help="Local Rank for distributed training. "
