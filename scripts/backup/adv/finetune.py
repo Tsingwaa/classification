@@ -1,9 +1,11 @@
 """finetune script """
 import argparse
+# import math
 import os
 import random
 import warnings
 from datetime import datetime
+# from pudb import set_trace
 from os.path import join
 
 import numpy as np
@@ -12,19 +14,18 @@ import yaml
 from apex import amp
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
-# from pudb import set_trace
 # from sklearn import metrics
 from torch import distributed as dist
 from torch.utils.data import DataLoader
 # from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from utils import AverageMeter, ExpStat
+from utils import AverageMeter, ExpStat, switch_clean
 
 
 class DataLoaderX(DataLoader):
 
     def __iter__(self):
-        return BackgroundGenerator(super().__iter__())
+        return BackgroundGenerator(super().__iter__(), max_prefetch=8)
 
 
 class FineTuner(BaseTrainer):
@@ -41,7 +42,7 @@ class FineTuner(BaseTrainer):
         self.local_rank = local_rank
 
         if self.local_rank != -1:
-            dist.init_process_group(backend="nccl")
+            dist.init_process_group(backend='nccl')
             torch.cuda.set_device(self.local_rank)
             self.global_rank = dist.get_rank()
             self.world_size = dist.get_world_size()
@@ -49,24 +50,24 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
-        self.exp_config = config["experiment"]
-        self.exp_name = self.exp_config["name"]
-        self.finetune_config = config["finetune"]
-        self.finetune_name = self.finetune_config["name"]
+        self.exp_config = config['experiment']
+        self.exp_name = self.exp_config['name']
+        self.finetune_config = config['finetune']
+        self.finetune_name = self.finetune_config['name']
 
-        self.user_root = os.environ["HOME"]
-        self.exp_root = join(self.user_root, "Experiments")
-        self.total_epochs = self.finetune_config["total_epochs"]
+        self.user_root = os.environ['HOME']
+        self.exp_root = join(self.user_root, 'Experiments')
+        self.total_epochs = self.finetune_config['total_epochs']
 
-        self._set_configs(config)
+        self.set(config)
 
         self.resume = True
 
-        if "/" in self.exp_config["resume_fpath"]:
-            self.resume_fpath = self.exp_config["resume_fpath"]
+        if '/' in self.exp_config['resume_fpath']:
+            self.resume_fpath = self.exp_config['resume_fpath']
         else:
             self.resume_fpath = join(self.exp_root, self.exp_name,
-                                     self.exp_config["resume_fpath"])
+                                     self.exp_config['resume_fpath'])
 
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
 
@@ -74,53 +75,47 @@ class FineTuner(BaseTrainer):
         self.final_epoch = self.start_epoch + self.total_epochs
 
         if self.local_rank in [-1, 0]:
-            self.eval_period = self.exp_config["eval_period"]
-            self.save_period = self.exp_config["save_period"]
-            self.exp_dir = join(self.exp_root, self.exp_name)
-            os.makedirs(self.exp_dir, exist_ok=True)
+            self.eval_period = self.exp_config['eval_period']
+            self.save_period = self.exp_config['save_period']
+            self.save_dir = join(self.exp_root, self.exp_name)
+            os.makedirs(self.save_dir, exist_ok=True)
 
             # Set logger to save .log file and output to screen.
-            self.log_fpath = join(self.exp_dir, f"{self.finetune_name}.log")
+            self.log_fpath = join(self.save_dir, f'{self.finetune_name}.log')
             self.logger = self.init_logger(self.log_fpath)
-            exp_init_log = f"\n****************************************"\
-                f"****************************************************"\
-                f"\nExperiment: Finetune {self.exp_name}\n"\
-                f"Total_epochs: {self.total_epochs}\n"\
-                f"Save dir: {self.exp_dir}\n"\
-                f"Save peroid: {self.save_period}\n"\
-                f"Resume Training: {self.resume}\n"\
-                f"Distributed Training: "\
-                f"{True if self.local_rank != -1 else False}\n"\
-                f"**********************************************"\
-                f"**********************************************\n"
+            exp_init_log = f'\n****************************************'\
+                f'****************************************************'\
+                f'\nExperiment: Finetune {self.exp_name}\n'\
+                f'Start_epoch: {self.start_epoch}\n'\
+                f'Total_epochs: {self.total_epochs}\n'\
+                f'Save dir: {self.save_dir}\n'\
+                f'Save peroid: {self.save_period}\n'\
+                f'Resume Training: {self.resume}\n'\
+                f'Distributed Training: '\
+                f'{True if self.local_rank != -1 else False}\n'\
+                f'**********************************************'\
+                f'**********************************************\n'
             self.log(exp_init_log)
             self.log(resume_log)
 
-        self.unfreeze_keys = self.finetune_config["unfreeze_keys"]
+        self.unfreeze_keys = self.finetune_config['unfreeze_keys']
 
-        ft_network_config = self.finetune_config.pop("network", None)
+        self.trainloader_params = self.finetune_config['trainloader']
+        self.train_sampler_name = self.trainloader_params['sampler']
+        self.train_batchsize = self.trainloader_params['batch_size']
+        self.train_workers = self.trainloader_params['num_workers']
 
-        if ft_network_config is not None:
-            self.ft_network_name = ft_network_config["name"]
-            self.ft_network_params = ft_network_config["param"]
+        loss_config = self.finetune_config['loss']
+        self.loss_name = loss_config['name']
+        self.loss_params = loss_config['param']
 
-        self.trainloader_params = self.finetune_config["trainloader"]
+        opt_config = self.finetune_config['optimizer']
+        self.opt_name = opt_config['name']
+        self.opt_params = opt_config['param']
 
-        self.train_sampler_name = self.trainloader_params.pop("sampler", None)
-        self.train_batchsize = self.trainloader_params["batch_size"]
-        self.train_workers = self.trainloader_params["num_workers"]
-
-        ft_loss_config = self.finetune_config["loss"]
-        self.loss_name = ft_loss_config["name"]
-        self.loss_params = ft_loss_config["param"]
-
-        ft_opt_config = self.finetune_config["optimizer"]
-        self.opt_name = ft_opt_config["name"]
-        self.opt_params = ft_opt_config["param"]
-
-        ft_lrS_config = self.finetune_config["lr_scheduler"]
-        self.scheduler_name = ft_lrS_config["name"]
-        self.scheduler_params = ft_lrS_config["param"]
+        scheduler_config = self.finetune_config['lr_scheduler']
+        self.scheduler_name = scheduler_config['name']
+        self.scheduler_params = scheduler_config['param']
 
     def finetune(self):
         #######################################################################
@@ -134,15 +129,13 @@ class FineTuner(BaseTrainer):
         train_sampler = self.init_sampler(self.train_sampler_name,
                                           dataset=trainset,
                                           **self.trainloader_params)
-        self.trainloader = DataLoaderX(
-            dataset=trainset,
-            batch_size=self.train_batchsize,
-            shuffle=(train_sampler is None),
-            num_workers=self.train_workers,
-            pin_memory=True,
-            drop_last=True,
-            sampler=train_sampler,
-        )
+        self.trainloader = DataLoaderX(trainset,
+                                       batch_size=self.train_batchsize,
+                                       shuffle=(train_sampler is None),
+                                       num_workers=self.train_workers,
+                                       pin_memory=True,
+                                       drop_last=True,
+                                       sampler=train_sampler)
 
         if self.local_rank != -1:
             print(f"global_rank {self.global_rank},"
@@ -157,7 +150,7 @@ class FineTuner(BaseTrainer):
                                        transform=val_transform,
                                        **self.valset_params)
             self.valloader = DataLoaderX(
-                dataset=valset,
+                valset,
                 batch_size=self.val_batchsize,
                 shuffle=False,
                 num_workers=self.val_workers,
@@ -177,14 +170,12 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
-        weight = self.get_class_weight(trainset.num_samples_per_cls,
-                                       **self.loss_params)
-        self.criterion = self.init_loss(self.loss_name,
-                                        weight=weight,
-                                        **self.loss_params)
+        self.loss_params = self.get_class_weight(trainset.num_samples_per_cls,
+                                                 **self.loss_params)
+        self.criterion = self.init_loss(self.loss_name, **self.loss_params)
 
         #######################################################################
-        # Initialize Optimizer
+        # Initialize opt
         #######################################################################
         self.opt = self.init_optimizer(self.opt_name, self.model.parameters(),
                                        **self.opt_params)
@@ -192,9 +183,8 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.lr_scheduler = self.init_lr_scheduler(self.scheduler_name,
-                                                   self.opt,
-                                                   **self.scheduler_params)
+        self.lr_scheduler = self.self(self.scheduler_name, self.opt,
+                                      **self.scheduler_params)
 
         #######################################################################
         # Start Training
@@ -207,6 +197,7 @@ class FineTuner(BaseTrainer):
         last_mid_mrs = []
         last_tail_mrs = []
         start_time = datetime.now()
+        self.model.apply(switch_clean)
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             # learning rate decay by epoch
@@ -216,21 +207,20 @@ class FineTuner(BaseTrainer):
                 train_sampler.set_epoch(cur_epoch)
 
             train_stat, train_loss = self.train_epoch(
-                cur_epoch=cur_epoch,
-                trainloader=self.trainloader,
-                model=self.model,
-                criterion=self.criterion,
-                opt=self.opt,
-                lr_scheduler=self.lr_scheduler,
-                num_classes=trainset.num_classes,
-            )
+                cur_epoch,
+                self.trainloader,
+                self.model,
+                self.criterion,
+                self.opt,
+                self.lr_scheduler,
+                num_classes=trainset.num_classes)
 
             if self.local_rank in [-1, 0]:
                 val_stat, val_loss = self.evaluate(
-                    cur_epoch=cur_epoch,
-                    valloader=self.valloader,
-                    model=self.model,
-                    criterion=self.criterion,
+                    cur_epoch,
+                    self.valloader,
+                    self.model,
+                    self.criterion,
                     num_classes=trainset.num_classes)
 
                 if self.final_epoch - cur_epoch <= 5:
@@ -252,7 +242,7 @@ class FineTuner(BaseTrainer):
                     f"[{val_stat.group_mr[0]:>6.2%}, "
                     f"{val_stat.group_mr[1]:>6.2%}, "
                     f"{val_stat.group_mr[2]:>6.2%}",
-                    log_level="file")
+                    log_level='file')
 
                 is_best = val_stat.mr > best_mr
 
@@ -269,7 +259,7 @@ class FineTuner(BaseTrainer):
                                          mr=val_stat.mr,
                                          group_mr=val_stat.group_mr,
                                          prefix=self.finetune_name,
-                                         save_dir=self.exp_dir)
+                                         save_dir=self.save_dir)
 
         end_time = datetime.now()
         dur_time = str(end_time - start_time)[:-7]  # 取到秒
@@ -289,7 +279,7 @@ class FineTuner(BaseTrainer):
                 f" {final_mr:>6.2%}\n"
                 f"Average Group mean recalls: [{final_head_mr:6.2%}, "
                 f"{final_mid_mr:>6.2%}, {final_tail_mr:>6.2%}]\n\n"
-                f"===> Save directory: '{self.exp_dir}'\n"
+                f"===> Save directory: '{self.save_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************\n")
 
@@ -300,46 +290,36 @@ class FineTuner(BaseTrainer):
                     criterion,
                     opt,
                     lr_scheduler,
-                    ft_model=None,
                     num_classes=None):
 
         model.train()
-
-        if ft_model is not None:
-            ft_model.train()
+        model.apply(switch_clean)
 
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                desc=f"Train Epoch[{cur_epoch:>2d}/{self.final_epoch-1}]")
+                desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
         train_stat = ExpStat(num_classes)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
-
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
-
-            if ft_model is not None:
-                batch_feats = model(batch_imgs, out_type='feat')
-                batch_probs = ft_model(batch_feats)
-            else:
-                batch_probs = model(batch_imgs)
-
-            avg_loss = criterion(batch_probs, batch_labels)
+            batch_prob = model(batch_imgs)
+            avg_loss = criterion(batch_prob, batch_labels)
 
             if self.local_rank != -1:
                 with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
                 opt.step()
-                self._reduce_loss(avg_loss)
+                self._reduce_tensor(avg_loss)
             else:
                 avg_loss.backward()
                 opt.step()
 
-            batch_preds = torch.argmax(batch_probs, dim=1)
+            batch_preds = batch_prob.max(1)[1]
             train_loss_meter.update(avg_loss.item(), 1)
             train_stat.update(batch_labels, batch_preds)
 
@@ -361,18 +341,10 @@ class FineTuner(BaseTrainer):
 
         return train_stat, train_loss_meter.avg
 
-    def evaluate(self,
-                 cur_epoch,
-                 valloader,
-                 model,
-                 criterion,
-                 ft_model=None,
-                 num_classes=None):
+    def evaluate(self, cur_epoch, valloader, model, criterion, num_classes):
 
         model.eval()
-
-        if ft_model is not None:
-            ft_model.eval()
+        model.apply(switch_clean)
 
         if self.local_rank in [-1, 0]:
             val_pbar = tqdm(total=len(valloader),
@@ -385,17 +357,11 @@ class FineTuner(BaseTrainer):
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
-
-                if ft_model is not None:
-                    batch_feats = model(batch_imgs, out_type='feat')
-                    batch_probs = ft_model(batch_feats)
-                else:
-                    batch_probs = model(batch_imgs)
-
+                batch_probs = model(batch_imgs)
+                batch_preds = batch_probs.max(1)[1]
                 avg_loss = criterion(batch_probs, batch_labels)
-                val_loss_meter.update(avg_loss.item(), 1)
 
-                batch_preds = torch.argmax(batch_probs, dim=1)
+                val_loss_meter.update(avg_loss.item(), 1)
                 val_stat.update(batch_labels, batch_preds)
 
                 val_pbar.update()
@@ -429,7 +395,6 @@ def _set_seed(seed=0):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = True
 
 
 def main(args):

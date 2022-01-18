@@ -1,6 +1,16 @@
-"""trainer script """
-# import math
+###############################################################################
+# Copyright (C) 2021 All rights reserved.
+# Filename: train_adapt.py
+# Author: Tsingwaa
+# Email: zengchh3@gmail.com
+# Created Time : 2021-12-21 22:34 Tuesday
+# Last modified: 2021-12-21 22:34 Tuesday
+# Description:
+#
+###############################################################################
+
 import argparse
+# import math
 import random
 import warnings
 from datetime import datetime
@@ -11,27 +21,29 @@ import yaml
 from apex import amp
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
-# from pudb import set_trace
 from torch.nn.parallel import DistributedDataParallel
+# from pudb import set_trace
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils import AverageMeter, ExpStat, switch_clean, switch_mix
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__(), max_prefetch=8)
 
 
 class Trainer(BaseTrainer):
+
     def __init__(self, local_rank=None, config=None):
         super(Trainer, self).__init__(local_rank, config)
         adv_config = config['adv']
         self.adv_name = adv_config['name']
         self.clean_weight = adv_config['clean_weight']
-        self.adv_step_size = adv_config['step_size']
-        self.adv_num_steps = adv_config['num_steps']
-        self.adv_eps = adv_config['eps']
+        self.step_size = adv_config['step_size']
+        self.num_steps = adv_config['num_steps']
+        self.eps = adv_config['eps']
 
     def train(self):
         #######################################################################
@@ -78,10 +90,7 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Network
         #######################################################################
-        self.model = self.init_model(self.network_name,
-                                     mean=trainset.mean,
-                                     std=trainset.std,
-                                     **self.network_params)
+        self.model = self.init_model(self.network_name, **self.network_params)
 
         #######################################################################
         # Initialize Loss
@@ -97,15 +106,18 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Adversarial Training
         #######################################################################
-        self.attacker = self.init_module(self.adv_name,
-                                         model=self.model,
-                                         eps=self.adv_eps,
-                                         num_steps=self.adv_num_steps,
-                                         step_size=self.adv_step_size)
+        attacker = self.init_module(
+            self.adv_name,
+            model=self.model,
+            eps=self.eps,
+            num_steps=self.num_steps,
+            step_size=self.step_size,
+        )
 
         #######################################################################
         # Initialize DistributedDataParallel
         #######################################################################
+
         if self.local_rank != -1:
             self.model, self.opt = amp.initialize(self.model,
                                                   self.opt,
@@ -118,9 +130,8 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize LR Scheduler
         #######################################################################
-        self.lr_scheduler = self.init_lr_scheduler(self.scheduler_name,
-                                                   self.opt,
-                                                   **self.scheduler_params)
+        self.lr_scheduler = self.self(self.scheduler_name, self.opt,
+                                      **self.scheduler_params)
 
         #######################################################################
         # Start Training
@@ -134,6 +145,7 @@ class Trainer(BaseTrainer):
         last_tail_mrs = []
         self.final_epoch = self.start_epoch + self.total_epochs
         start_time = datetime.now()
+
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.lr_scheduler.step()
 
@@ -147,7 +159,7 @@ class Trainer(BaseTrainer):
                 self.criterion,
                 self.opt,
                 self.lr_scheduler,
-                self.attacker,
+                attacker,
                 num_classes=trainset.num_classes,
                 clean_weight=self.clean_weight)
 
@@ -170,20 +182,23 @@ class Trainer(BaseTrainer):
                     f"Train Loss={train_loss['final']:>4.2f}"
                     f" | Adv loss:{train_loss['adv']:>4.2f} "
                     f"mr:{adv_stat.mr:>6.2%} "
-                    f"[{adv_stat.group_mr[0]:>3.0%}, "
-                    f"{adv_stat.group_mr[1]:>3.0%}, "
+                    f"[{adv_stat.group_mr[0]:>3.0%},"
+                    f"{adv_stat.group_mr[1]:>3.0%},"
                     f"{adv_stat.group_mr[2]:>3.0%}]"
                     f" | Cln loss:{train_loss['cln']:>4.2f} "
                     f"mr:{cln_stat.mr:>6.2%} "
-                    f"[{cln_stat.group_mr[0]:>3.0%}, "
-                    f"{cln_stat.group_mr[1]:>3.0%}, "
+                    f"[{cln_stat.group_mr[0]:>3.0%},"
+                    f"{cln_stat.group_mr[1]:>3.0%},"
                     f"{cln_stat.group_mr[2]:>3.0%}]"
                     f"|| Val loss={val_loss:>4.2f} "
                     f"mr={val_stat.mr:>6.2%} "
-                    f"[{val_stat.group_mr[0]:>3.0%}, "
-                    f"{val_stat.group_mr[1]:>3.0%}, "
+                    f"[{val_stat.group_mr[0]:>3.0%},"
+                    f"{val_stat.group_mr[1]:>3.0%},"
                     f"{val_stat.group_mr[2]:>3.0%}]",
                     log_level='file')
+
+                # if len(val_recalls) <= 20 and cur_epoch == self.total_epochs:
+                #     self.logger.info(f"Class recalls: {val_recalls}\n")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(f'{self.exp_name}/LearningRate',
@@ -221,20 +236,21 @@ class Trainer(BaseTrainer):
                         "tail_mr": val_stat.group_mr[2]
                     }, cur_epoch)
                 is_best = val_stat.mr > best_mr
+
                 if is_best:
                     best_mr = val_stat.mr
                     best_epoch = cur_epoch
                     best_group_mr = val_stat.group_mr
+
                 if (not cur_epoch % self.save_period) or is_best:
-                    self.save_checkpoint(
-                        epoch=cur_epoch,
-                        model=self.model,
-                        optimizer=self.opt,
-                        is_best=is_best,
-                        mr=val_stat.mr,
-                        group_mr=val_stat.group_mr,
-                        prefix=None,
-                        save_dir=self.exp_dir)
+                    self.save_checkpoint(epoch=cur_epoch,
+                                         model=self.model,
+                                         optimizer=self.opt,
+                                         is_best=is_best,
+                                         mr=val_stat.mr,
+                                         group_mr=val_stat.group_mr,
+                                         prefix=None,
+                                         save_dir=self.exp_dir)
 
         end_time = datetime.now()
         dur_time = str(end_time - start_time)[:-7]  # 取到秒
@@ -248,8 +264,7 @@ class Trainer(BaseTrainer):
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
                 f"===> Best mean recall: {best_mr:>6.2%} (epoch{best_epoch})\n"
-                f"Group recalls: [{best_group_mr[0]:>6.2%}, "
-                f"{best_group_mr[1]:>6.2%}, {best_group_mr[2]:>6.2%}]\n\n"
+                f"Group recalls: {best_group_mr}\n\n"
                 f"===> Final average mean recall of last 10 epochs:"
                 f" {final_mr:>6.2%}\n"
                 f"Average Group mean recalls: [{final_head_mr:>6.2%}, "
@@ -278,6 +293,7 @@ class Trainer(BaseTrainer):
         cln_loss_meter = AverageMeter()
         adv_stat = ExpStat(num_classes)
         cln_stat = ExpStat(num_classes)
+
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             optimizer.zero_grad()
             batch_imgs = batch_imgs.cuda(non_blocking=True)
@@ -293,10 +309,10 @@ class Trainer(BaseTrainer):
             model.apply(switch_mix)
             batch_mix_probs = model(batch_mix_imgs)
             # 将batch_mix_probs沿着0维，等分切为两份, 分别计算loss
-            batch_probs, batch_adv_probs = batch_mix_probs.chunk(2, 0)
-            batch_clean_loss = criterion(batch_probs, batch_labels)
+            batch_cln_probs, batch_adv_probs = batch_mix_probs.chunk(2, 0)
+            batch_cln_loss = criterion(batch_cln_probs, batch_labels)
             batch_adv_loss = criterion(batch_adv_probs, batch_labels)
-            batch_final_loss = clean_weight * batch_clean_loss +\
+            batch_final_loss = clean_weight * batch_cln_loss +\
                 (1 - self.clean_weight) * batch_adv_loss
 
             if self.local_rank != -1:
@@ -311,10 +327,10 @@ class Trainer(BaseTrainer):
                 optimizer.step()
 
             final_loss_meter.update(batch_final_loss.item(), 1)
-            cln_loss_meter.update(batch_clean_loss.item(), 1)
+            cln_loss_meter.update(batch_cln_loss.item(), 1)
             adv_loss_meter.update(batch_adv_loss.item(), 1)
 
-            batch_cln_preds = batch_probs.max(1)[1]
+            batch_cln_preds = batch_cln_probs.max(1)[1]
             batch_adv_preds = batch_adv_probs.max(1)[1]
 
             adv_stat.update(batch_labels, batch_adv_preds)
@@ -338,16 +354,16 @@ class Trainer(BaseTrainer):
             }
             train_pbar.set_postfix_str(
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
-                f"Loss:{final_loss_meter.avg:>4.2f} "
-                f" | Adv loss={train_loss['adv']:>4.2f} "
+                f"Loss:{final_loss_meter.avg:.1f} "
+                f" | Adv loss={train_loss['adv']:.1f} "
                 f"mr={adv_stat.mr:>6.2%} "
-                f"[{adv_stat.group_mr[0]:>3.0%}, "
-                f"{adv_stat.group_mr[1]:>3.0%}, "
+                f"[{adv_stat.group_mr[0]:>3.0%},"
+                f"{adv_stat.group_mr[1]:>3.0%},"
                 f"{adv_stat.group_mr[2]:>3.0%}]"
-                f" | Cln loss={train_loss['cln']:>4.2f} "
+                f" | Cln loss={train_loss['cln']:.1f} "
                 f"mr={cln_stat.mr:>6.2%} "
-                f"[{cln_stat.group_mr[0]:>3.0%}, "
-                f"{cln_stat.group_mr[1]:>3.0%}, "
+                f"[{cln_stat.group_mr[0]:>3.0%},"
+                f"{cln_stat.group_mr[1]:>3.0%},"
                 f"{cln_stat.group_mr[2]:>3.0%}]")
 
         return adv_stat, cln_stat, train_loss
@@ -379,10 +395,10 @@ class Trainer(BaseTrainer):
 
                 val_pbar.update()
 
-        val_pbar.set_postfix_str(f"loss:{val_loss_meter.avg:4.2f} "
+        val_pbar.set_postfix_str(f"loss:{val_loss_meter.avg:.1f} "
                                  f"mr:{val_stat.mr:>6.2%} "
-                                 f"[{val_stat.group_mr[0]:>3.0%}, "
-                                 f"{val_stat.group_mr[1]:>3.0%}, "
+                                 f"[{val_stat.group_mr[0]:>3.0%},"
+                                 f"{val_stat.group_mr[1]:>3.0%},"
                                  f"{val_stat.group_mr[2]:>3.0%}]")
         val_pbar.close()
 
@@ -397,6 +413,7 @@ def parse_args():
                         distributed training. if single-GPU, default: -1')
     parser.add_argument('--config_path', type=str, help='path of config file')
     args = parser.parse_args()
+
     return args
 
 

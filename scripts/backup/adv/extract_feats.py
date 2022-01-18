@@ -20,11 +20,13 @@ from utils import switch_clean
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__(), max_prefetch=10)
 
 
 class Extractor(BaseTrainer):
+
     def __init__(self, local_rank, config):
         """Extractor to extract feature"""
 
@@ -56,6 +58,7 @@ class Extractor(BaseTrainer):
 
         embedding_dir = join(self.exp_root, 'Tensorboard', self.exp_name,
                              'Embedding')
+
         if os.path.exists(embedding_dir):
             shutil.rmtree(embedding_dir)
 
@@ -65,7 +68,7 @@ class Extractor(BaseTrainer):
         self.save_dir = join(self.user_root, 'Experiments', self.exp_name)
         os.makedirs(self.save_dir, exist_ok=True)
 
-        self._set_configs(config)
+        self.set(config)
 
     def extract(self):
         #######################################################################
@@ -170,6 +173,7 @@ class Extractor(BaseTrainer):
         # save feature and labels
         feat_fpath = join(self.exp_root, self.exp_name,
                           f'{phase}_features-labels.h5')
+
         if os.path.exists(feat_fpath):  # h5不能重新写入
             os.remove(feat_fpath)
 
@@ -188,6 +192,7 @@ def parse_args():
                         distributed training. if single-GPU, default: -1')
     parser.add_argument("--config_path", type=str)
     args = parser.parse_args()
+
     return args
 
 

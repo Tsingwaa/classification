@@ -10,7 +10,6 @@ import numpy as np
 import torch
 import yaml
 from apex import amp
-from apex.parallel import DistributedDataParallel
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
@@ -30,7 +29,7 @@ class DataLoaderX(DataLoader):
 
 class FineTuner(BaseTrainer):
 
-    def __init__(self, args, local_rank=None, config=None):
+    def __init__(self, local_rank=None, config=None):
 
         #######################################################################
         # Device setting
@@ -38,7 +37,7 @@ class FineTuner(BaseTrainer):
         assert torch.cuda.is_available()
         torch.backends.cudnn.benchmark = True
         torch.backends.cudnn.enable = True
-        self.args = args
+
         self.local_rank = local_rank
 
         if self.local_rank != -1:
@@ -50,29 +49,24 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
-        self.head_class_idx = config['head_class_idx']
-        self.med_class_idx = config['med_class_idx']
-        self.tail_class_idx = config['tail_class_idx']
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
         self.finetune_config = config["finetune"]
         self.finetune_name = self.finetune_config["name"]
 
         self.user_root = os.environ["HOME"]
-
-        self.exp_root = join(self.user_root, "Projects/Experiments")
+        self.exp_root = join(self.user_root, "Experiments")
         self.total_epochs = self.finetune_config["total_epochs"]
 
-        self._set_configs(config)
+        self.set(config)
 
         self.resume = True
 
         if "/" in self.exp_config["resume_fpath"]:
             self.resume_fpath = self.exp_config["resume_fpath"]
         else:
-            self.resume_fpath = join(
-                self.exp_root, self.exp_name, 'seed_%d_%s' %
-                (self.args.seed, self.exp_config["resume_fpath"]))
+            self.resume_fpath = join(self.exp_root, self.exp_name,
+                                     self.exp_config["resume_fpath"])
 
         self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
 
@@ -111,6 +105,7 @@ class FineTuner(BaseTrainer):
             self.ft_network_params = ft_network_config["param"]
 
         self.trainloader_params = self.finetune_config["trainloader"]
+
         self.train_sampler_name = self.trainloader_params.pop("sampler", None)
         self.train_batchsize = self.trainloader_params["batch_size"]
         self.train_workers = self.trainloader_params["num_workers"]
@@ -176,7 +171,6 @@ class FineTuner(BaseTrainer):
         self.model = self.init_model(self.network_name,
                                      resume=True,
                                      checkpoint=self.checkpoint,
-                                     num_classes=trainset.num_classes,
                                      **self.network_params)
         self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
 
@@ -194,13 +188,6 @@ class FineTuner(BaseTrainer):
         #######################################################################
         self.opt = self.init_optimizer(self.opt_name, self.model.parameters(),
                                        **self.opt_params)
-
-        if self.local_rank != -1:
-            # self.model = convert_syncbn_model(self.model).cuda()
-            self.model, self.opt = amp.initialize(self.model,
-                                                  self.opt,
-                                                  opt_level="O1")
-            self.model = DistributedDataParallel(self.model)
 
         #######################################################################
         # Initialize LR Scheduler
@@ -281,8 +268,7 @@ class FineTuner(BaseTrainer):
                                          is_best=is_best,
                                          mr=val_stat.mr,
                                          group_mr=val_stat.group_mr,
-                                         prefix='seed_%d_%s' %
-                                         (self.args.seed, self.finetune_name),
+                                         prefix=self.finetune_name,
                                          save_dir=self.exp_dir)
 
         end_time = datetime.now()
@@ -328,8 +314,7 @@ class FineTuner(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>2d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_classes, self.head_class_idx,
-                             self.med_class_idx, self.tail_class_idx)
+        train_stat = ExpStat(num_classes)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
@@ -349,7 +334,7 @@ class FineTuner(BaseTrainer):
                 with amp.scale_loss(avg_loss, self.opt) as scaled_loss:
                     scaled_loss.backward()
                 opt.step()
-                self._reduce_tensor(avg_loss)
+                self._reduce_loss(avg_loss)
             else:
                 avg_loss.backward()
                 opt.step()
@@ -395,8 +380,7 @@ class FineTuner(BaseTrainer):
                             desc="                 Val")
 
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes, self.head_class_idx,
-                           self.med_class_idx, self.tail_class_idx)
+        val_stat = ExpStat(num_classes)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
@@ -434,7 +418,6 @@ def parse_args():
                         help="Local Rank for\
                         distributed training. if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
-    parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
     return args
@@ -451,10 +434,10 @@ def _set_seed(seed=0):
 
 def main(args):
     warnings.filterwarnings("ignore")
-    _set_seed(seed=args.seed)
+    _set_seed()
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    finetuner = FineTuner(args, local_rank=args.local_rank, config=config)
+    finetuner = FineTuner(local_rank=args.local_rank, config=config)
     finetuner.finetune()
 
 

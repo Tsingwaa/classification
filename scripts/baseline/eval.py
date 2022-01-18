@@ -17,11 +17,13 @@ from utils.utils import get_cm_with_labels
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__())
 
 
 class Validater(BaseTrainer):
+
     def __init__(self, local_rank, config):
         """ Base validater for all experiments.  """
 
@@ -42,6 +44,7 @@ class Validater(BaseTrainer):
         self.exp_root = join(self.user_root, 'Experiments')
 
         self.resume = self.exp_config['resume']
+
         if '/' in self.exp_config['resume_fpath']:
             self.resume_fpath = self.exp_config['resume_fpath']
         else:
@@ -68,7 +71,7 @@ class Validater(BaseTrainer):
                                           self.log_fpath,)
         self.logger.info(exp_init_log)
 
-        self._set_configs(config)
+        self.set(config)
 
     def evaluate(self):
         #######################################################################
@@ -169,6 +172,7 @@ def parse_args():
                         distributed training. if single-GPU, default: -1')
     parser.add_argument("--config_path", type=str)
     args = parser.parse_args()
+
     return args
 
 

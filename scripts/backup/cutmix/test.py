@@ -45,17 +45,14 @@ class Tester(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
-
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
-        self.test_config = config["finetune"]
+        self.test_config = config["test"]
         self.test_name = self.test_config["name"]
 
         self.user_root = os.environ["HOME"]
         self.exp_root = join(self.user_root, "Experiments")
-
         self._set_configs(config)
-
         self.resume = True
 
         if "/" in self.exp_config["resume_fpath"]:
@@ -111,7 +108,12 @@ class Tester(BaseTrainer):
 
         model.eval()
 
-        if self.local_rank in [-1, 0]:
+        ft_model = kwargs.pop("ft_model", "None")
+
+        if ft_model is not None:
+            ft_model.eval()
+
+        if self.local_rank <= 0:
             desc = kwargs.pop("desc", "Val")
             eval_pbar = tqdm(total=len(valloader),
                              ncols=0,
@@ -119,19 +121,28 @@ class Tester(BaseTrainer):
 
         eval_loss_meter = AverageMeter()
         eval_stat = ExpStat(num_samples_per_cls)
-
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
 
-                batch_probs = model(batch_imgs)
+                if ft_model is not None:
+                    batch_feats = model(batch_imgs, out_type='feat')
+                    batch_probs = ft_model(batch_feats)
+                else:
+                    batch_probs = model(batch_imgs)
+
                 avg_loss = criterion(batch_probs, batch_labels)
 
                 if self.local_rank != -1:
                     torch.distributed.barrier()
+                    # torch.distributed.barrier()的作用是，阻塞进程，确保每个进程都运行
+                    # 到这一行代码，才能继续执行，这样计算平均loss和平均acc的时候
+                    # 不会出现因为进程执行速度不一致而导致的错误
                     avg_loss = self._reduce_tensor(avg_loss)
+
                 eval_loss_meter.update(avg_loss.item(), 1)
+
                 batch_preds = torch.argmax(batch_probs, dim=1)
                 eval_stat.update(batch_labels, batch_preds)
 
@@ -142,7 +153,7 @@ class Tester(BaseTrainer):
             torch.distributed.barrier()
             eval_stat._cm = self._reduce_tensor(eval_stat._cm, op='sum')
 
-        if self.local_rank in [-1, 0]:
+        if self.local_rank <= 0:
             eval_pbar.set_postfix_str(f"Loss:{eval_loss_meter.avg:>4.2f} "
                                       f"MR:{eval_stat.mr:>6.2%} "
                                       f"[{eval_stat.group_mr[0]:>6.2%}, "
@@ -158,12 +169,13 @@ class Tester(BaseTrainer):
         #######################################################################
 
         if self.local_rank != -1:
-            print(f"global_rank {self.global_rank},"
+            print(f"global_rank {self.local_rank},"
                   f"world_size {self.world_size},"
                   f"local_rank {self.local_rank},"
                   f"val '{self.val_sampler_name}'"
                   f"test '{self.test_sampler_name}'")
 
+        # To get the num_samples_per_cls
         trainset = self.init_dataset(self.trainset_name,
                                      transform=None,
                                      **self.trainset_params)
@@ -208,6 +220,7 @@ class Tester(BaseTrainer):
         #######################################################################
         # Initialize Loss
         #######################################################################
+        # Default: weight=None
         self.criterion = self.init_loss(self.loss_name, **self.loss_params)
 
         #######################################################################
@@ -215,6 +228,7 @@ class Tester(BaseTrainer):
         #######################################################################
         cur_epoch = 0
 
+        val_sampler.set_epoch(cur_epoch)
         val_stat, val_loss = self.evaluate(
             cur_epoch=cur_epoch,
             valloader=self.valloader,
@@ -227,7 +241,8 @@ class Tester(BaseTrainer):
             valloader=self.testloader,
             model=self.model,
             criterion=self.criterion,
-            num_samples_per_cls=trainset.num_samples_per_cls)
+            num_samples_per_cls=trainset.num_samples_per_cls,
+            desc="Test")
 
         if self.local_rank <= 0:
             self.log(f"Val Loss={val_loss:>4.2f} "
@@ -249,7 +264,7 @@ def parse_args():
                         help="Local Rank for distributed training. "
                         "if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=0, help="rand_seed")
     args = parser.parse_args()
 
     return args
@@ -281,10 +296,10 @@ def _set_random_seed(seed=0, cuda_deterministic=False):
 
 def main(args):
     warnings.filterwarnings("ignore")
-    _set_random_seed(seed=args.seed, cuda_deterministic=True)
+    _set_random_seed(seed=args.seed)
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    tester = Tester(args, local_rank=args.local_rank, config=config)
+    tester = Tester(local_rank=args.local_rank, config=config, seed=args.seed)
     tester.test()
 
 

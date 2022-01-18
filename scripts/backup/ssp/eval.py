@@ -15,16 +15,17 @@ from prefetch_generator import BackgroundGenerator
 from sklearn import metrics
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from utils import switch_clean
 from utils.utils import get_cm_with_labels
 
 
 class DataLoaderX(DataLoader):
+
     def __iter__(self):
         return BackgroundGenerator(super().__iter__(), max_prefetch=10)
 
 
 class Validater(BaseTrainer):
+
     def __init__(self, local_rank, config):
         """ Base validater for all experiments.  """
 
@@ -39,63 +40,61 @@ class Validater(BaseTrainer):
         #######################################################################
         # Experiment setting
         #######################################################################
-        self.experiment_config = config["experiment"]
-        self.exp_name = self.experiment_config["name"]
-        self.user_root = os.environ["HOME"]
-        self.resume = self.experiment_config["resume"]
+        self.experiment_config = config['experiment']
+        self.exp_name = self.experiment_config['name']
+        self.user_root = os.environ['HOME']
+        self.resume = self.experiment_config['resume']
 
-        if "/" in self.experiment_config["resume_fpath"]:
-            self.resume_fpath = self.experiment_config["resume_fpath"]
+        if '/' in self.experiment_config['resume_fpath']:
+            self.resume_fpath = self.experiment_config['resume_fpath']
         else:
-            self.resume_fpath = join(self.user_root, "Experiments",
+            self.resume_fpath = join(self.user_root, 'Experiments',
                                      self.exp_name,
-                                     self.experiment_config["resume_fpath"])
+                                     self.experiment_config['resume_fpath'])
 
         self.checkpoint, resume_log = self.resume_checkpoint()
-        self.test_epoch = self.checkpoint["epoch"]
+        self.test_epoch = self.checkpoint['epoch']
 
-        self.save_dir = join(self.user_root, "Experiments", self.exp_name)
+        self.save_dir = join(self.user_root, 'Experiments', self.exp_name)
         os.makedirs(self.save_dir, exist_ok=True)
 
-        if "best" in self.resume_fpath:
-            self.log_fname = f"val_best_epoch{self.test_epoch}.log"
+        if 'best' in self.resume_fpath:
+            self.log_fname = f'val_best_epoch{self.test_epoch}.log'
         else:
-            self.log_fname = f"val_epoch{self.test_epoch}.log"
+            self.log_fname = f'val_epoch{self.test_epoch}.log'
         self.log_fpath = join(self.save_dir, self.log_fname)
         self.logger = self.init_logger(self.log_fpath)
         self.logger.info(resume_log)
 
-        exp_init_log = "===> Evaluate experiment '{}' @epoch{}\n"\
-            "Log filepath: '{}'\n".format(
-                self.exp_name, self.test_epoch, self.log_fpath,)
+        exp_init_log = '===> Evaluate experiment "{}" @epoch{}\n'\
+            'Log filepath: "{}"\n'.format(
+                self.exp_name,
+                self.test_epoch,
+                self.log_fpath,
+            )
         self.logger.info(exp_init_log)
 
         #######################################################################
         # Dataset setting
         #######################################################################
-        self.val_transform_config = config["val_transform"]
-        self.valset_config = config["val_dataset"]
+        self.val_transform_config = config['val_transform']
+        self.valset_config = config['val_dataset']
 
         #######################################################################
         # Dataloader setting
         #######################################################################
-        self.valloader_config = config["valloader"]
-        self.valloader_name = self.valloader_config["name"]
-        self.valloader_param = self.valloader_config["param"]
-        self.val_batch_size = self.valloader_param["batch_size"]
-        self.val_num_workers = self.valloader_param["num_workers"]
+        self.valloader_config = config['valloader']
+        self.valloader_name = self.valloader_config['name']
+        self.valloader_param = self.valloader_config['param']
+        self.val_batch_size = self.valloader_param['batch_size']
+        self.val_num_workers = self.valloader_param['num_workers']
 
         #######################################################################
         # Network setting
         #######################################################################
-        self.network_config = config["network"]
-        self.network_name = self.network_config["name"]
-        self.network_param = self.network_config["param"]
-
-        if 'adv' in config:
-            adv_config = config['adv']
-            self.adv_name = adv_config['name']
-            self.adv_param = adv_config['param']
+        self.network_config = config['network']
+        self.network_name = self.network_config['name']
+        self.network_param = self.network_config['param']
 
     def evaluate(self):
         #######################################################################
@@ -118,16 +117,9 @@ class Validater(BaseTrainer):
         self.model = self.init_model()
 
         #######################################################################
-        # Initialize Adversarial Training
-        #######################################################################
-        self.adv_param.update({"model": self.model})
-        self.attacker = self.init_module(module_name=self.adv_name,
-                                         module_param=self.adv_param)
-
-        #######################################################################
         # Start evaluating
         #######################################################################
-        val_pbar = tqdm(total=len(self.valloader), desc="Evaluate")
+        val_pbar = tqdm(total=len(self.valloader), desc='Evaluate')
 
         self.model.eval()
 
@@ -137,10 +129,7 @@ class Validater(BaseTrainer):
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(self.valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
-                if self.adv_param['test_adv']:
-                    batch_imgs = self.attacker.attack(batch_imgs, batch_labels)
                 batch_labels = batch_labels.cuda(non_blocking=True)
-                self.model.apply(switch_clean)
                 batch_probs = self.model(batch_imgs)
                 batch_preds = batch_probs.max(1)[1]
 
@@ -151,11 +140,11 @@ class Validater(BaseTrainer):
                 val_pbar.update()
 
         val_acc = metrics.accuracy_score(all_labels, all_preds)
-        val_mr = metrics.recall_score(all_labels, all_preds, average="macro")
+        val_mr = metrics.recall_score(all_labels, all_preds, average='macro')
         val_ap = metrics.precision_score(all_labels,
                                          all_preds,
-                                         average="macro")
-        val_pbar.set_postfix_str("Acc:{:.2%} MR:{:.2%} AP:{:.2%}".format(
+                                         average='macro')
+        val_pbar.set_postfix_str('Acc:{:.2%} MR:{:.2%} AP:{:.2%}'.format(
             val_acc, val_mr, val_ap))
         val_pbar.close()
 
@@ -165,7 +154,7 @@ class Validater(BaseTrainer):
                          classification_report)
 
         cm_df = get_cm_with_labels(all_labels, all_preds, valset.classes)
-        self.logger.info("===> Confusion Matrix:\n" + cm_df.to_string() + "\n")
+        self.logger.info('===> Confusion Matrix:\n' + cm_df.to_string() + '\n')
 
         # save true_list and pred_list
         np.save(
@@ -178,7 +167,9 @@ class Validater(BaseTrainer):
             join(self.save_dir, f"val_epoch{self.test_epoch}_prob_list.npy"),
             np.array(all_probs))
 
-        save_log = f"===> Results are saved at '{self.save_dir}'.\n"\
+        save_log = f"===> Results of epoch{self.test_epoch} "\
+            f" in '{self.exp_name}'  are saved at:\n"\
+            f" '{self.save_dir}' \n"\
             f"*********************************************************"\
             f"*********************************************************\n\n"
         self.logger.info(save_log)
@@ -186,23 +177,24 @@ class Validater(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--local_rank",
+    parser.add_argument('--local_rank',
                         type=int,
-                        help="Local Rank for\
-                        distributed training. if single-GPU, default: -1")
+                        help='Local Rank for\
+                        distributed training. if single-GPU, default: -1')
     parser.add_argument("--config_path", type=str)
     args = parser.parse_args()
+
     return args
 
 
 def main(args):
-    warnings.filterwarnings("ignore")
+    warnings.filterwarnings('ignore')
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     validater = Validater(local_rank=args.local_rank, config=config)
     validater.evaluate()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     args = parse_args()
     main(args)
