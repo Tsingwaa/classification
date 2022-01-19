@@ -1,7 +1,11 @@
-# clsf-template
+# General Modular Template for Image Classification
 
-A template of deep learning experiment on classification.
+It is a general template of deep learning experiments on image classification. Our research field is imbalanced image classification.
 
-# Acknowledgements
+To generally integrate different methods, we develop this template and further improve our iteration efficiency.
+
+## Code Stream
+
+## Acknowledgements
 
 Thanks for Xiaoping, Wu and Shaobo, Guo!
