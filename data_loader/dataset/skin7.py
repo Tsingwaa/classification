@@ -1,4 +1,5 @@
-import os
+# import os
+from os.path import join
 
 import pandas as pd
 import torch
@@ -6,98 +7,76 @@ from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from PIL import Image
 
 
-def make_dataset(fold, data_root):
-    train_csv_fname = 'split_data/origin_split_data/\
-            split_data_{}_fold_train.csv'.format(fold)
-    train_csv_fpath = os.path.join(data_root, train_csv_fname)
-    train_dataframe = pd.read_csv(train_csv_fpath)
-    raw_train_data = train_dataframe.values
-    train_data = []
+def make_dataset(fold_i, data_root, phase):
+    """fetch the img names and targets"""
+    csv_fpath = join(
+        data_root,
+        "split_data/origin_split_data",
+        f"split_data_{fold_i}_fold_{phase}.csv",
+    )
+    dataframe = pd.read_csv(csv_fpath)
+    fnames = list(dataframe.iloc[:, 0])
+    targets = list(dataframe.iloc[:, 1])
 
-    for x, y in raw_train_data:
-        train_data.append((x, y))
-
-    test_csv_fname = 'split_data/origin_split_data/\
-            split_data_{}_fold_test.csv'.format(fold)
-    test_csv_fpath = os.path.join(data_root, test_csv_fname)
-    test_dataframe = pd.read_csv(test_csv_fpath)
-    raw_test_data = test_dataframe.values
-    test_data = []
-
-    for x, y in raw_test_data:
-        test_data.append((x, y))
-
-    return train_data, test_data
+    return fnames, targets
 
 
 @Datasets.register_module("Skin7")
 class Skin7(torch.utils.data.Dataset):
-    ''' 原图大小（3， 450， 600） '''
+    """Original image size: (3, 450, 600)"""
     num_classes = 7
     mean = [0.7626, 0.5453, 0.5714]
     std = [0.1404, 0.1519, 0.1685]
 
-    def __init__(self, root, train, transform=None, fold=0, **kwargs):
-        root = os.path.join(DATASETS_ROOT, root)
-        self.train_data, self.test_data = make_dataset(fold, root)
-        print('===> Initializing fold.{} {}...\
-              '.format(fold, 'train set' if train else 'test set'))
-
+    def __init__(self, root, train, transform, fold_i, **kwargs):
         self.train = train
-
-        if self.train:
-            self.labels = [data[1] for data in self.train_data]
-            self.img_num_per_cls = [
-                self.labels.count(i) for i in range(self.num_classes)
-            ]
-        else:
-            self.labels = [data[1] for data in self.test_data]
-
+        self.phase = "train" if train else "test"
         self.transform = transform
 
-        raw_train_data = 'ISIC2018_Task3_Training_Input'
-        self.data_dir = os.path.join(root, raw_train_data)
+        # Absolute path of Skin7 data root
+        self.root = join(DATASETS_ROOT, root)
+        # Image location
+        self.data_dir = join(self.root, 'ISIC2018_Task3_Training_Input')
+
+        self.img_fnames, self.targets = make_dataset(fold_i, self.root,
+                                                     self.phase)
+
+        # class-indexes -> cardinality [223, 1341, 103, 66, 220, 23, 29]
+        # the sorted cardinality       [1341, 223, 220, 103, 66, 29, 23]
+        # sort the target by cardinality in decreasing order
+        remap = {
+            0: 1,
+            1: 0,
+            2: 3,
+            3: 4,
+            4: 2,
+            5: 6,
+            6: 5,
+        }
+        self.targets = [remap[target] for target in self.targets]
+
+        self.num_samples_per_cls = [
+            self.targets.count(i) for i in range(self.num_classes)
+        ]
+
+        print(f"===> Initialized fold-{fold_i} {self.phase}set...")
 
     def __getitem__(self, index):
-        img_fname, label = self.train_data[index] if self.train \
-            else self.test_data[index]
-        img_fpath = os.path.join(self.data_dir, img_fname)
+        img_fname = self.img_fnames[index]
+        target = self.targets[index]
+
+        img_fpath = join(self.data_dir, img_fname)
         img = Image.open(img_fpath).convert('RGB')
 
         if self.transform is not None:
-            img = self.transform(img)
+            img = self.transform(img, mean=self.mean, std=self.std)
 
-        return img, label
+        return img, target
 
     def __len__(self):
-        return len(self.train_data) if self.train else len(self.test_data)
-
-
-def get_mean_std(fold):
-    filename = './mean_std.csv'
-    dataframe = pd.read_csv(filename).values[int(fold) - 1]
-    print(dataframe)
-
-    return dataframe[0:3], dataframe[3:]
+        return len(self.targets)
 
 
 if __name__ == '__main__':
-    '''
-    计算每类数据量
-    num_dict = ['MEL', 'NV', 'BCC', 'AKIEC', 'BKL', 'DF', 'VASC']
-    train_data, test_data = make_dataset(1,"/data/Public/Datasets/Skin7")
-    target = [tup[1] for tup in train_data]
-    # print(test_data)
-    # print(len(train_data) ,len(test_data))
-    target.extend([tup[1] for tup in test_data])
-    class_count = [target.count(i) for i in range(len(num_dict))]
-    print(sum(class_count), len(target))
-    if sum(class_count) == len(target):
-        class_dict = {num_dict[i]:class_count[i] for i in range(len(num_dict))}
-        print(class_dict)
-
-        # {'MEL':1113, 'NV':6705, 'BCC':514, 'AKIEC':327,
-        'BKL':1099, 'DF':115, 'VASC':142}
-
-    '''
-    # get_mean_std(1)
+    skin7 = Skin7(root="Skin7", train=True, transform=None, fold_i=1)
+    print(skin7.num_samples_per_cls)

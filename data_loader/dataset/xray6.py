@@ -1,5 +1,6 @@
 import json
 import os
+from os.path import join
 
 import numpy as np
 import torch
@@ -15,36 +16,39 @@ class Xray6(torch.utils.data.Dataset):
     def __init__(self,
                  root,
                  train,
+                 fold_i,
                  transform=None,
-                 fold=0,
                  select_classes=[0, 1, 5, 7, 9, 11]):
         super(Xray6, self).__init__()
 
         self.root = os.path.join(DATASETS_ROOT, root)
         self.transform = transform
         self.train = train
-        self.fold = fold
+
+        # 输入统一为1,2,3,4,5 ==> 转换为 0,1,2,3,4
+        self.fold_i = fold_i - 1
         self.select_classes = select_classes
 
-        with open(self.root + '/split.json') as f:
-            class_dict = json.load(f)
+        img_names_fpath = join(self.root, "categories/split.json")
+        with open(img_names_fpath, "r") as f:
+            fold2data = json.load(f)
 
-        self.fnames, self.labels = [], []
+        self.fnames, self.labels = make_dataset(fold2data, fold_i, train)
 
-        if train:  # Train
-            for i in range(5):
-                if i == fold:
-                    continue
+        # if train:  # Train
+        #     for i in range(5):
+        #         if i == fold_i:
+        #             continue
 
-                for d in class_dict[str(i)]:
-                    if d[1] in select_classes:
-                        self.fnames.append(d[0])
-                        self.labels.append(d[1])
-        else:  # Test
-            for d in class_dict[str(fold)]:
-                if d[1] in select_classes:
-                    self.fnames.append(d[0])
-                    self.labels.append(d[1])
+        #         for d in class_dict[str(i)]:
+        #             if d[1] in select_classes:
+        #                 self.fnames.append(d[0])
+        #                 self.labels.append(d[1])
+        # else:  # Test
+        #     for d in class_dict[str(fold_i)]:
+        #         if d[1] in select_classes:
+        #             self.fnames.append(d[0])
+        #             self.labels.append(d[1])
 
         valid_labels = np.unique(self.labels)
         idx_to_class = {}
@@ -70,6 +74,25 @@ class Xray6(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.labels)
+
+
+def make_dataset(fold2data: dict, fold_i: int, train: bool):
+    """
+    fold2data: {"0":[['Atelectasis/00003548_003.png', 0],...,], "1":...}
+    """
+    data = []
+
+    if train:
+        for i in range(5):
+            if i != fold_i:
+                data.extend(fold2data[str(i)])
+    else:
+        data = fold2data[str(fold_i)]
+
+    fnames = [d[0] for d in data]
+    targets = [d[1] for d in data]
+
+    return fnames, targets
 
 
 def get_xray14_dataset(data_root='Xray14/categories',
