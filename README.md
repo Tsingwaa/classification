@@ -4,30 +4,30 @@ It is a general framework for image classification. Specifically, our research f
 
 ## Introduce
 
-* base: all parent wrap module for trainer, dataset, network, etc.
-  * base_trainer: BaseTrainer including all basic functionality, e.g. set configs, initilize modules
-  * base_sampler: TODO
-  * base_dataset: TODO
-  * base_module: TODO
-  * base_loss: TODO
-* data_loader: all module related to loading data
-  * data: images lists of various dataset
-  * dataset: various Dataset class inherited from torch.utils.data.dataset.Dataset
-  * sampler: various Sampler class inherited from torch.utils.data.sampler.Sampler
-  * transform: various transforms for data augmentation
-* model: all modules related to model
-  * network: general backbones, e.g. ResNet, ResNeXt
-  * module: special modules, e.g. adversarial attack, mixup/cutmix.
-  * loss: various Loss class inherited from torch.nn.Module
-* scripts: scripts related to specific experiment
-  * various experiment scripts: one script folder for each experiment
-    * configs: store all .yaml run configs by dataset
-    * *.py: the python script including Trainer inherited from the BaseTrainer
-    * *.sh: the shell script corresponding to the python script
-* utils: various functional utility
-  * metrics: modules about measure the performance
-  * compute_mean_std: get mean and std for various dataset to normalize
-  * other utility not commonly used
+* **bas**e: all parent wrap module for trainer, dataset, network, etc.
+  * **base_trainer**: BaseTrainer including all basic functionality, e.g. set configs, initilize modules
+  * **base_sampler**: TODO
+  * **base_dataset**: TODO
+  * **base_module**: TODO
+  * **base_loss**: TODO
+* **data_loader**: all module related to loading data
+  * **data**: images lists of various dataset
+  * **dataset**: various Dataset class inherited from torch.utils.data.dataset.Dataset
+  * **sampler**: various Sampler class inherited from torch.utils.data.sampler.Sampler
+  * **transform**: various transforms for data augmentation
+* **model**: all modules related to model
+  * **network**: general backbones, e.g. ResNet, ResNeXt
+  * **module**: special modules, e.g. adversarial attack, mixup/cutmix.
+  * **loss**: various Loss class inherited from torch.nn.Module
+* **scripts**: scripts related to specific experiment
+  * **various experiment scripts**: one script folder for each experiment
+    * **configs**: store all .yaml run configs by dataset
+    * ***.py**: the python script including Trainer inherited from the BaseTrainer
+    * ***.sh**: the shell script corresponding to the python script
+* **utils**: various functional utility
+  * **metrics**: modules about measure the performance
+  * **compute_mean_std**: get mean and std for various dataset to normalize
+  * **other utility**: not commonly used
 
 ## How to use
 
@@ -49,6 +49,6 @@ It is a general framework for image classification. Specifically, our research f
 
 This repo is now not open to the public. But I will systematically optimize and open this framework when my graduation research is finished.
 
-## Acknowledgements
+## Acknowledge
 
 Special thanks to Xiaoping Wu and Shaobo Guo!
