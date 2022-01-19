@@ -4,7 +4,7 @@ It is a general framework for image classification. Specifically, our research f
 
 ## Introduce
 
-* **bas**e: all parent wrap module for trainer, dataset, network, etc.
+* **base**: all parent wrap module for trainer, dataset, network, etc.
   * **base_trainer**: BaseTrainer including all basic functionality, e.g. set configs, initilize modules
   * **base_sampler**: TODO
   * **base_dataset**: TODO
