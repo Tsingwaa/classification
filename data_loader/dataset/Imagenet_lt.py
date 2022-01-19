@@ -1,7 +1,7 @@
 import os
 
 import numpy as np
-from data_loader.dataset.builder import Datasets
+from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from PIL import Image
 from torch.utils.data import Dataset
 
@@ -22,6 +22,7 @@ class LT_Dataset(Dataset):
         self.targets = []
         self.transform = transform
         self.map = np.load(map_fpath)
+        root = os.path.join(DATASETS_ROOT, root)
         with open(img_lst_path) as f:
             for line in f:
                 self.img_paths.append(os.path.join(root, line.split()[0]))

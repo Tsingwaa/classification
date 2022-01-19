@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 import torch
-from data_loader.dataset.builder import Datasets
+from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from PIL import Image
 
 
@@ -37,8 +37,9 @@ class Skin7(torch.utils.data.Dataset):
     mean = [0.7626, 0.5453, 0.5714]
     std = [0.1404, 0.1519, 0.1685]
 
-    def __init__(self, data_root, train, transform=None, fold=0, **kwargs):
-        self.train_data, self.test_data = make_dataset(fold, data_root)
+    def __init__(self, root, train, transform=None, fold=0, **kwargs):
+        root = os.path.join(DATASETS_ROOT, root)
+        self.train_data, self.test_data = make_dataset(fold, root)
         print('===> Initializing fold.{} {}...\
               '.format(fold, 'train set' if train else 'test set'))
 
@@ -55,7 +56,7 @@ class Skin7(torch.utils.data.Dataset):
         self.transform = transform
 
         raw_train_data = 'ISIC2018_Task3_Training_Input'
-        self.data_dir = os.path.join(data_root, raw_train_data)
+        self.data_dir = os.path.join(root, raw_train_data)
 
     def __getitem__(self, index):
         img_fname, label = self.train_data[index] if self.train \

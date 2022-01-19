@@ -4,28 +4,31 @@ import numpy as np
 import pandas as pd
 import torch
 import torchvision.transforms as T
-from data_loader.dataset.builder import Datasets
+from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from PIL import Image
 
 
 @Datasets.register_module("SD198")
 class SD198(torch.utils.data.Dataset):
-    cls_num = 198
-    dataset_name = "SD198"
+    num_classes = 198
 
-    def __init__(self, data_root='/data/Public/Datasets/SD198', train=True,
-                 transform=None, fold=0):
+    # dataset_name = "SD198"
 
+    def __init__(self, root='SD198', train=True, transform=None, fold=0):
+
+        root = os.path.join(DATASETS_ROOT, root)
         self.train = train
-        self.data_dir = os.path.join(data_root, 'images')
-        self.data, self.targets = self.get_data(fold, data_root)
-        class_idx_path = os.path.join(data_root, 'class_idx.npy')
+        self.data_dir = os.path.join(root, 'images')
+        self.data, self.targets = self.get_data(fold, root)
+        class_idx_path = os.path.join(root, 'class_idx.npy')
         self.classes = self.get_classes_name(class_idx_path)
         self.classes = [class_name for class_name, _ in self.classes]
 
         if self.train:
             self.train_labels = torch.LongTensor(self.targets)
-            self.img_num = [self.targets.count(i) for i in range(self.cls_num)]
+            self.img_num = [
+                self.targets.count(i) for i in range(self.num_classes)
+            ]
         else:
             self.test_labels = torch.LongTensor(self.targets)
 

@@ -3,10 +3,10 @@ import os
 import os.path as P
 from collections import Counter
 
-import cv2
+# import cv2
 import numpy as np
 import torch
-from data_loader.dataset.builder import Datasets
+from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from PIL import Image, ImageFile
 from torch.utils.data.dataset import Dataset
 
@@ -15,13 +15,15 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 @Datasets.register_module("testdataset")
 class TestDataset(Dataset):
+
     def __init__(self,
-                 data_root=None,
+                 root=None,
                  img_lst_fpath=None,
                  map_fpath=None,
                  transform=None,
                  **kwarg):
-        self.data_root = data_root
+        root = os.path.join(DATASETS_ROOT, root)
+        self.root = root
         self.img_lst_fpath = img_lst_fpath
         self.map_fpath = map_fpath
         self.transform = transform
@@ -39,6 +41,7 @@ class TestDataset(Dataset):
             d = json.load(fp)
             img_urls = d['背面']
             img_urls.extend(d['正面'])
+
             for url in img_urls:
                 fname = os.path.split(url)[1]
                 self.img_fnames.append(fname)
@@ -46,7 +49,7 @@ class TestDataset(Dataset):
         print(f'Loading test dataset: {len(self.img_fnames)}.')
 
     def __getitem__(self, index):
-        img_fpath = P.join(self.data_root, self.img_fnames[index])
+        img_fpath = P.join(self.root, self.img_fnames[index])
         img_fname = self.img_fnames[index]
 
         img = Image.open(img_fpath).convert('RGB')
@@ -62,6 +65,7 @@ class TestDataset(Dataset):
 
 @Datasets.register_module("evaldataset")
 class EvalDataset(Dataset):
+
     def __init__(self,
                  data_root=None,
                  img_lst_fpath=None,
@@ -82,6 +86,7 @@ class EvalDataset(Dataset):
         self.img_fnames = []
         self.labels = []
         fp = open(img_lst_fpath, 'r')
+
         for line in fp.readlines():
             fname, ctg = line.strip().split('\t')
             label = label_map[ctg]
@@ -115,6 +120,7 @@ class EvalDataset(Dataset):
 
 @Datasets.register_module("imagedataset")
 class ImageDataset(Dataset):
+
     def __init__(self,
                  data_root=None,
                  img_lst_fpath=None,
@@ -135,6 +141,7 @@ class ImageDataset(Dataset):
         self.img_fnames = []
         self.labels = []
         fp = open(img_lst_fpath, 'r')
+
         for line in fp.readlines():
             fname, ctg = line.strip().split('\t')
             label = label_map[ctg]
@@ -171,6 +178,7 @@ class ImageDataset(Dataset):
 
 @Datasets.register_module("imagedataset_multi_label")
 class ImageMultilabelDataset(Dataset):
+
     def __init__(self,
                  data_root=None,
                  img_lst_fpath=None,
@@ -183,6 +191,7 @@ class ImageMultilabelDataset(Dataset):
         self.img_fnames = []
         self.labels = []
         fp = open(img_lst_fpath, 'r')
+
         for line in fp.readlines():
             # format: 'img lab0 lab1 ... labN'
             r = line.strip().split('\t')
@@ -202,9 +211,11 @@ class ImageMultilabelDataset(Dataset):
     def __getitem__(self, index):
         img_fpath = P.join(self.data_root, self.img_fname[index])
         img = Image.open(img_fpath).convert('RGB')
+
         if self.transform is not None:
             img = self.transform(img)
         label = torch.from_numpy(self.labels[index])
+
         return img, label
 
     def __len__(self):

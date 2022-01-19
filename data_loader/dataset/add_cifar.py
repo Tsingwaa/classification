@@ -2,6 +2,7 @@
 # LDAM (https://github.com/kaidic/LDAM-DRW) &
 # BBN (https://github.com/Megvii-Nanjing/BBN)
 # to produce long-tailed CIFAR datasets.
+import os
 import random
 
 import numpy as np
@@ -9,7 +10,7 @@ import PIL
 # import torch
 import torchvision
 # from pudb import set_trace
-from data_loader.dataset.builder import Datasets
+from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from torchvision import transforms
 
 
@@ -20,7 +21,7 @@ class Add_ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     std = [0.2023, 0.1994, 0.2010]
 
     def __init__(self,
-                 data_root,
+                 root,
                  phase,
                  transform=None,
                  download=True,
@@ -32,7 +33,8 @@ class Add_ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
                  alpha=1,
                  **kwargs):
         train = True if phase == 'train' else False
-        super(Add_ImbalanceCIFAR10, self).__init__(root=data_root,
+        root = os.path.join(DATASETS_ROOT, root)
+        super(Add_ImbalanceCIFAR10, self).__init__(root=root,
                                                    train=train,
                                                    transform=transform,
                                                    download=download)
@@ -65,8 +67,8 @@ class Add_ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         if self.imb_type == 'exp':
             for class_index in range(self.num_classes):
                 num_samples =\
-                        max_num_samples * (self.imb_factor ** (
-                            class_index / (self.num_classes - 1.0)))
+                    max_num_samples * (self.imb_factor ** (
+                        class_index / (self.num_classes - 1.0)))
                 num_samples_per_cls.append(int(num_samples))
         elif self.imb_type == 'step':
             # One step: the former half {img_max} imgs,
@@ -210,7 +212,7 @@ if __name__ == '__main__':
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
-    trainset = Add_ImbalanceCIFAR100(data_root='./data',
+    trainset = Add_ImbalanceCIFAR100(root='./data',
                                      train=True,
                                      download=True,
                                      transform=transform)

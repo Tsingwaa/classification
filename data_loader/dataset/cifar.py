@@ -3,7 +3,6 @@
 # BBN (https://github.com/Megvii-Nanjing/BBN)
 # to produce long-tailed CIFAR datasets.
 
-import os
 from os.path import join
 
 import numpy as np
@@ -11,10 +10,8 @@ import PIL
 # import torch
 import torchvision
 # from pudb import set_trace
-from data_loader.dataset.builder import Datasets
+from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from torchvision import transforms
-
-DATASETS_ROOT = join(os.environ["HOME"], "Datasets")
 
 
 @Datasets.register_module("ImbalanceCIFAR10")
@@ -24,7 +21,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     std = [0.2023, 0.1994, 0.2010]
 
     def __init__(self,
-                 data_root,
+                 root,
                  phase,
                  transform=None,
                  download=True,
@@ -32,8 +29,8 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
                  imb_factor=0.01,
                  **kwargs):
         train = True if phase == 'train' else False
-        data_root = join(DATASETS_ROOT, data_root)
-        super(ImbalanceCIFAR10, self).__init__(root=data_root,
+        root = join(DATASETS_ROOT, root)
+        super(ImbalanceCIFAR10, self).__init__(root=root,
                                                train=train,
                                                transform=transform,
                                                download=download)
@@ -236,7 +233,7 @@ if __name__ == '__main__':
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
-    trainset = ImbalanceCIFAR100(data_root='./data',
+    trainset = ImbalanceCIFAR100(root='./data',
                                  train=True,
                                  download=True,
                                  transform=transform)

@@ -1,5 +1,7 @@
+import os
+
 import base
-from data_loader.dataset.builder import Datasets
+from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from torchvision import datasets, transforms
 
 
@@ -8,9 +10,10 @@ class MnistDataLoader(base.BaseDataLoader):
     """
     MNIST data loading demo using BaseDataLoader
     """
+    num_classes = 10
 
     def __init__(self,
-                 data_dir,
+                 root,
                  batch_size,
                  shuffle=True,
                  validation_split=0.0,
@@ -20,8 +23,8 @@ class MnistDataLoader(base.BaseDataLoader):
             transforms.ToTensor(),
             transforms.Normalize((0.1307, ), (0.3081, ))
         ])
-        self.data_dir = data_dir
-        self.dataset = datasets.MNIST(self.data_dir,
+        root = os.path.join(DATASETS_ROOT, root)
+        self.dataset = datasets.MNIST(root,
                                       train=training,
                                       download=True,
                                       transform=transformer)

@@ -10,7 +10,7 @@ from os.path import join
 
 import numpy as np
 import torch
-from data_loader.dataset.builder import Datasets
+from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from PIL import Image
 # from torchvision import transforms
 from torchvision.datasets import ImageFolder
@@ -50,6 +50,7 @@ class ImbalanceMiniImageNet(torch.utils.data.Dataset):
                  seed=0,
                  adapt=False,
                  **kwargs):
+        data_root = join(DATASETS_ROOT, data_root)
         self.img_paths = []
         self.targets = []
         self.transform = transform

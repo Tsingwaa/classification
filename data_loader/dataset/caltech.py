@@ -1,5 +1,7 @@
+import os
+
 import numpy as np
-from data_loader.dataset.builder import Datasets
+from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from PIL import Image
 from torchvision.datasets import ImageFolder
 
@@ -11,9 +13,11 @@ CALTECH256_MEAN_STD_DICT = {
 
 @Datasets.register_module("Caltech256-Trainset")
 class Train_ImageFolder(ImageFolder):
-    def __init__(self, data_root=None, transform=None, **kwargs):
+
+    def __init__(self, root, transform=None, **kwargs):
+        root = os.path.join(DATASETS_ROOT, root)
         super(Train_ImageFolder, self).__init__(
-            root=data_root,
+            root=root,
             transform=transform,
         )
         self.cls_num = len(self.classes)
@@ -32,17 +36,21 @@ class Train_ImageFolder(ImageFolder):
 
     def _check_channel(self, Image_obj):
         img_arr = np.array(Image_obj)
+
         if len(img_arr.shape) < 3:
             img_arr_expand = np.repeat(img_arr[:, :, np.newaxis], 3, axis=2)
             Image_obj = Image.fromarray(img_arr_expand)
+
         return Image_obj
 
 
 @Datasets.register_module("Caltech256-Valset")
 class Val_ImageFolder(ImageFolder):
-    def __init__(self, data_root=None, transform=None, **kwarg):
+
+    def __init__(self, root=None, transform=None, **kwarg):
+        root = os.path.join(DATASETS_ROOT, root)
         super(Val_ImageFolder, self).__init__(
-            root=data_root,
+            root=root,
             transform=transform,
         )
         self.cls_num = len(self.classes)
@@ -61,14 +69,17 @@ class Val_ImageFolder(ImageFolder):
 
     def _check_channel(self, Image_obj):
         img_arr = np.array(Image_obj)
+
         if len(img_arr.shape) < 3:
             img_arr_expand = np.repeat(img_arr[:, :, np.newaxis], 3, axis=2)
             Image_obj = Image.fromarray(img_arr_expand)
+
         return Image_obj
 
 
 @Datasets.register_module("Caltech256-Testset")
 class Test_ImageFolder(ImageFolder):
+
     def __init__(self, data_root=None, transform=None, **kwarg):
         super(Test_ImageFolder, self).__init__(
             root=data_root,
@@ -90,7 +101,9 @@ class Test_ImageFolder(ImageFolder):
 
     def _check_channel(self, Image_obj):
         img_arr = np.array(Image_obj)
+
         if len(img_arr.shape) < 3:
             img_arr_expand = np.repeat(img_arr[:, :, np.newaxis], 3, axis=2)
             Image_obj = Image.fromarray(img_arr_expand)
+
         return Image_obj

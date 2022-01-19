@@ -3,7 +3,7 @@ import os
 import numpy as np
 import torch
 import torch.utils.data as data
-from data_loader.dataset.builder import Datasets
+from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from PIL import Image
 from torchvision import transforms as T
 
@@ -20,6 +20,7 @@ class MedMNIST(data.Dataset):
                  imb_factor=0.1,
                  **kwargs):
         super(MedMNIST, self).__init__()
+        root = os.path.join(DATASETS_ROOT, root)
         self.transform = transform if transform is not None else lambda x: x
         self.data = np.load(os.path.join(
             root, '{}.npz'.format(sub)))[split + '_images'].squeeze().astype(

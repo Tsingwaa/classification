@@ -4,7 +4,7 @@ import os
 import numpy as np
 import torch
 import torchvision.transforms as T
-from data_loader.dataset.builder import Datasets
+from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from PIL import Image
 
 
@@ -12,17 +12,21 @@ from PIL import Image
 class Xray6(torch.utils.data.Dataset):
     num_classes = 6
 
-    def __init__(self, data_root, train, transform=None, fold=0,
+    def __init__(self,
+                 root,
+                 train,
+                 transform=None,
+                 fold=0,
                  select_classes=[0, 1, 5, 7, 9, 11]):
         super(Xray6, self).__init__()
 
-        self.data_root = data_root
+        self.root = os.path.join(DATASETS_ROOT, root)
         self.transform = transform
         self.train = train
         self.fold = fold
         self.select_classes = select_classes
 
-        with open(self.data_root + '/split.json') as f:
+        with open(self.root + '/split.json') as f:
             class_dict = json.load(f)
 
         self.fnames, self.labels = [], []
@@ -56,7 +60,7 @@ class Xray6(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         img_fname, label = self.data[index], self.labels[index]
-        img_fpath = os.path.join(self.data_root, img_fname)
+        img_fpath = os.path.join(self.root, img_fname)
         img = Image.open(img_fpath).convert('RGB')
 
         if self.transform is not None:
@@ -68,8 +72,11 @@ class Xray6(torch.utils.data.Dataset):
         return len(self.labels)
 
 
-def get_xray14_dataset(data_root='Xray14/categories', bs=64, train=True,
-                       fold=0, select_classes=[0, 1, 5, 7, 9, 11]):
+def get_xray14_dataset(data_root='Xray14/categories',
+                       bs=64,
+                       train=True,
+                       fold=0,
+                       select_classes=[0, 1, 5, 7, 9, 11]):
     # mean = (0.527, 0.527, 0.527)
     # std = (0.203, 0.203, 0.203)
     mean = (0.485, 0.456, 0.406)
