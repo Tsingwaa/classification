@@ -35,8 +35,9 @@ It is a general framework for image classification. Specifically, our research f
 2. create a new copy of "scripts/baseline" as your experiment folder
 3. if special module is required, add the module to the corresponding parent folder (Note: add the new module to Registry dict, i.e. decorate register_module)
 4. rewrite the *.py script inherited from BaseTrainer imitating "scripts/baseline/train.py"
-5. rewrite the *.sh script imitating "scripts/baseline/train.sh"
-6. run the *.sh script
+5. configure the experiment .yaml
+6. rewrite the *.sh script imitating "scripts/baseline/train.sh"
+7. run the *.sh script
 
 ## FAQ
 
