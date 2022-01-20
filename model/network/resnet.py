@@ -338,14 +338,14 @@ class ResNet(nn.Module):
 
         x = self.layer4(x)
         x = self.avgpool(x)
-        x = torch.squeeze(x)
+        x = torch.flatten(x, 1)
 
         return self.fc(x)
 
     def bfc(self, feat_map):
         feat_map = self.layer4[-1](feat_map)
         feat_vec = self.avgpool(feat_map)
-        feat_vec = self.squeeze(feat_vec)
+        feat_vec = torch.flatten(feat_vec, 1)
 
         return self.fc(feat_vec)
 

@@ -1,7 +1,7 @@
 experiment:
-  name: "ImageNet_CE_lr_0.2_5e-4"
+  name: "Skin7_CE_fold0"
   start_epoch: 1
-  total_epochs: 90
+  total_epochs: 200
   log_fname: "train.log"
   resume: False
   resume_fpath: "best.pth.tar"
@@ -43,91 +43,79 @@ finetune:
       gamma: 0.1
 
 train_transform:
-  name: "ImagenetTransform"
+  name: "MedTransform"
   param:
     phase: "train"
     resize: [224, 224]
 
 val_transform:
-  name: "ImagenetTransform"
+  name: "MedTransform"
   param:
-    phase: "test"
+    phase: "val"
     resize: [224, 224]
 
 test_transform:
-  name: "ImagenetTransform"
+  name: "MedTransform"
   param:
     phase: "test"
     resize: [224, 224]
 
-head_class_idx:
-  - 0
-  - 390
-med_class_idx:
-  - 390
-  - 835
-tail_class_idx:
-  - 835
-  - 1000
-  
 train_dataset:
-  name: "ImageNet_LT"
+  name: "Skin7"
   param:
     phase: 'train'
-    root: '/data33/Public/Datasets/ilsvrc2012'
-    txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_train.txt'
-    map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
+    root: 'Skin7'
+    fold_i: 0
+    # txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_train.txt'
+    # map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
     # train: True
     # img_lst_fpath: "None"
     # map_fpath: "None"
-    imb_type: 'exp'
-
-cutmix:
-  beta: 1.
-  prob: 1.
+    # imb_type: 'exp'
 
 val_dataset:
-  name: "ImageNet_LT"
-  param:
-    phase: 'val'
-    root: '/data33/Public/Datasets/ilsvrc2012'
-    txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_val.txt'
-    map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
-    # train: True
-    # img_lst_fpath: "None"
-    # map_fpath: "None"
-    imb_type: 'exp'
-
-test_dataset:
-  name: "ImageNet_LT"
+  name: "Skin7"
   param:
     phase: 'test'
-    root: '/data33/Public/Datasets/ilsvrc2012'
-    txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_test.txt'
-    map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
+    root: 'Skin7'
+    fold_i: 0
+    # txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_val.txt'
+    # map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
     # train: True
     # img_lst_fpath: "None"
     # map_fpath: "None"
-    imb_type: 'exp'
+    # imb_type: 'exp'
+
+# test_dataset:
+#   name: ""
+#   param:
+#     phase: 'test'
+#     root: ''
+#     txt: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/ImageNet_LT_test.txt'
+#     map_fpath: '/home/19/chenghua/Projects/classification/data_loader/data/ImageNet_LT/map.npy'
+#     train: True
+#     img_lst_fpath: "None"
+#     map_fpath: "None"
+#     imb_type: 'exp'
 
 
 trainloader:
-  sampler: 'DistributedSampler'
-  batch_size: 512
+  sampler: ''
+  batch_size: 64
   num_workers: 8
 
 valloader:
-  sampler: 'DistributedSampler'
-  batch_size: 512
+  sampler: ''
+  batch_size: 64
   num_workers: 8
 
-testloader:
-  sampler: 'DistributedSampler'
-  batch_size: 128
-  num_workers: 4
+# testloader:
+#   sampler: ''
+#   batch_size: 128
+#   num_workers: 4
 
 network:
-  name: "ResNeXt50"
+  name: "ResNet50"
   param:
     pretrained: False
     pretrained_fpath: ""
@@ -170,13 +158,13 @@ lr_scheduler:
     # eta_min: 0
 
     # CosineAnnealingLR
-    T_max: 90
+    T_max: 200
     eta_min: 0
 
-test:
-  name: "test"
-  loss:
-    name: "CrossEntropyLoss"
-    param:
-      weight_type: ""
-      label_smoothing: 0.
+# test:
+#   name: "test"
+#   loss:
+#     name: "CrossEntropyLoss"
+#     param:
+#       weight_type: ""
+#       label_smoothing: 0.
