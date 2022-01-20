@@ -1,12 +1,11 @@
 # import os
 from os.path import join
 
-import cv2
+# import cv2
 import pandas as pd
 import torch
 from data_loader.dataset.builder import DATASETS_ROOT, Datasets
-
-# from PIL import Image
+from PIL import Image
 
 
 @Datasets.register_module("Skin7")
@@ -19,11 +18,9 @@ class Skin7(torch.utils.data.Dataset):
                           ([0.5701, 0.5458, 0.7636], [0.1702, 0.1530, 0.1413]),
                           ([0.5705, 0.5461, 0.7629], [0.1703, 0.1528, 0.1413])]
 
-    def __init__(self, root, train, fold_i=0, transform=None, **kwargs):
+    def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
         """fold_i: [0, 1, 2, 3, 4]"""
 
-        self.train = train
-        phase = "train" if train else "test"
         self.transform = transform
         self.mean, self.std = self.splitfold_mean_std[fold_i]
 
@@ -58,9 +55,9 @@ class Skin7(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         img_path, target = self.img_paths[index], self.targets[index]
-        # img = Image.open(img_path).convert('RGB')
-        img = cv2.imread(img_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = Image.open(img_path).convert('RGB')
+        # img = cv2.imread(img_path)
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         if self.transform is not None:
             img = self.transform(img, mean=self.mean, std=self.std)
@@ -77,10 +74,10 @@ class Skin7(torch.utils.data.Dataset):
         csv_fpath = join(root, "split_data", "origin_split_data",
                          f"split_data_{fold_i}_fold_{phase}.csv")
         dataframe = pd.read_csv(csv_fpath)
-        fnames = list(dataframe.iloc[:, 0])
+        img_names = list(dataframe.iloc[:, 0])
         targets = list(dataframe.iloc[:, 1])
 
-        return fnames, targets
+        return img_names, targets
 
 
 if __name__ == '__main__':

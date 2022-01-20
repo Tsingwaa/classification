@@ -1,5 +1,3 @@
-# from pudb import set_trace
-import albumeations as A
 import torch
 from data_loader.transform.builder import Transforms
 from torchvision import transforms
@@ -168,46 +166,19 @@ class MedTransform:
 
     def __call__(self, x, mean=IN_MEAN, std=IN_STD, **kwargs):
         if self.phase == 'train':
-            ret_transform = A.Compose([
-                A.Transpose(p=0.5),
-                A.VerticalFlip(p=0.5),
-                A.HorizontalFlip(p=0.5),
-                A.RandomBrightness(limit=0.2, p=0.75),
-                A.RandomContrast(limit=0.2, p=0.75),
-                A.OneOf([
-                    A.MotionBlur(blur_limit=5),
-                    A.MedianBlur(blur_limit=5),
-                    A.GaussianBlur(blur_limit=5),
-                    A.GaussNoise(var_limit=(5.0, 30.0))
-                ],
-                    p=0.7),
-                A.OneOf([
-                    A.OpticalDistortion(distort_limit=1.0),
-                    A.GridDistortion(num_steps=5, distort_limit=1.),
-                    A.ElasticTransform(alpha=3),
-                ],
-                    p=0.7),
-                A.CLAHE(clip_limit=4.0, p=0.7),
-                A.HueSaturationValue(hue_shift_limit=10,
-                                     sat_shift_limit=20,
-                                     val_shift_limit=10,
-                                     p=0.5),
-                A.ShiftScaleRotate(shift_limit=0.1,
-                                   scale_limit=0.1,
-                                   rotate_limit=15,
-                                   border_mode=0,
-                                   p=0.85),
-                A.Resize(self.resize),
-                A.Cutout(max_h_size=int(self.resize[0] * 0.375),
-                         max_w_size=int(self.resize[1] * 0.375),
-                         num_holes=1,
-                         p=0.7),
-                A.Normalize(),
+            ret_transform = transforms.Compose([
+                transforms.Resize((300, 300)),
+                transforms.RandomCrop(self.resize),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std)
             ])
         else:
-            ret_transform = A.Compose([
-                A.Resize(self.resize),
-                A.Normalize(mean, std),
+            ret_transform = transforms.Compose([
+                transforms.Resize((300, 300)),
+                transforms.CenterCrop(self.resize),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std),
             ])
 
         return ret_transform(x)

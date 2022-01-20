@@ -1,14 +1,13 @@
 # import os
 from os.path import join
 
-import cv2
+# import cv2
 import numpy as np
 import pandas as pd
 import torch
 # import torchvision.transforms as T
 from data_loader.dataset.builder import DATASETS_ROOT, Datasets
-
-# from PIL import Image
+from PIL import Image
 
 
 @Datasets.register_module("SD198")
@@ -20,15 +19,7 @@ class SD198(torch.utils.data.Dataset):
                           ([0.4520, 0.4799, 0.5938], [0.2460, 0.2443, 0.2652]),
                           ([0.4564, 0.4862, 0.6042], [0.2455, 0.2445, 0.2658])]
 
-    def __init__(self,
-                 root='SD198',
-                 train=True,
-                 fold_i=0,
-                 transform=None,
-                 **kwargs):
-
-        self.train = train
-        phase = "train" if train else "val"
+    def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
 
         self.mean, self.std = self.splitfold_mean_std[fold_i]
         self.transform = transform
@@ -58,9 +49,9 @@ class SD198(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         img_path, target = self.img_paths[index], self.targets[index]
-        # img = Image.open(img_path).convert('RGB')
-        img = cv2.imread(img_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = Image.open(img_path).convert('RGB')
+        # img = cv2.imread(img_path)
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         if self.transform is not None:
             img = self.transform(img, mean=self.mean, std=self.std)

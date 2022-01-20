@@ -1,14 +1,11 @@
 import json
 from os.path import join
 
-import cv2
+# import cv2
 import torch
 # import torchvision.transforms as T
 from data_loader.dataset.builder import DATASETS_ROOT, Datasets
-
-# from PIL import Image
-
-# from pudb import set_trace
+from PIL import Image
 
 
 @Datasets.register_module("Xray6")
@@ -22,7 +19,7 @@ class Xray6(torch.utils.data.Dataset):
 
     def __init__(self,
                  root,
-                 train,
+                 phase,
                  fold_i=0,
                  transform=None,
                  select_classes=[0, 1, 5, 7, 9, 11]):
@@ -33,11 +30,10 @@ class Xray6(torch.utils.data.Dataset):
 
         self.mean, self.std = self.splitfold_mean_std[fold_i]
         self.transform = transform
-        self.train = train
 
         splitfold_path = join(root, "categories/split.json")
         self.img_names, self.targets = self.get_data(splitfold_path, fold_i,
-                                                     train, select_classes)
+                                                     phase, select_classes)
 
         data_dir = join(root, "categories")
         self.img_paths = [
@@ -63,9 +59,9 @@ class Xray6(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         img_path, target = self.img_paths[index], self.targets[index]
-        # img = Image.open(img_path).convert('RGB')
-        img = cv2.imread(img_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = Image.open(img_path).convert('RGB')
+        # img = cv2.imread(img_path)
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         if self.transform is not None:
             img = self.transform(img, mean=self.mean, std=self.std)
@@ -75,29 +71,33 @@ class Xray6(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.targets)
 
-    def get_data(self, splitfold_path, fold_i, train, select_classes):
+    def get_data(self, splitfold_path, fold_i, phase, select_classes):
 
         with open(splitfold_path, "r") as f:
             fold2data = json.load(f)
             # {"0":[['Atelectasis/00003548_003.png', 0],...,], "1":...}
 
-        if train:
+        if phase == 'train':
             data = []
 
             for fold_j in range(5):
                 if fold_j != fold_i:
                     data.extend(fold2data[str(fold_j)])
-        else:
+        elif phase == 'val':
             data = fold2data[str(fold_i)]
+        else:
+            raise NotImplementedError
 
         # fnames(str list): "class/fname"
         # targets(int list): elem in select_classes
-        fnames = [fname for fname, target in data if target in select_classes]
+        img_names = [
+            img_name for img_name, target in data if target in select_classes
+        ]
         targets = [
-            target for fname, target in data if target in select_classes
+            target for img_name, target in data if target in select_classes
         ]
 
-        return fnames, targets
+        return img_names, targets
 
 
 if __name__ == "__main__":
