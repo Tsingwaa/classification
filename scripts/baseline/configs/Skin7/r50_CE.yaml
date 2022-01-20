@@ -1,5 +1,5 @@
 experiment:
-  name: "Skin7_CE_fold0"
+  name: "Skin7_CE"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -141,7 +141,7 @@ lr_scheduler:
   # name: "CosineAnnealingWarmRestarts"
   name: "CosineAnnealingLR"
   param:
-    warmup_epochs: 0
+    warmup_epochs: 10
     # CyclicLR
     # step_size_up: 3  # 3 * iterations
     # step_size_down: 2  # 2 * iterations
