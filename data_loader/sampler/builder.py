@@ -1,3 +1,3 @@
-from utils.core import Registry
+from core import Registry
 
 Samplers = Registry("sampler")

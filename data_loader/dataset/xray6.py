@@ -1,140 +1,104 @@
 import json
-import os
 from os.path import join
 
-import numpy as np
+import cv2
 import torch
-import torchvision.transforms as T
+# import torchvision.transforms as T
 from data_loader.dataset.builder import DATASETS_ROOT, Datasets
-from PIL import Image
+
+# from PIL import Image
+
+# from pudb import set_trace
 
 
 @Datasets.register_module("Xray6")
 class Xray6(torch.utils.data.Dataset):
     num_classes = 6
+    splitfold_mean_std = [([0.5028, 0.5028, 0.5028], [0.2496, 0.2496, 0.2496]),
+                          ([0.5032, 0.5032, 0.5032], [0.2500, 0.2500, 0.2500]),
+                          ([0.5029, 0.5029, 0.5029], [0.2499, 0.2499, 0.2499]),
+                          ([0.5031, 0.5031, 0.5031], [0.2504, 0.2504, 0.2504]),
+                          ([0.5031, 0.5031, 0.5031], [0.2500, 0.2500, 0.2500])]
 
     def __init__(self,
                  root,
                  train,
-                 fold_i,
+                 fold_i=0,
                  transform=None,
                  select_classes=[0, 1, 5, 7, 9, 11]):
         super(Xray6, self).__init__()
 
-        self.root = os.path.join(DATASETS_ROOT, root)
+        if "/" not in root:  # 给定root为数据集根目录
+            root = join(DATASETS_ROOT, root)
+
+        self.mean, self.std = self.splitfold_mean_std[fold_i]
         self.transform = transform
         self.train = train
 
-        # 输入统一为1,2,3,4,5 ==> 转换为 0,1,2,3,4
-        self.fold_i = fold_i - 1
-        self.select_classes = select_classes
+        splitfold_path = join(root, "categories/split.json")
+        self.img_names, self.targets = self.get_data(splitfold_path, fold_i,
+                                                     train, select_classes)
 
-        img_names_fpath = join(self.root, "categories/split.json")
-        with open(img_names_fpath, "r") as f:
-            fold2data = json.load(f)
+        data_dir = join(root, "categories")
+        self.img_paths = [
+            join(data_dir, img_name) for img_name in self.img_names
+        ]
 
-        self.fnames, self.labels = make_dataset(fold2data, fold_i, train)
+        # select_classes:        [0,    1,    5,    7,    9,    11  ]
+        # corresponding samples: [4210, 1090, 895,  110,  2135, 3955]
+        # In decreasing order:   [4210, 3955, 2135, 1090, 895,  110]
+        remap = {
+            0: 0,
+            1: 3,
+            5: 4,
+            7: 5,
+            9: 2,
+            11: 1,
+        }
 
-        # if train:  # Train
-        #     for i in range(5):
-        #         if i == fold_i:
-        #             continue
-
-        #         for d in class_dict[str(i)]:
-        #             if d[1] in select_classes:
-        #                 self.fnames.append(d[0])
-        #                 self.labels.append(d[1])
-        # else:  # Test
-        #     for d in class_dict[str(fold_i)]:
-        #         if d[1] in select_classes:
-        #             self.fnames.append(d[0])
-        #             self.labels.append(d[1])
-
-        valid_labels = np.unique(self.labels)
-        idx_to_class = {}
-
-        for i in range(len(valid_labels)):
-            idx_to_class[valid_labels[i]] = i
-
-        for i in range(len(self.labels)):
-            self.labels[i] = idx_to_class[self.labels[i]]
-        self.num_per_cls = np.unique(self.labels, return_counts=True)[1]
-        self.reciprocal_num_per_cls = 1.0 / self.num_per_cls
-        self.class_balance_weight /= np.sum(self.reciprocal_num_per_cls)
+        self.targets = [remap[target] for target in self.targets]
+        self.num_samples_per_cls = [
+            self.targets.count(i) for i in range(self.num_classes)
+        ]
 
     def __getitem__(self, index):
-        img_fname, label = self.data[index], self.labels[index]
-        img_fpath = os.path.join(self.root, img_fname)
-        img = Image.open(img_fpath).convert('RGB')
+        img_path, target = self.img_paths[index], self.targets[index]
+        # img = Image.open(img_path).convert('RGB')
+        img = cv2.imread(img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         if self.transform is not None:
-            img = self.transform(img)
+            img = self.transform(img, mean=self.mean, std=self.std)
 
-        return img, label
+        return img, target
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.targets)
+
+    def get_data(self, splitfold_path, fold_i, train, select_classes):
+
+        with open(splitfold_path, "r") as f:
+            fold2data = json.load(f)
+            # {"0":[['Atelectasis/00003548_003.png', 0],...,], "1":...}
+
+        if train:
+            data = []
+
+            for fold_j in range(5):
+                if fold_j != fold_i:
+                    data.extend(fold2data[str(fold_j)])
+        else:
+            data = fold2data[str(fold_i)]
+
+        # fnames(str list): "class/fname"
+        # targets(int list): elem in select_classes
+        fnames = [fname for fname, target in data if target in select_classes]
+        targets = [
+            target for fname, target in data if target in select_classes
+        ]
+
+        return fnames, targets
 
 
-def make_dataset(fold2data: dict, fold_i: int, train: bool):
-    """
-    fold2data: {"0":[['Atelectasis/00003548_003.png', 0],...,], "1":...}
-    """
-    data = []
-
-    if train:
-        for i in range(5):
-            if i != fold_i:
-                data.extend(fold2data[str(i)])
-    else:
-        data = fold2data[str(fold_i)]
-
-    fnames = [d[0] for d in data]
-    targets = [d[1] for d in data]
-
-    return fnames, targets
-
-
-def get_xray14_dataset(data_root='Xray14/categories',
-                       bs=64,
-                       train=True,
-                       fold=0,
-                       select_classes=[0, 1, 5, 7, 9, 11]):
-    # mean = (0.527, 0.527, 0.527)
-    # std = (0.203, 0.203, 0.203)
-    mean = (0.485, 0.456, 0.406)
-    std = (0.229, 0.224, 0.225)
-
-    if train:
-        transform = T.Compose([
-            T.Resize((224, 224)),
-            T.RandomHorizontalFlip(),
-            # transforms.RandomCrop(224),
-            # transforms.RandomVerticalFlip(),
-            # transforms.ColorJitter(0.02, 0.02, 0.02, 0.01),
-            # transforms.RandomRotation([-180, 180]),
-            # transforms.RandomAffine(
-            # [-180, 180], translate=[0.1, 0.1], scale=[0.7, 1.3]),
-            T.ToTensor(),
-            T.Normalize(mean, std),
-        ])
-    else:
-        transform = T.Compose([
-            T.Resize((224, 224)),
-            #    transforms.CenterCrop(224),
-            T.ToTensor(),
-            T.Normalize(mean, std),
-        ])
-    dataset = Xray6(data_root,
-                    train,
-                    transform,
-                    fold,
-                    select_classes=select_classes)
-    weights = dataset.get_num_per_cls()
-    weights = torch.tensor(weights, dtype=torch.float)
-    # weights = 1.0 / weights
-    # weights /= weights.sum()
-    # dl = torch.utils.data.DataLoader(dataset, bs, train,
-    # num_workers=16, pin_memory=True, drop_last=train)
-
-    return dataset, weights
+if __name__ == "__main__":
+    xray6 = Xray6(data_root="Xray14", )

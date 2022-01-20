@@ -1,120 +1,83 @@
-import os
+# import os
+from os.path import join
 
+import cv2
 import numpy as np
 import pandas as pd
 import torch
-import torchvision.transforms as T
+# import torchvision.transforms as T
 from data_loader.dataset.builder import DATASETS_ROOT, Datasets
-from PIL import Image
+
+# from PIL import Image
 
 
 @Datasets.register_module("SD198")
 class SD198(torch.utils.data.Dataset):
     num_classes = 198
+    splitfold_mean_std = [([0.4511, 0.4789, 0.5920], [0.2451, 0.2437, 0.2659]),
+                          ([0.4536, 0.4828, 0.5990], [0.2458, 0.2443, 0.2655]),
+                          ([0.4534, 0.4825, 0.5981], [0.2448, 0.2438, 0.2665]),
+                          ([0.4520, 0.4799, 0.5938], [0.2460, 0.2443, 0.2652]),
+                          ([0.4564, 0.4862, 0.6042], [0.2455, 0.2445, 0.2658])]
 
-    # dataset_name = "SD198"
+    def __init__(self,
+                 root='SD198',
+                 train=True,
+                 fold_i=0,
+                 transform=None,
+                 **kwargs):
 
-    def __init__(self, root='SD198', train=True, transform=None, fold=0):
-
-        root = os.path.join(DATASETS_ROOT, root)
         self.train = train
-        self.data_dir = os.path.join(root, 'images')
-        self.data, self.targets = self.get_data(fold, root)
-        class_idx_path = os.path.join(root, 'class_idx.npy')
-        self.classes = self.get_classes_name(class_idx_path)
-        self.classes = [class_name for class_name, _ in self.classes]
+        phase = "train" if train else "val"
 
-        if self.train:
-            self.train_labels = torch.LongTensor(self.targets)
-            self.img_num = [
-                self.targets.count(i) for i in range(self.num_classes)
-            ]
-        else:
-            self.test_labels = torch.LongTensor(self.targets)
+        self.mean, self.std = self.splitfold_mean_std[fold_i]
+        self.transform = transform
 
-        Resize_img = 300
-        Crop_img = 224
-        self.labels = self.targets
-        mean = [0.5896185, 0.4765919, 0.45172438]
-        std = [0.26626918, 0.24757613, 0.24818243]
+        if "/" not in root:
+            root = join(DATASETS_ROOT, root)
 
-        transform_train = T.Compose([
-            T.Resize(Resize_img),
-            # transforms.RandomHorizontalFlip(),
-            # transforms.RandomVerticalFlip(),
-            # transforms.ColorJitter(0.02, 0.02, 0.02, 0.01),
-            # transforms.RandomRotation([-180, 180]),
-            # T.RandomAffine([-180, 180], translate=[0.1, 0.1],
-            #                scale=[0.7, 1.3]),
-            T.RandomCrop(Crop_img),
-            T.ToTensor(),
-            T.Normalize(mean, std)
-        ])
-        transform_test = T.Compose([
-            T.Resize(Resize_img),
-            T.CenterCrop(Crop_img),
-            T.ToTensor(),
-            T.Normalize(mean, std)
-        ])
+        self.img_names, self.targets = self.get_data(fold_i, root, phase)
 
-        if transform is not None:
-            self.transform = transform
-        else:
-            self.transform = transform_train if self.train else transform_test
+        data_dir = join(root, 'images')
+        self.img_paths = [
+            join(data_dir, img_name) for img_name in self.img_names
+        ]
+
+        class_idx_path = join(root, 'class_idx.npy')
+        class_name_idx = np.load(class_idx_path)
+        self.class_to_idx = {
+            cls_idx: cls_name
+
+            for cls_name, cls_idx in class_name_idx
+        }
+        self.classes = list(self.class_to_idx.values())
+
+        self.num_samples_per_cls = [
+            self.targets.count(cls_i) for cls_i in range(self.num_classes)
+        ]
 
     def __getitem__(self, index):
-        img_fname = self.data[index]
-        img_fpath = os.path.join(self.data_dir, img_fname)
-        target = self.targets[index]
-        img = Image.open(img_fpath).convert('RGB')
-        img = self.transform(img)
+        img_path, target = self.img_paths[index], self.targets[index]
+        # img = Image.open(img_path).convert('RGB')
+        img = cv2.imread(img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        if self.transform is not None:
+            img = self.transform(img, mean=self.mean, std=self.std)
 
         return img, target
 
     def __len__(self):
-        return len(self.data)
+        return len(self.targets)
 
-    def get_data(self, fold, data_dir):
-        if self.train:
-            fname = '8_2_split/train_{}.txt'.format(fold)
-        else:
-            fname = '8_2_split/val_{}.txt'.format(fold)
-
-        img_lst_fpath = os.path.join(data_dir, fname)
+    def get_data(self, fold_i, root, phase):
+        img_lst_fpath = join(root, f"8_2_split/{phase}_{fold_i}.txt")
         df = pd.read_csv(img_lst_fpath, sep=" ")
-        raw_data = df.values
+        img_names = [d[0] for d in df.values]
+        targets = [d[1] for d in df.values]
 
-        fnames = []
-        labels = []
-
-        for fname, label in raw_data:
-            fnames.append(fname)
-            labels.append(label)
-
-        return fnames, labels
-
-    @staticmethod
-    def get_classes_name(data_dir):
-        classes_name = np.load(data_dir)
-
-        return classes_name
+        return img_names, targets
 
 
 if __name__ == '__main__':
-    mean = (0.592, 0.479, 0.451)
-    std = (0.265, 0.245, 0.247)
-    transform = T.Compose(
-        [T.Resize((224, 224)),
-         T.ToTensor(),
-         T.Normalize(mean=mean, std=std)])
-    trainset = SD198(train=True, transform=transform, fold=1)
-
-    loader = torch.utils.data.DataLoader(trainset,
-                                         batch_size=16,
-                                         shuffle=True,
-                                         num_workers=8)
-
-    for data in loader:
-        images, labels = data
-        print('images:', images.size())
-        print('labels', labels.size())
+    trainset = SD198(train=True, fold_i=0)

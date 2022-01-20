@@ -1,9 +1,10 @@
+# from pudb import set_trace
+import albumeations as A
 import torch
 from data_loader.transform.builder import Transforms
-# from pudb import set_trace
 from torchvision import transforms
 
-from .randaugment import RandAugment
+# from .randaugment import RandAugment
 from .randaugment_fixmatch import RandAugmentMC, RandAugmentPC
 
 IN_MEAN = [0.485, 0.456, 0.406]
@@ -12,6 +13,7 @@ IN_STD = [0.229, 0.224, 0.225]
 
 @Transforms.register_module('BaseTransform')
 class BaseTransform:
+
     def __init__(self,
                  phase='train',
                  resize=(224, 224),
@@ -20,6 +22,7 @@ class BaseTransform:
         self.phase = phase
         self.resize = resize
         self.strong = strong
+
         if phase == 'train':
             self.insert_T = kwargs.get('insert_T', None)
 
@@ -105,11 +108,13 @@ class BaseTransform:
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std),
             ])
+
         return ret_transform(x)
 
 
 @Transforms.register_module('CifarTransform')
 class CifarTransform:
+
     def __init__(self, phase='train', resize=(32, 32), strong=False, **kwargs):
         self.phase = phase
         self.resize = resize
@@ -150,22 +155,85 @@ class CifarTransform:
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std),
             ])
+
+        return ret_transform(x)
+
+
+@Transforms.register_module('MedTransform')
+class MedTransform:
+
+    def __init__(self, phase='train', resize=(224, 224), **kwargs):
+        self.phase = phase
+        self.resize = resize
+
+    def __call__(self, x, mean=IN_MEAN, std=IN_STD, **kwargs):
+        if self.phase == 'train':
+            ret_transform = A.Compose([
+                A.Transpose(p=0.5),
+                A.VerticalFlip(p=0.5),
+                A.HorizontalFlip(p=0.5),
+                A.RandomBrightness(limit=0.2, p=0.75),
+                A.RandomContrast(limit=0.2, p=0.75),
+                A.OneOf([
+                    A.MotionBlur(blur_limit=5),
+                    A.MedianBlur(blur_limit=5),
+                    A.GaussianBlur(blur_limit=5),
+                    A.GaussNoise(var_limit=(5.0, 30.0))
+                ],
+                    p=0.7),
+                A.OneOf([
+                    A.OpticalDistortion(distort_limit=1.0),
+                    A.GridDistortion(num_steps=5, distort_limit=1.),
+                    A.ElasticTransform(alpha=3),
+                ],
+                    p=0.7),
+                A.CLAHE(clip_limit=4.0, p=0.7),
+                A.HueSaturationValue(hue_shift_limit=10,
+                                     sat_shift_limit=20,
+                                     val_shift_limit=10,
+                                     p=0.5),
+                A.ShiftScaleRotate(shift_limit=0.1,
+                                   scale_limit=0.1,
+                                   rotate_limit=15,
+                                   border_mode=0,
+                                   p=0.85),
+                A.Resize(self.resize),
+                A.Cutout(max_h_size=int(self.resize[0] * 0.375),
+                         max_w_size=int(self.resize[1] * 0.375),
+                         num_holes=1,
+                         p=0.7),
+                A.Normalize(),
+            ])
+        else:
+            ret_transform = A.Compose([
+                A.Resize(self.resize),
+                A.Normalize(mean, std),
+            ])
+
         return ret_transform(x)
 
 
 @Transforms.register_module('ImagenetTransform')
 class ImagenetTransform:
-    def __init__(self, phase='train', resize=(224, 224), strong=False, **kwargs):
+
+    def __init__(self,
+                 phase='train',
+                 resize=(224, 224),
+                 strong=False,
+                 **kwargs):
         self.phase = phase
         self.resize = resize
         self.strong = strong
-    
+
     def __call__(self, x, mean=IN_MEAN, std=IN_STD, **kwargs):
         if self.phase == 'train':
             ret_transform = transforms.Compose([
                 transforms.RandomResizedCrop(self.resize),
                 transforms.RandomHorizontalFlip(),
-                # transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0),
+                # transforms.ColorJitter(brightness=0.4,
+                #                        contrast=0.4,
+                #                        saturation=0.4,
+                #                        hue=0),
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std)
             ])
@@ -176,10 +244,13 @@ class ImagenetTransform:
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std)
             ])
+
         return ret_transform(x)
+
 
 @Transforms.register_module('NoiseBaseTransform')
 class NoiseBaseTransform:
+
     def __init__(self,
                  phase='train',
                  resize=(224, 224),
@@ -244,12 +315,14 @@ class NoiseBaseTransform:
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std)
             ])
+
         return ret_transform(x)
 
 
 # from ildoonet/pytorch-randaugment
 @Transforms.register_module('RandTransform')
 class RandTransform:
+
     def __init__(self, phase='train', resize=(32, 32), **kwargs):
         self.phase = phase
         self.resize = resize
@@ -268,8 +341,10 @@ class RandTransform:
     ):
         if m is None:
             m = self.m
+
         if n is None:
             n = self.n
+
         if percent is not None:
             m = int(((1 + percent) / 2 * m))
 
@@ -294,6 +369,7 @@ class RandTransform:
 
 @Transforms.register_module('AdvTransform')
 class AdvTransform:
+
     def __init__(self,
                  phase='train',
                  resize=(224, 224),
@@ -335,11 +411,13 @@ class AdvTransform:
                 transforms.Resize(self.resize),
                 transforms.ToTensor(),
             ])
+
         return ret_transform(x)
 
 
 @Transforms.register_module('AdvCifarTransform')
 class AdvCifarTransform:
+
     def __init__(self, phase='train', resize=(32, 32), strong=False, **kwargs):
         self.phase = phase
         self.resize = resize
@@ -350,13 +428,13 @@ class AdvCifarTransform:
             if self.strong:
                 ret_transform = transforms.Compose([
                     transforms.RandomHorizontalFlip(0.5),
-                    transforms.RandomAffine(
-                        degrees=30,
-                        translate=(0.4, 0.4),
-                        scale=(0.5, 1.5),
-                        shear=30,
-                        fill=(127, 127, 127),
-                    ),
+                    # transforms.RandomAffine(
+                    #     degrees=30,
+                    #     translate=(0.4, 0.4),
+                    #     scale=(0.5, 1.5),
+                    #     shear=30,
+                    #     fill=(127, 127, 127),
+                    # ),
                     transforms.RandomResizedCrop(self.resize),
                     transforms.ToTensor(),
                 ])
@@ -377,6 +455,7 @@ class AdvCifarTransform:
 
 @Transforms.register_module('TransformFixMatch')
 class TransformFixMatch(object):
+
     def __init__(self,
                  phase='train',
                  resize=(224, 224),
@@ -420,63 +499,12 @@ class TransformFixMatch(object):
             return self.val_transform(x)
 
 
-def flower_transform(
-        resize=(224, 224), phase='train', mean=None, std=None, **kwargs):
-    if phase == 'train':
-        ret_transform = transforms.Compose([
-            transforms.Resize(int(resize[1] / 0.875)),
-            transforms.RandomCrop(resize),
-            transforms.RandomHorizontalFlip(0.5),
-            transforms.RandomRotation(25),
-            transforms.ColorJitter(brightness=0.126, saturation=0.5),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std),
-            transforms.RandomErasing()
-        ])
-    else:
-        ret_transform = transforms.Compose([
-            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
-            # transforms.CenterCrop(resize),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std)
-        ])
-
-    return ret_transform
-
-
-def huashu_transform(phase='train',
-                     resize=(224, 224),
-                     mean=None,
-                     std=None,
-                     **kwargs):
-    if phase == 'train':
-        # transforms.RandomOrder
-        ret_transform = transforms.Compose([
-            transforms.Resize(int(resize[1] / 0.875)),
-            transforms.RandomCrop(resize),
-            transforms.RandomHorizontalFlip(0.5),
-            transforms.RandomRotation(25),
-            transforms.ColorJitter(brightness=0.126, saturation=0.5),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std),
-            transforms.RandomErasing()
-        ])
-    else:
-        ret_transform = transforms.Compose([
-            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
-            # transforms.CenterCrop(resize),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std)
-        ])
-
-    return ret_transform
-
-
 def common_transform(phase='train',
                      resize=(224, 224),
                      mean=None,
                      std=None,
                      **kwargs):
+
     if phase == 'train':
         ret_transform = transforms.Compose([
             transforms.Resize(int(resize[0] / 0.875)),
@@ -498,34 +526,12 @@ def common_transform(phase='train',
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
         ])
-    return ret_transform
 
-
-def rand_transform(phase='train',
-                   resize=(224, 224),
-                   mean=None,
-                   std=None,
-                   **kwargs):
-    if phase == "train":
-        n = kwargs.get("rand_n", 2)
-        m = kwargs.get("rand_m", 10)
-        ret_transform = transforms.Compose([
-            transforms.Resize(int(resize[1] / 0.875)),
-            transforms.RandomCrop(resize),
-            RandAugment(n, m),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std)
-        ])
-    else:
-        ret_transform = transforms.Compose([
-            transforms.Resize(size=(int(resize[0]), int(resize[1]))),
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std)
-        ])
     return ret_transform
 
 
 class GaussianNoise:
+
     def __init__(self, sigma):
         self.sigma = sigma
 
@@ -533,25 +539,5 @@ class GaussianNoise:
         noise = self.sigma * torch.randn_like(img)
         noised_tensor = img + noise
         noised_tensor = torch.clamp(noised_tensor, min=0., max=1.)
+
         return noised_tensor
-
-
-# def cifar_adaptive_transform(phase='train',
-#                              resize=(32, 32),
-#                              cls=0, **kwargs):
-#     mean = [0.4914, 0.4822, 0.4465]
-#     std = [0.2023, 0.1994, 0.2010]
-
-#     if phase == 'train':
-#         ret_transform = transforms.Compose([
-#             transforms.RandomCrop(resize[1], padding=4),
-#             transforms.RandomHorizontalFlip(),
-#             transforms.ToTensor(),
-#             transforms.Normalize(mean, std),
-#         ])
-#     else:
-#         ret_transform = transforms.Compose([
-#             transforms.ToTensor(),
-#             transforms.Normalize(mean, std)
-#         ])
-#     return ret_transform

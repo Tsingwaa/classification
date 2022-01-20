@@ -1,6 +1,6 @@
 import os
 
-from utils.core import Registry
+from core import Registry
 
 Datasets = Registry("dataset")
 

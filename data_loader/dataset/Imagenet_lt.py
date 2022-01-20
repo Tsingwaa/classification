@@ -1,4 +1,4 @@
-import os
+from os.path import join
 
 import numpy as np
 from data_loader.dataset.builder import DATASETS_ROOT, Datasets
@@ -10,23 +10,29 @@ from torch.utils.data import Dataset
 @Datasets.register_module("ImageNet_LT")
 class LT_Dataset(Dataset):
     num_classes = 1000
+    mean = [0.485, 0.456, 0.406]
+    std = [0.229, 0.224, 0.225]
 
     def __init__(self,
                  root,
                  img_lst_path,
-                 transform=None,
                  phase='train',
+                 transform=None,
                  imb_type='exp',
                  map_fpath=''):
         self.img_paths = []
         self.targets = []
         self.transform = transform
         self.map = np.load(map_fpath)
-        root = os.path.join(DATASETS_ROOT, root)
+
+        if "/" not in root:
+            root = join(DATASETS_ROOT, root)
+
         with open(img_lst_path) as f:
             for line in f:
-                self.img_paths.append(os.path.join(root, line.split()[0]))
+                self.img_paths.append(join(root, line.split()[0]))
                 self.targets.append(self.map[int(line.split()[1])])
+
         self.num_samples_per_cls = [
             self.targets.count(i) for i in range(self.num_classes)
         ]
@@ -38,16 +44,15 @@ class LT_Dataset(Dataset):
 
     def __getitem__(self, index):
 
-        path = self.img_paths[index]
-        label = self.targets[index]
+        img_path = self.img_paths[index]
+        target = self.targets[index]
 
-        with open(path, 'rb') as f:
-            sample = Image.open(f).convert('RGB')
+        img = Image.open(img_path).convert('RGB')
 
         if self.transform is not None:
-            sample = self.transform(sample)
+            img = self.transform(img)
 
-        return sample, label
+        return img, target
 
     def get_class_list(self):
         return self.class_list
