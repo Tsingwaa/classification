@@ -19,6 +19,7 @@ __all__ = ['count_model_params', 'label2onehot', 'AverageMeter']
 def count_model_params(net):
     # Compute the total amount of parameters with gradient.
     total_params = 0.
+
     for x in filter(lambda p: p.requires_grad, net.parameters()):
         total_params += np.prod(x.data.numpy().shape)
 
@@ -27,13 +28,16 @@ def count_model_params(net):
 
 def label2onehot(targets, num_classes):
     """Transform label to one-hot vector."""
+
     if not isinstance(targets, torch.Tensor):
         targets = torch.tensor(targets)
     init_zeros = torch.zeros(len(targets), num_classes)
+
     return init_zeros.scatter_(1, targets.view(-1, 1), 1)
 
 
 class TopKAccuracyMetric:
+
     def __init__(self, topk=(1, )):
         self.name = 'topk_accuracy'
         self.topk = topk
@@ -110,6 +114,7 @@ def rotation(inputs):
     target = target.long()
     image = torch.zeros_like(inputs)
     image.copy_(inputs)
+
     for i in range(batch):
         image[i, :, :, :] = torch.rot90(inputs[i, :, :, :], target[i], [1, 2])
 
@@ -176,6 +181,7 @@ def plot_confusion_matrix(y_true,
     # Loop over data dimensions and create text annotations.
     fmt = '.2f' if normalize else 'd'
     thresh = cm.max() / 2.
+
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
             ax.text(j,
@@ -185,6 +191,7 @@ def plot_confusion_matrix(y_true,
                     va="center",
                     color="white" if cm[i, j] > thresh else "black")
     fig.tight_layout()
+
     return ax
 
 
@@ -197,6 +204,7 @@ def plot_features(features, labels, save_dir, num_classes, epoch, prefix):
     """
 
     colors = ['C' + str(i) for i in range(num_classes)]
+
     for label_idx in range(num_classes):
         plt.scatter(
             features[labels == label_idx, 0],
@@ -206,6 +214,7 @@ def plot_features(features, labels, save_dir, num_classes, epoch, prefix):
         )
     plt.legend(list(range(num_classes)), loc='upper right')
     dirname = join(save_dir, prefix)
+
     if not exists(dirname):
         os.mkdir(dirname)
     save_name = join(dirname, 'epoch_' + str(epoch + 1) + '.png')

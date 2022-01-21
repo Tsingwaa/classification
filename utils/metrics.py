@@ -245,3 +245,71 @@ class ExpStat(object):
             last_num_samples = num_samples
 
         return start, end
+
+
+def count_model_params(net):
+    # Compute the total amount of parameters with gradient.
+    total_params = 0.
+
+    for x in filter(lambda p: p.requires_grad, net.parameters()):
+        total_params += np.prod(x.data.numpy().shape)
+
+    return total_params
+
+
+def label2onehot(targets, num_classes):
+    """Transform label to one-hot vector."""
+
+    if not isinstance(targets, torch.Tensor):
+        targets = torch.tensor(targets)
+    init_zeros = torch.zeros(len(targets), num_classes)
+
+    return init_zeros.scatter_(1, targets.view(-1, 1), 1)
+
+
+class TopKAccuracyMetric:
+
+    def __init__(self, topk=(1, )):
+        self.name = 'topk_accuracy'
+        self.topk = topk
+        self.maxk = max(topk)
+        self.reset()
+
+    def reset(self):
+        self.corrects = np.zeros(len(self.topk))
+        self.num_samples = 0.
+
+    def __call__(self, output, target):
+        """Computes the precision@k for the specified values of k"""
+        self.num_samples += target.size(0)
+        _, pred = output.topk(self.maxk, 1, True, True)
+        pred = pred.t()
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
+
+        for i, k in enumerate(self.topk):
+            correct_k = correct[:k].view(-1).float().sum(0)
+            self.corrects[i] += correct_k.item()
+
+        return self.corrects * 100. / self.num_samples
+
+
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+
+    def __init__(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count

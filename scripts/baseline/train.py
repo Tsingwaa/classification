@@ -1,5 +1,6 @@
 """trainer script """
 import argparse
+import os
 import random
 import warnings
 from datetime import datetime
@@ -7,10 +8,10 @@ from datetime import datetime
 import numpy as np
 import torch
 import yaml
-from apex import amp
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
+from torch import distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -66,9 +67,8 @@ class Trainer(BaseTrainer):
                                      sampler=val_sampler)
 
         if self.local_rank != -1:
-            torch.distributed.barrier()
-            print(f"global_rank={self.global_rank}, "
-                  f"world_size={self.world_size}, "
+            dist.barrier()
+            print(f"world_size={self.world_size}, "
                   f"local_rank={self.local_rank}, "
                   f"train_sampler='{self.train_sampler_name}', "
                   f"val_sampler='{self.val_sampler_name}'\n")
@@ -101,13 +101,9 @@ class Trainer(BaseTrainer):
         #######################################################################
 
         if self.local_rank != -1:
-            self.model, self.optimizer = amp.initialize(self.model,
-                                                        self.optimizer,
-                                                        opt_level="O1")
             self.model = DistributedDataParallel(self.model,
                                                  device_ids=[self.local_rank],
-                                                 output_device=self.local_rank,
-                                                 find_unused_parameters=True)
+                                                 output_device=self.local_rank)
 
         #######################################################################
         # Initialize LR Scheduler
@@ -139,6 +135,7 @@ class Trainer(BaseTrainer):
             if self.local_rank != -1:
                 train_sampler.set_epoch(cur_epoch)
                 val_sampler.set_epoch(cur_epoch)
+                dist.barrier()
 
             train_stat, train_loss = self.train_epoch(
                 cur_epoch=cur_epoch,
@@ -154,7 +151,6 @@ class Trainer(BaseTrainer):
                 model=self.model,
                 criterion=self.criterion,
                 num_samples_per_cls=trainset.num_samples_per_cls)
-            # num_samples_per_cls ==> get the medium class index start and end
 
             if self.local_rank <= 0:
                 if self.final_epoch - cur_epoch <= 5:
@@ -263,16 +259,22 @@ class Trainer(BaseTrainer):
             avg_loss = criterion(batch_probs, batch_labels)
 
             if self.local_rank != -1:
-                with amp.scale_loss(avg_loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
+                dist.barrier()
+                # dist.barrier()的作用是，阻塞进程
+                # 确保每个进程都运行到这一行代码，才能继续执行，这样计算
+                # 平均loss和平均acc的时候，不会出现因为进程执行速度不一致
+                # 而导致错误
+                avg_loss.backward()
                 optimizer.step()
+
                 avg_loss = self._reduce_tensor(avg_loss)
             else:
                 avg_loss.backward()
                 optimizer.step()
 
-            batch_preds = torch.argmax(batch_probs, dim=1)
             train_loss_meter.update(avg_loss.item(), 1)
+
+            batch_preds = torch.argmax(batch_probs, dim=1)
             train_stat.update(batch_labels, batch_preds)
 
             if self.local_rank <= 0:
@@ -282,8 +284,9 @@ class Trainer(BaseTrainer):
                     f"Loss:{train_loss_meter.avg:>3.1f}")
 
         if self.local_rank != -1:
-            # all reduce the statistical confusion matrix
-            torch.distributed.barrier()
+            dist.barrier()
+            # 统计所有进程的train_stat里的confusion matrix
+            # 由于ddp通信只能通过tensor, 所以采用cm，信息全面，可操作
             train_stat._cm = self._reduce_tensor(train_stat._cm, op='sum')
 
         if self.local_rank <= 0:
@@ -321,10 +324,7 @@ class Trainer(BaseTrainer):
                 avg_loss = criterion(batch_probs, batch_labels)
 
                 if self.local_rank != -1:
-                    torch.distributed.barrier()
-                    # torch.distributed.barrier()的作用是，阻塞进程，确保每个进程都运行
-                    # 到这一行代码，才能继续执行，这样计算平均loss和平均acc的时候
-                    # 不会出现因为进程执行速度不一致而导致的错误
+                    dist.barrier()
                     avg_loss = self._reduce_tensor(avg_loss)
 
                 val_loss_meter.update(avg_loss.item(), 1)
@@ -336,8 +336,7 @@ class Trainer(BaseTrainer):
                         f"Loss:{val_loss_meter.avg:>3.1f}")
 
         if self.local_rank != -1:
-            # all reduce the statistical confusion matrix
-            torch.distributed.barrier()
+            dist.barrier()
             val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
 
         if self.local_rank <= 0:
@@ -353,9 +352,10 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    # Local rank设定：单卡手动指定为-1，多卡不设定，ddp自动设定为0,1,...
+    # Local rank设定：单卡默认为-1，多卡不设定，ddp自动设定为0,1,...
     parser.add_argument("--local_rank",
                         type=int,
+                        default=-1,
                         help="Local Rank for distributed training. "
                         "if single-GPU, default set to -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
@@ -392,16 +392,20 @@ def _set_random_seed(seed=0, cuda_deterministic=False):
 def main(args):
     warnings.filterwarnings("ignore")
     _set_random_seed(seed=args.seed)
+
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    trainer = Trainer(
-        local_rank=args.local_rank,
-        config=config,
-        seed=args.seed,
-    )
+
+    trainer = Trainer(local_rank=args.local_rank,
+                      config=config,
+                      seed=args.seed)
     trainer.train()
 
 
 if __name__ == "__main__":
     args = parse_args()
+
+    if "LOCAL_RANK" in os.environ:
+        args.local_rank = int(os.environ["LOCAL_RANK"])
+
     main(args)

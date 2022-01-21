@@ -36,9 +36,8 @@ class BaseTrainer:
         self.seed = seed
 
         if self.local_rank != -1:
-            dist.init_process_group(backend="nccl")
             torch.cuda.set_device(self.local_rank)
-            self.global_rank = dist.get_rank()
+            dist.init_process_group(backend="nccl")
             self.world_size = dist.get_world_size()
 
         #######################################################################
@@ -217,7 +216,7 @@ class BaseTrainer:
 
         model = Networks.get(network_name)(**kwargs)
         total_params = self.count_model_params(model)
-        model.cuda()
+        model = model.cuda()
 
         _prefix = "Initialized"
 
@@ -326,24 +325,27 @@ class BaseTrainer:
         return module
 
     def _reduce_tensor(self, tensor, op='mean'):
-        with torch.no_grad():
-            dist.all_reduce(tensor, op=dist.reduce_op.SUM)
+        reduced_tensor = tensor.clone()
+        dist.all_reduce(reduced_tensor, op=dist.ReduceOp.SUM)
 
-            if not self.local_rank and op == 'mean':
-                tensor /= self.world_size
+        if op == 'mean':
+            reduced_tensor /= self.world_size
 
-        return tensor
+        return reduced_tensor
 
-    def resume_checkpoint(self, resume_fpath):
+    def resume_checkpoint(self, resume_fpath, **kwargs):
         checkpoint = torch.load(resume_fpath, map_location="cpu")
         epoch = checkpoint["epoch"]
         is_best = checkpoint["is_best"]
-        mr = checkpoint["mr"]
-        group_mr = checkpoint.get("group_mr", "-")
 
         resume_log = f"===> Resume checkpoint from '{resume_fpath}'.\n"\
-            f"checkpoint epoch: {epoch}\nIs_best: {is_best}\n"\
-            f"Mean recall: {mr:.2%}\nGroup mean recalls: {group_mr}\n"
+            f"checkpoint epoch: {epoch}\nIs_best: {is_best}\n"
+
+        if kwargs["mr"]:
+            mr = checkpoint["mr"]
+            group_mr = checkpoint.get("group_mr", "-")
+
+        resume_log += f"Mean recall: {mr:.2%} Group mr: {group_mr}\n"
 
         return checkpoint, resume_log
 
