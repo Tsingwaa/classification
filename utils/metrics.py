@@ -80,8 +80,9 @@ def get_preds_by_cossim(querys, keys):
 
 class ExpStat(object):
 
-    def __init__(self, num_samples_per_cls):
+    def __init__(self, num_samples_per_cls, byshot=False):
         self.num_classes = len(num_samples_per_cls)
+        self.byshot = byshot
 
         # Get Med classes: cls_list[med_start:med_end]
         self.med_start, self.med_end = self.get_group_index(
@@ -122,19 +123,21 @@ class ExpStat(object):
         medium_mr = np.mean(self.recalls[self.med_start:self.med_end])
         minor_mr = np.mean(self.recalls[self.med_end:])
 
-        if self.med_start < self.num_classes:  # 最小类不足100张
-            major_mr = np.mean(self.recalls[:self.med_start])
+        if self.byshot:
+            if self.med_start < self.num_classes:  # 最小类不足100张
+                major_mr = np.mean(self.recalls[:self.med_start])
 
-            if self.med_end == 0:  # 最小类不足20张
-                medium_mr = np.mean(self.recalls[self.med_start:])
-                minor_mr = 0.
-            else:  # 最小类 20～100张
-                medium_mr = np.mean(self.recalls[self.med_start:self.med_end])
-                minor_mr = np.mean(self.recalls[self.med_end:])
+                if self.med_end == 0:  # 最小类不足20张
+                    medium_mr = np.mean(self.recalls[self.med_start:])
+                    minor_mr = 0.
+                else:  # 最小类 20～100张
+                    medium_mr = np.mean(
+                        self.recalls[self.med_start:self.med_end])
+                    minor_mr = np.mean(self.recalls[self.med_end:])
 
-        elif self.med_start == 0:  # 最小类多于100张
-            major_mr = np.mean(self.recalls)
-            medium_mr, minor_mr = 0, 0
+            elif self.med_start == 0:  # 最小类多于100张
+                major_mr = np.mean(self.recalls)
+                medium_mr, minor_mr = 0, 0
 
         return [
             np.around(major_mr, decimals=4),

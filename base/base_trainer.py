@@ -171,19 +171,22 @@ class BaseTrainer:
 
         transform = Transforms.get(transform_name)(**kwargs)
 
-        transform_init_log = f"===> Initialized {transform_name}: {kwargs}"
+        transform_init_log = f"===> Initialized {kwargs['phase']} "\
+            f" {transform_name}: {kwargs}"
         self.log(transform_init_log, log_level)
 
         return transform
 
     def init_dataset(self, dataset_name, **kwargs):
         log_level = kwargs.pop("log_level", "default")
-        _prefix = kwargs.pop("prefix", "")  # tag dataset phase
+        prefix = kwargs.pop("prefix", "")  # tag dataset phase
 
         dataset = Datasets.get(dataset_name)(**kwargs)
 
+        fold_str = f"fold-{kwargs['fold_i']} " \
+            if "fold_i" in kwargs.keys() else ""
         dataset_init_log = f"===> Initialized {kwargs['phase']} "\
-            f"{_prefix}{dataset_name}: size={len(dataset)}, "\
+            f"{fold_str}{prefix}{dataset_name}: size={len(dataset)}, "\
             f"classes={dataset.num_classes}\n"\
             f"imgs_per_cls={dataset.num_samples_per_cls}"
         self.log(dataset_init_log, log_level)
@@ -193,12 +196,12 @@ class BaseTrainer:
     def init_sampler(self, sampler_name, **kwargs):
         log_level = kwargs.pop("log_level", "default")
 
-        if sampler_name in {None, "None", ""}:
-            sampler = None
-            sampler_init_log = "===> Use Default Sampler"
-        elif sampler_name == "DistributedSampler":
+        if self.local_rank != -1:
             sampler = DistributedSampler(kwargs["dataset"])
             sampler_init_log = "===> Initialized DistributedSampler"
+        elif sampler_name in {None, "None", ""}:
+            sampler = None
+            sampler_init_log = "===> Use Default Sampler"
         else:
             sampler = Samplers.get(sampler_name)(**kwargs)
             sampler_init_log = f"===> Initialized {sampler_name} with"\

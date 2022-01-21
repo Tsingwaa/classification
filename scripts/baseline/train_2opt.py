@@ -1,5 +1,6 @@
 """trainer script """
 import argparse
+import os
 import random
 import warnings
 from datetime import datetime
@@ -7,10 +8,10 @@ from datetime import datetime
 import numpy as np
 import torch
 import yaml
-from apex import amp
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
+from torch import distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -56,7 +57,6 @@ class Trainer(BaseTrainer):
                                        drop_last=True,
                                        sampler=train_sampler)
 
-        # 无论多卡还是单卡，都需要新建val_loader
         val_transform = self.init_transform(self.val_transform_name,
                                             **self.val_transform_params)
         valset = self.init_dataset(self.valset_name,
@@ -74,11 +74,18 @@ class Trainer(BaseTrainer):
                                      sampler=val_sampler)
 
         if self.local_rank != -1:
-            print(f"global_rank {self.global_rank},"
-                  f"world_size {self.world_size},"
-                  f"local_rank {self.local_rank},"
-                  f"train '{self.train_sampler_name}'"
-                  f"val '{self.val_sampler_name}'")
+            dist.barrier()
+
+            if not self.train_sampler_name:
+                self.train_sampler_name = "DistributedSampler"
+
+            if not self.val_sampler_name:
+                self.val_sampler_name = "DistributedSampler"
+
+            self.log(f"world_size={self.world_size}, "
+                     f"local_rank={self.local_rank}, "
+                     f"train_sampler='{self.train_sampler_name}', "
+                     f"val_sampler='{self.val_sampler_name}'")
 
         #######################################################################
         # Initialize Network
@@ -86,6 +93,15 @@ class Trainer(BaseTrainer):
         self.model = self.init_model(self.network_name,
                                      num_classes=trainset.num_classes,
                                      **self.network_params)
+
+        #######################################################################
+        # Initialize DistributedDataParallel
+        #######################################################################
+
+        if self.local_rank != -1:
+            self.model = DistributedDataParallel(self.model,
+                                                 device_ids=[self.local_rank],
+                                                 output_device=self.local_rank)
 
         #######################################################################
         # Initialize Loss
@@ -107,19 +123,6 @@ class Trainer(BaseTrainer):
                                               **self.opt2_params)
 
         #######################################################################
-        # Initialize DistributedDataParallel
-        #######################################################################
-
-        if self.local_rank != -1:
-            self.model, self.optimizer = amp.initialize(self.model,
-                                                        self.optimizer,
-                                                        opt_level="O1")
-            self.model = DistributedDataParallel(self.model,
-                                                 device_ids=[self.local_rank],
-                                                 output_device=self.local_rank,
-                                                 find_unused_parameters=True)
-
-        #######################################################################
         # Initialize LR Scheduler
         #######################################################################
         self.lr_scheduler = self.init_lr_scheduler(self.scheduler_name,
@@ -133,7 +136,7 @@ class Trainer(BaseTrainer):
         # Start Training
         #######################################################################
 
-        if self.local_rank <= 0:
+        if self.local_rank in [-1, 0]:
             best_mr = 0.
             best_epoch = 1
             best_group_mr = []
@@ -151,6 +154,7 @@ class Trainer(BaseTrainer):
             self.lr_scheduler2.step()
 
             if self.local_rank != -1:
+                dist.barrier()
                 train_sampler.set_epoch(cur_epoch)
                 val_sampler.set_epoch(cur_epoch)
 
@@ -272,27 +276,20 @@ class Trainer(BaseTrainer):
         train_stat = ExpStat(num_samples_per_cls)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
-            optimizer.zero_grad()
-            optimizer2.zero_grad()
-
             batch_imgs = batch_imgs.cuda()
             batch_labels = batch_labels.cuda()
             batch_probs = model(batch_imgs)
             avg_loss = criterion(batch_probs, batch_labels)
-            # batch_vecs = model(batch_imgs, out='vec')
-            # avg_loss = criterion(batch_vecs, batch_labels)
+
+            optimizer.zero_grad()
+            optimizer2.zero_grad()
+            avg_loss.backward()
+            optimizer2.step()
+            optimizer.step()
 
             if self.local_rank != -1:
-                torch.distributed.barrier()
-                with amp.scale_loss(avg_loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-                optimizer2.step()
-                optimizer.step()
+                dist.barrier()
                 avg_loss = self._reduce_tensor(avg_loss)
-            else:
-                avg_loss.backward()
-                optimizer2.step()
-                optimizer.step()
 
             batch_preds = torch.argmax(batch_probs, dim=1)
             # batch_preds = train_stat.get_preds_by_eudist(
@@ -306,6 +303,10 @@ class Trainer(BaseTrainer):
                     f"LR:[{optimizer.param_groups[0]['lr']:.1e}, "
                     f"{optimizer2.param_groups[0]['lr']:.1e}] "
                     f"Loss: {train_loss_meter.avg:4.2f} ")
+
+        if self.local_rank != -1:
+            dist.barrier()
+            train_stat._cm = self._reduce_tensor(train_stat._cm, op='sum')
 
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(
@@ -347,23 +348,20 @@ class Trainer(BaseTrainer):
                 # avg_loss = criterion(batch_vecs, batch_labels)
 
                 if self.local_rank != -1:
-                    torch.distributed.barrier()
-                    # torch.distributed.barrier()的作用是，阻塞进程，确保每个进程都运行
-                    # 到这一行代码，才能继续执行，这样计算平均loss和平均acc的时候
-                    # 不会出现因为进程执行速度不一致而导致的错误
+                    dist.barrier()
                     avg_loss = self._reduce_tensor(avg_loss)
 
                 val_loss_meter.update(avg_loss.item(), 1)
                 val_stat.update(batch_labels, batch_preds)
 
-                if self.local_rank <= 0:
+                if self.local_rank in [-1, 0]:
                     val_pbar.update()
                     val_pbar.set_postfix_str(
                         f"Loss:{val_loss_meter.avg:>3.1f}")
 
         if self.local_rank != -1:
             # all reduce the statistical confusion matrix
-            torch.distributed.barrier()
+            dist.barrier()
             val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
 
         if self.local_rank in [-1, 0]:
@@ -381,6 +379,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--local_rank",
                         type=int,
+                        default=-1,
                         help="Local Rank for distributed training. "
                         "if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
@@ -427,4 +426,8 @@ def main(args):
 
 if __name__ == "__main__":
     args = parse_args()
+
+    if "LOCAL_RANK" in os.environ:
+        args.local_rank = int(os.environ["LOCAL_RANK"])
+
     main(args)

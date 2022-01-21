@@ -38,8 +38,8 @@ class Tester(BaseTrainer):
         self.seed = seed
 
         if self.local_rank != -1:
-            dist.init_process_group(backend="nccl")
             torch.cuda.set_device(self.local_rank)
+            dist.init_process_group(backend="nccl")
             self.world_size = dist.get_world_size()
 
         #######################################################################
@@ -129,8 +129,9 @@ class Tester(BaseTrainer):
                 avg_loss = criterion(batch_probs, batch_labels)
 
                 if self.local_rank != -1:
-                    torch.distributed.barrier()
+                    dist.barrier()
                     avg_loss = self._reduce_tensor(avg_loss)
+
                 eval_loss_meter.update(avg_loss.item(), 1)
                 batch_preds = torch.argmax(batch_probs, dim=1)
                 eval_stat.update(batch_labels, batch_preds)
@@ -138,8 +139,7 @@ class Tester(BaseTrainer):
                 eval_pbar.update()
 
         if self.local_rank != -1:
-            # all reduce the statistical confusion matrix
-            torch.distributed.barrier()
+            dist.barrier()
             eval_stat._cm = self._reduce_tensor(eval_stat._cm, op='sum')
 
         if self.local_rank in [-1, 0]:
@@ -246,6 +246,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--local_rank",
                         type=int,
+                        default=-1,
                         help="Local Rank for distributed training. "
                         "if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
@@ -290,4 +291,8 @@ def main(args):
 
 if __name__ == "__main__":
     args = parse_args()
+
+    if "LOCAL_RANK" in os.environ:
+        args.local_rank = int(os.environ["LOCAL_RANK"])
+
     main(args)

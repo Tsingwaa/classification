@@ -1,5 +1,6 @@
 """trainer script """
 import argparse
+import os
 import random
 import warnings
 from datetime import datetime
@@ -7,10 +8,10 @@ from datetime import datetime
 import numpy as np
 import torch
 import yaml
-from apex import amp
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
+from torch import distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -79,11 +80,17 @@ class Trainer(BaseTrainer):
                                      sampler=val_sampler)
 
         if self.local_rank != -1:
-            self.log(f"global_rank {self.global_rank},"
-                     f"world_size {self.world_size},"
-                     f"local_rank {self.local_rank},"
-                     f"train '{self.train_sampler_name}'"
-                     f"val '{self.val_sampler_name}'")
+
+            if not self.train_sampler_name:
+                self.train_sampler_name = "DistributedSampler"
+
+            if not self.val_sampler_name:
+                self.val_sampler_name = "DistributedSampler"
+
+            self.log(f"world_size={self.world_size}, "
+                     f"local_rank={self.local_rank}, "
+                     f"train_sampler='{self.train_sampler_name}', "
+                     f"val_sampler='{self.val_sampler_name}'")
 
         #######################################################################
         # Initialize Network
@@ -91,6 +98,15 @@ class Trainer(BaseTrainer):
         self.model = self.init_model(self.network_name,
                                      num_classes=trainset.num_classes,
                                      **self.network_params)
+
+        #######################################################################
+        # Initialize DistributedDataParallel
+        #######################################################################
+
+        if self.local_rank != -1:
+            self.model = DistributedDataParallel(self.model,
+                                                 device_ids=[self.local_rank],
+                                                 output_device=self.local_rank)
 
         #######################################################################
         # Initialize Loss
@@ -116,19 +132,6 @@ class Trainer(BaseTrainer):
         self.optimizer2 = self.init_optimizer(self.opt2_name,
                                               self.criterion2.parameters(),
                                               **self.opt2_params)
-
-        #######################################################################
-        # Initialize DistributedDataParallel
-        #######################################################################
-
-        if self.local_rank != -1:
-            self.model, self.optimizer = amp.initialize(self.model,
-                                                        self.optimizer,
-                                                        opt_level="O1")
-            self.model = DistributedDataParallel(self.model,
-                                                 device_ids=[self.local_rank],
-                                                 output_device=self.local_rank,
-                                                 find_unused_parameters=True)
 
         #######################################################################
         # Initialize LR Scheduler
@@ -162,6 +165,7 @@ class Trainer(BaseTrainer):
             self.lr_scheduler2.step()
 
             if self.local_rank != -1:
+                dist.barrier()
                 train_sampler.set_epoch(cur_epoch)
                 val_sampler.set_epoch(cur_epoch)
 
@@ -290,8 +294,6 @@ class Trainer(BaseTrainer):
         train_stat = ExpStat(num_samples_per_cls)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
-            optimizer.zero_grad()
-            optimizer2.zero_grad()
 
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
@@ -301,25 +303,20 @@ class Trainer(BaseTrainer):
             loss2 = criterion2(batch_fvecs, batch_labels)
             avg_loss = loss1 + loss2 * self.lambda_weight
 
-            if self.local_rank != -1:
-                torch.distributed.barrier()
-                with amp.scale_loss(avg_loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()  # 只加速第一个optimizer
-                optimizer.step()
+            optimizer.zero_grad()
+            optimizer2.zero_grad()
+            avg_loss.backward()
+            optimizer.step()
 
-                for param in criterion2.parameters():
-                    param.grad.data *= (1. / self.lambda_weight)
-                optimizer2.step()
+            for param in criterion2.parameters():
+                param.grad.data *= (1. / self.lambda_weight)
+            optimizer2.step()
+
+            if self.local_rank != -1:
+                dist.barrier()
                 avg_loss = self._reduce_tensor(avg_loss)
                 loss1 = self._reduce_tensor(loss1)
                 loss2 = self._reduce_tensor(loss2)
-            else:
-                avg_loss.backward()
-                optimizer.step()
-
-                for param in criterion2.parameters():
-                    param.grad.data *= (1. / self.lambda_weight)
-                optimizer2.step()
 
             train_loss_meter.update(avg_loss.item(), 1)
             loss1_meter.update(loss1.item(), 1)
@@ -337,8 +334,7 @@ class Trainer(BaseTrainer):
                     f"[{loss1_meter.avg:>3.1f}, {loss2_meter.avg:>3.1f}] ")
 
         if self.local_rank != -1:
-            # all reduce the statistical confusion matrix
-            torch.distributed.barrier()
+            dist.barrier()
             train_stat._cm = self._reduce_tensor(train_stat._cm, op='sum')
 
         if self.local_rank in [-1, 0]:
@@ -382,10 +378,7 @@ class Trainer(BaseTrainer):
                 avg_loss = criterion(batch_probs, batch_labels)
 
                 if self.local_rank != -1:
-                    torch.distributed.barrier()
-                    # torch.distributed.barrier()的作用是，阻塞进程，确保每个进程都运行
-                    # 到这一行代码，才能继续执行，这样计算平均loss和平均acc的时候
-                    # 不会出现因为进程执行速度不一致而导致的错误
+                    dist.barrier()
                     avg_loss = self._reduce_tensor(avg_loss)
 
                 val_loss_meter.update(avg_loss.item(), 1)
@@ -397,8 +390,7 @@ class Trainer(BaseTrainer):
                         f"Loss:{val_loss_meter.avg:>3.1f}")
 
         if self.local_rank != -1:
-            # all reduce the statistical confusion matrix
-            torch.distributed.barrier()
+            dist.barrier()
             val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
 
         if self.local_rank in [-1, 0]:
@@ -416,6 +408,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--local_rank",
                         type=int,
+                        default=-1,
                         help="Local Rank for distributed training. "
                         "if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
@@ -462,4 +455,7 @@ def main(args):
 
 if __name__ == "__main__":
     args = parse_args()
+
+    if "LOCAL_RANK" in os.environ:
+        args.local_rank = int(os.environ["LOCAL_RANK"])
     main(args)

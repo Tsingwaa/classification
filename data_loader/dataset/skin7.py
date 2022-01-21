@@ -1,4 +1,3 @@
-# import os
 from os.path import join
 
 # import cv2
@@ -46,12 +45,9 @@ class Skin7(torch.utils.data.Dataset):
             6: 5,
         }
         self.targets = [remap[target] for target in self.targets]
-
         self.num_samples_per_cls = [
             self.targets.count(i) for i in range(self.num_classes)
         ]
-
-        print(f"===> Initialized fold-{fold_i} {phase}set")
 
     def __getitem__(self, index):
         img_path, target = self.img_paths[index], self.targets[index]

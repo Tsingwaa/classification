@@ -1,4 +1,8 @@
 export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification/
 
-CUDA_VISIBLE_DEVICES=0 python3 eval.py --local_rank -1 --config_path \
-        'configs/miniIN20_0.05_4step/20211121_r18.yaml'
+# Distributed Training without amp
+OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$1 torchrun --nproc_per_node=$2 \
+    --master_addr 127.0.0.1 --master_port 30000 eval.py --config_path $3
+
+# Single GPU
+# CUDA_VISIBLE_DEVICES=$1 python3 eval.py --config_path $2
