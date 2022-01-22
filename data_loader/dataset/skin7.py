@@ -48,6 +48,9 @@ class Skin7(torch.utils.data.Dataset):
         self.num_samples_per_cls = [
             self.targets.count(i) for i in range(self.num_classes)
         ]
+        # train:[5364, 890, 879, 411, 261, 113, 92]
+        # test: [1341, 223, 220, 103, 66,  29,  23]
+        self.group_mode = "class"
 
     def __getitem__(self, index):
         img_path, target = self.img_paths[index], self.targets[index]

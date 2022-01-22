@@ -46,6 +46,7 @@ class SD198(torch.utils.data.Dataset):
         self.num_samples_per_cls = [
             self.targets.count(cls_i) for cls_i in range(self.num_classes)
         ]
+        self.group_mode = "class"
 
     def __getitem__(self, index):
         img_path, target = self.img_paths[index], self.targets[index]

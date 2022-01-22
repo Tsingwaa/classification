@@ -165,14 +165,16 @@ class Trainer(BaseTrainer):
                 criterion=self.criterion,
                 optimizer=self.optimizer,
                 optimizer2=self.optimizer2,
-                num_samples_per_cls=trainset.num_samples_per_cls)
+                dataset=trainset,
+            )
 
             val_stat, val_loss = self.evaluate(
                 cur_epoch=cur_epoch,
                 valloader=self.valloader,
                 model=self.model,
                 criterion=self.criterion,
-                num_samples_per_cls=trainset.num_samples_per_cls)
+                dataset=trainset,
+            )
 
             if self.local_rank in [-1, 0]:
 
@@ -262,7 +264,7 @@ class Trainer(BaseTrainer):
                 f"*********************************************************\n")
 
     def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
-                    optimizer2, num_samples_per_cls, **kwargs):
+                    optimizer2, dataset, **kwargs):
 
         model.train()
         criterion.train()
@@ -273,7 +275,7 @@ class Trainer(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_samples_per_cls)
+        train_stat = ExpStat(dataset)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             batch_imgs = batch_imgs.cuda()
@@ -322,8 +324,8 @@ class Trainer(BaseTrainer):
 
         return train_stat, train_loss_meter.avg
 
-    def evaluate(self, cur_epoch, valloader, model, criterion,
-                 num_samples_per_cls, **kwargs):
+    def evaluate(self, cur_epoch, valloader, model, criterion, dataset,
+                 **kwargs):
         model.eval()
         criterion.eval()
 
@@ -333,7 +335,7 @@ class Trainer(BaseTrainer):
                             desc="                 Val")
 
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_samples_per_cls)
+        val_stat = ExpStat(dataset)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)

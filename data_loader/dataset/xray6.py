@@ -42,7 +42,7 @@ class Xray6(torch.utils.data.Dataset):
 
         # select_classes:        [0,    1,    5,    7,    9,    11  ]
         # corresponding samples: [4210, 1090, 895,  110,  2135, 3955]
-        # In decreasing order:   [4210, 3955, 2135, 1090, 895,  110]
+        # In decreasing order:   [4210, 3955, 2135, 1090, 895,  110 ]
         remap = {
             0: 0,
             1: 3,
@@ -56,6 +56,7 @@ class Xray6(torch.utils.data.Dataset):
         self.num_samples_per_cls = [
             self.targets.count(i) for i in range(self.num_classes)
         ]
+        self.group_mode = "class"
 
     def __getitem__(self, index):
         img_path, target = self.img_paths[index], self.targets[index]

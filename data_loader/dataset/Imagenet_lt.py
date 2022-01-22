@@ -38,6 +38,7 @@ class LT_Dataset(Dataset):
         ]
         self.class_weight = self.get_class_weight()
         self.indexes_per_cls = self.get_indexes_per_cls()
+        self.group_mode = "shot"
 
     def __len__(self):
         return len(self.targets)

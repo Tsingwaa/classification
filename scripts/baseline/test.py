@@ -106,8 +106,8 @@ class Tester(BaseTrainer):
         self.loss_name = ft_loss_config["name"]
         self.loss_params = ft_loss_config["param"]
 
-    def evaluate(self, cur_epoch, valloader, model, criterion,
-                 num_samples_per_cls, **kwargs):
+    def evaluate(self, cur_epoch, valloader, model, criterion, dataset,
+                 **kwargs):
 
         model.eval()
 
@@ -118,7 +118,7 @@ class Tester(BaseTrainer):
                              desc=f"                 {desc}")
 
         eval_loss_meter = AverageMeter()
-        eval_stat = ExpStat(num_samples_per_cls)
+        eval_stat = ExpStat(dataset)
 
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
@@ -215,19 +215,17 @@ class Tester(BaseTrainer):
         #######################################################################
         cur_epoch = 0
 
-        val_stat, val_loss = self.evaluate(
-            cur_epoch=cur_epoch,
-            valloader=self.valloader,
-            model=self.model,
-            criterion=self.criterion,
-            num_samples_per_cls=trainset.num_samples_per_cls)
+        val_stat, val_loss = self.evaluate(cur_epoch=cur_epoch,
+                                           valloader=self.valloader,
+                                           model=self.model,
+                                           criterion=self.criterion,
+                                           dataset=trainset)
 
-        test_stat, test_loss = self.evaluate(
-            cur_epoch=cur_epoch,
-            valloader=self.testloader,
-            model=self.model,
-            criterion=self.criterion,
-            num_samples_per_cls=trainset.num_samples_per_cls)
+        test_stat, test_loss = self.evaluate(cur_epoch=cur_epoch,
+                                             valloader=self.testloader,
+                                             model=self.model,
+                                             criterion=self.criterion,
+                                             dataset=trainset)
 
         if self.local_rank <= 0:
             self.log(f"Val Loss={val_loss:>4.2f} "

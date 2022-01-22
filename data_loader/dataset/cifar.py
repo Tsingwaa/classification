@@ -46,6 +46,7 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
         # get other property
         self.class_weight = self.get_class_weight()
         self.indexes_per_cls = self.get_indexes_per_cls()
+        self.group_mode = "shot"
 
     def get_img_num_per_cls(self):
         max_num_samples = int(len(self.data) / self.num_classes)

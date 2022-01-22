@@ -80,13 +80,23 @@ def get_preds_by_cossim(querys, keys):
 
 class ExpStat(object):
 
-    def __init__(self, num_samples_per_cls, byshot=False):
-        self.num_classes = len(num_samples_per_cls)
-        self.byshot = byshot
+    def __init__(self, dataset):
+        """Initialize experiment statistics
+
+        Args:
+            dataset: Dataset class
+            split_mode: mode to split groups.
+                "shot" means the 0-20-100 shots split.
+                "class" means the divide three groups.
+        """
+        self.num_classes = dataset.num_classes
+        self.num_samples_per_cls = dataset.num_samples_per_cls
+        self.group_mode = dataset.group_mode
 
         # Get Med classes: cls_list[med_start:med_end]
         self.med_start, self.med_end = self.get_group_index(
-            num_samples_per_cls)
+            self.num_samples_per_cls, self.group_mode)
+
         self.reset()
 
     def reset(self):
@@ -123,21 +133,19 @@ class ExpStat(object):
         medium_mr = np.mean(self.recalls[self.med_start:self.med_end])
         minor_mr = np.mean(self.recalls[self.med_end:])
 
-        if self.byshot:
-            if self.med_start < self.num_classes:  # 最小类不足100张
-                major_mr = np.mean(self.recalls[:self.med_start])
+        if self.med_start < self.num_classes:  # 最小类不足100张
+            major_mr = np.mean(self.recalls[:self.med_start])
 
-                if self.med_end == 0:  # 最小类不足20张
-                    medium_mr = np.mean(self.recalls[self.med_start:])
-                    minor_mr = 0.
-                else:  # 最小类 20～100张
-                    medium_mr = np.mean(
-                        self.recalls[self.med_start:self.med_end])
-                    minor_mr = np.mean(self.recalls[self.med_end:])
+            if self.med_end == 0:  # 最小类多于20张
+                medium_mr = np.mean(self.recalls[self.med_start:])
+                minor_mr = 0.
+            else:  # 最小类 少于20张
+                medium_mr = np.mean(self.recalls[self.med_start:self.med_end])
+                minor_mr = np.mean(self.recalls[self.med_end:])
 
-            elif self.med_start == 0:  # 最小类多于100张
-                major_mr = np.mean(self.recalls)
-                medium_mr, minor_mr = 0, 0
+        elif self.med_start == 0:  # 最小类多于100张
+            major_mr = np.mean(self.recalls)
+            medium_mr, minor_mr = 0, 0
 
         return [
             np.around(major_mr, decimals=4),
@@ -228,24 +236,35 @@ class ExpStat(object):
 
         return fig
 
-    def get_group_index(self, num_samples_per_cls):
+    def get_group_index(self, num_samples_per_cls, group_mode="shot"):
         """Class imbalance setup:
-            Majority>100 images
-            20<=Medium<=100 images
-            Minority<20 images
+
+        "shot":
+            Majority > 100 images
+            20 <= Medium <= 100 images
+            Minority < 20 images
+        "class":
+            divided_num = self.num_classes // 3
+            [#divided_num] [#self.num_classes-2*divided_num] [#divided_num]
 
         return: the start and end index of Medium classes,
             i.e. Med=classes[start:end]
         """
         start, end = 0, 0
-        last_num_samples = 0
 
-        for cls, num_samples in enumerate(num_samples_per_cls):
-            if last_num_samples > 100 and num_samples <= 100:
-                start = cls
-            elif last_num_samples >= 20 and num_samples < 20:
-                end = cls
-            last_num_samples = num_samples
+        if group_mode == "shot":
+            last_num_samples = 0
+
+            for cls, num_samples in enumerate(num_samples_per_cls):
+                if last_num_samples > 100 and num_samples <= 100:
+                    start = cls
+                elif last_num_samples >= 20 and num_samples < 20:
+                    end = cls
+                last_num_samples = num_samples
+        else:
+            start = self.num_classes // 3
+            end = self.num_classes - start
+            # [:start] [start:end] [end:]
 
         return start, end
 
