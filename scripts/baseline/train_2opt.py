@@ -188,15 +188,15 @@ class Trainer(BaseTrainer):
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                     f"Trainset Total Loss={train_loss['total']:.1f} "
                     f"MR={train_stat.mr:.2%} "
-                    f"[{train_stat.group_mr[0]:>6.2%}, "
-                    f"{train_stat.group_mr[1]:>6.2%}, "
-                    f"{train_stat.group_mr[2]:>6.2%}"
+                    f"[{train_stat.group_mr[0]:>7.2%}, "
+                    f"{train_stat.group_mr[1]:>7.2%}, "
+                    f"{train_stat.group_mr[2]:>7.2%}]"
                     f" || "
                     f"Valset Loss={val_loss:>4.2f} "
-                    f"MR={val_stat.mr:>6.2%} "
-                    f"[{val_stat.group_mr[0]:>6.2%}, "
-                    f"{val_stat.group_mr[1]:>6.2%}, "
-                    f"{val_stat.group_mr[2]:>6.2%}",
+                    f"MR={val_stat.mr:>7.2%} "
+                    f"[{val_stat.group_mr[0]:>7.2%}, "
+                    f"{val_stat.group_mr[1]:>7.2%}, "
+                    f"{val_stat.group_mr[2]:>7.2%}]",
                     log_level='file')
 
                 # Save log by tensorboard
@@ -252,13 +252,13 @@ class Trainer(BaseTrainer):
 
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
-                f"===> Best mean recall: {best_mr:.2%} (epoch{best_epoch})\n"
-                f"Group recalls: [{best_group_mr[0]:.2%}, "
-                f"{best_group_mr[1]:.2%}, {best_group_mr[2]:.2%}]\n\n"
+                f"===> Best mean recall: {best_mr:>7.2%} (epoch{best_epoch})\n"
+                f"Group recalls: [{best_group_mr[0]:>7.2%}, "
+                f"{best_group_mr[1]:>7.2%}, {best_group_mr[2]:>7.2%}]\n\n"
                 f"===> Final average mean recall of last 10 epochs:"
-                f" {final_mr:.2%}\n"
-                f"Average Group mean recalls: [{final_head_mr:.2%}, "
-                f"{final_mid_mr:.2%}, {final_tail_mr:.2%}]\n\n"
+                f" {final_mr:>7.2%}\n"
+                f"Average Group mean recalls: [{final_head_mr:7.2%}, "
+                f"{final_mid_mr:>7.2%}, {final_tail_mr:>7.2%}]\n\n"
                 f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************\n")
@@ -315,7 +315,7 @@ class Trainer(BaseTrainer):
                 f"LR:[{optimizer.param_groups[0]['lr']:.1e}, "
                 f"{optimizer2.param_groups[0]['lr']:.1e}] "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
-                f"MR:{train_stat.mr:>6.2%} "
+                f"MR:{train_stat.mr:>7.2%} "
                 f"[{train_stat.group_mr[0]:>3.0%}, "
                 f"{train_stat.group_mr[1]:>3.0%}, "
                 f"{train_stat.group_mr[2]:>3.0%}]")
@@ -368,7 +368,7 @@ class Trainer(BaseTrainer):
 
         if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
-                                     f"MR:{val_stat.mr:>6.2%} "
+                                     f"MR:{val_stat.mr:>7.2%} "
                                      f"[{val_stat.group_mr[0]:>3.0%}, "
                                      f"{val_stat.group_mr[1]:>3.0%}, "
                                      f"{val_stat.group_mr[2]:>3.0%}]")

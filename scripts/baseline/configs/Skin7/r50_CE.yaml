@@ -1,5 +1,5 @@
 experiment:
-  name: "Skin7_CE_lr0.1"
+  name: "Skin7_CE"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -102,12 +102,12 @@ val_dataset:
 trainloader:
   sampler: ''
   batch_size: 64
-  num_workers: 8
+  num_workers: 4
 
 valloader:
   sampler: ''
   batch_size: 64
-  num_workers: 8
+  num_workers: 4
 
 # testloader:
 #   sampler: ''
@@ -129,7 +129,7 @@ loss:
 optimizer:
   name: "SGD"
   param:
-    lr: 0.01
+    lr: 0.1
     weight_decay: 1.0e-4
     momentum: 0.9
     nesterov: True
@@ -137,11 +137,11 @@ optimizer:
 lr_scheduler:
   # name: "CyclicLR"
   # name: "StepLR"
-  # name: "MultiStepLR"
+  name: "MultiStepLR"
   # name: "CosineAnnealingWarmRestarts"
-  name: "CosineAnnealingLR"
+  # name: "CosineAnnealingLR"
   param:
-    warmup_epochs: 10
+    warmup_epochs: 5
     # CyclicLR
     # step_size_up: 3  # 3 * iterations
     # step_size_down: 2  # 2 * iterations
@@ -149,8 +149,8 @@ lr_scheduler:
     # base_lr: 5.0e-7
 
     # MultiStepLR
-    # milestones: [120, 160, 190]
-    # gamma: 0.01
+    milestones: [80, 120, 160, 180, 190]
+    gamma: 0.1
 
     # CosineAnnealingWarmRestarts
     # T_0: 0
@@ -158,8 +158,8 @@ lr_scheduler:
     # eta_min: 0
 
     # CosineAnnealingLR
-    T_max: 200
-    eta_min: 0
+    # T_max: 200
+    # eta_min: 0
 
 # test:
 #   name: "test"

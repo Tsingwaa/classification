@@ -1,9 +1,11 @@
 """trainer script """
 import argparse
+import logging
 import os
 import random
 import warnings
 from datetime import datetime
+from os.path import join
 
 import numpy as np
 import torch
@@ -185,16 +187,16 @@ class Trainer(BaseTrainer):
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                     f"Trainset Loss={train_loss:>4.2f} "
-                    f"MR={train_stat.mr:>6.2%} "
-                    f"[{train_stat.group_mr[0]:>6.2%}, "
-                    f"{train_stat.group_mr[1]:>6.2%}, "
-                    f"{train_stat.group_mr[2]:>6.2%}"
+                    f"MR={train_stat.mr:>7.2%}"
+                    f"[{train_stat.group_mr[0]:>7.2%}, "
+                    f"{train_stat.group_mr[1]:>7.2%}, "
+                    f"{train_stat.group_mr[2]:>7.2%}]"
                     f" || "
                     f"Valset Loss={val_loss:>4.2f} "
-                    f"MR={val_stat.mr:>6.2%} "
-                    f"[{val_stat.group_mr[0]:>6.2%}, "
-                    f"{val_stat.group_mr[1]:>6.2%}, "
-                    f"{val_stat.group_mr[2]:>6.2%}",
+                    f"MR={val_stat.mr:>7.2%}"
+                    f"[{val_stat.group_mr[0]:>7.2%}, "
+                    f"{val_stat.group_mr[1]:>7.2%}, "
+                    f"{val_stat.group_mr[2]:>7.2%}]",
                     log_level='file')
 
                 # Save log by tensorboard
@@ -250,16 +252,18 @@ class Trainer(BaseTrainer):
             final_tail_mr = np.around(np.mean(last_min_mrs), decimals=4)
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
-                f"===> Best mean recall: {best_mr:>6.2%} (epoch{best_epoch})\n"
-                f"Group recalls: [{best_group_mr[0]:>6.2%}, "
-                f"{best_group_mr[1]:>6.2%}, {best_group_mr[2]:>6.2%}]\n\n"
+                f"===> Best mean recall: {best_mr:>7.2%} (epoch{best_epoch})\n"
+                f"Group recalls: [{best_group_mr[0]:>7.2%}, "
+                f"{best_group_mr[1]:>7.2%}, {best_group_mr[2]:>7.2%}]\n\n"
                 f"===> Final average mean recall of last 10 epochs:"
-                f" {final_mr:>6.2%}\n"
-                f"Average Group mean recalls: [{final_head_mr:6.2%}, "
-                f"{final_mid_mr:>6.2%}, {final_tail_mr:>6.2%}]\n\n"
+                f" {final_mr:>7.2%}\n"
+                f"Average Group mean recalls: [{final_head_mr:7.2%}, "
+                f"{final_mid_mr:>7.2%}, {final_tail_mr:>7.2%}]\n\n"
                 f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************\n")
+
+        return best_mr, best_group_mr, val_stat.mr, val_stat.group_mr
 
     def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
                     dataset, **kwargs):
@@ -306,7 +310,7 @@ class Trainer(BaseTrainer):
             train_pbar.set_postfix_str(
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
-                f"MR:{train_stat.mr:>6.2%} "
+                f"MR:{train_stat.mr:>7.2%} "
                 f"[{train_stat.group_mr[0]:>3.0%}, "
                 f"{train_stat.group_mr[1]:>3.0%}, "
                 f"{train_stat.group_mr[2]:>3.0%}]")
@@ -355,7 +359,7 @@ class Trainer(BaseTrainer):
 
         if self.local_rank <= 0:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
-                                     f"MR:{val_stat.mr:>6.2%} "
+                                     f"MR:{val_stat.mr:>7.2%} "
                                      f"[{val_stat.group_mr[0]:>3.0%}, "
                                      f"{val_stat.group_mr[1]:>3.0%}, "
                                      f"{val_stat.group_mr[2]:>3.0%}]")
@@ -374,7 +378,7 @@ def parse_args():
                         "if single-GPU, default set to -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--fold_i", type=int, default=0)
+
     args = parser.parse_args()
 
     return args
@@ -410,12 +414,55 @@ def main(args):
 
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
+    best_mrs = []
+    best_maj_mrs = []
+    best_med_mrs = []
+    best_min_mrs = []
+    last_mrs = []
+    last_maj_mrs = []
+    last_med_mrs = []
+    last_min_mrs = []
 
-    trainer = Trainer(local_rank=args.local_rank,
-                      config=config,
-                      seed=args.seed,
-                      fold_i=args.fold_i)
-    trainer.train()
+    for fold_i in range(5):
+        trainer = Trainer(local_rank=args.local_rank,
+                          config=config,
+                          seed=args.seed,
+                          fold_i=fold_i)
+        best_mr, best_group_mr, last_mr, last_group_mr = trainer.train()
+
+        if args.local_rank in [-1, 0]:
+            best_mrs.append(best_mr)
+            best_maj_mrs.append(best_group_mr[0])
+            best_med_mrs.append(best_group_mr[1])
+            best_min_mrs.append(best_group_mr[2])
+            last_mrs.append(last_mr)
+            last_maj_mrs.append(last_group_mr[0])
+            last_med_mrs.append(last_group_mr[1])
+            last_min_mrs.append(last_group_mr[2])
+
+    if args.local_rank in [-1, 0]:
+        avg_best_mr = np.around(np.mean(best_mrs), decimals=4)
+        avg_best_maj_mr = np.around(np.mean(best_maj_mrs), decimals=4)
+        avg_best_med_mr = np.around(np.mean(best_med_mrs), decimals=4)
+        avg_best_min_mr = np.around(np.mean(best_min_mrs), decimals=4)
+        avg_last_mr = np.around(np.mean(last_mrs), decimals=4)
+        avg_last_maj_mr = np.around(np.mean(last_maj_mrs), decimals=4)
+        avg_last_med_mr = np.around(np.mean(last_med_mrs), decimals=4)
+        avg_last_min_mr = np.around(np.mean(last_min_mrs), decimals=4)
+        log_5fold = f"===> Average best mean recall: {avg_best_mr:>7.2%}\n"\
+            f"Average best group mean recall: [{avg_best_maj_mr:>7.2%}, "\
+            f"{avg_best_med_mr:>7.2%}, {avg_best_min_mr[1]:>7.2%}]\n\n"\
+            f"===> Average mean recall of the last epoch:"\
+            f" {avg_last_mr:>7.2%}\n"\
+            f"Average last group mean recall: [{avg_last_maj_mr:7.2%}, "\
+            f"{avg_last_med_mr:>7.2%}, {avg_last_min_mr:>7.2%}]\n\n"\
+            f"*********************************************************"\
+            f"*********************************************************\n"
+        save_5fold_log_fpath = join(os.environ['Home'], "Experiments",
+                                    config['experiment']['name'] + '_5fold')
+        logging.basicConfig(filename=save_5fold_log_fpath, filemode='a')
+        logging.info(log_5fold)
+        print(log_5fold)
 
 
 if __name__ == "__main__":
@@ -423,4 +470,5 @@ if __name__ == "__main__":
 
     if "LOCAL_RANK" in os.environ:
         args.local_rank = int(os.environ["LOCAL_RANK"])
+
     main(args)

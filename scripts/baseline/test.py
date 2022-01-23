@@ -144,10 +144,10 @@ class Tester(BaseTrainer):
 
         if self.local_rank in [-1, 0]:
             eval_pbar.set_postfix_str(f"Loss:{eval_loss_meter.avg:>4.2f} "
-                                      f"MR:{eval_stat.mr:>6.2%} "
-                                      f"[{eval_stat.group_mr[0]:>6.2%}, "
-                                      f"{eval_stat.group_mr[1]:>6.2%}, "
-                                      f"{eval_stat.group_mr[2]:>6.2%}]")
+                                      f"MR:{eval_stat.mr:>7.2%} "
+                                      f"[{eval_stat.group_mr[0]:>7.2%}, "
+                                      f"{eval_stat.group_mr[1]:>7.2%}, "
+                                      f"{eval_stat.group_mr[2]:>7.2%}]")
             eval_pbar.close()
 
         return eval_stat, eval_loss_meter.avg
@@ -229,15 +229,15 @@ class Tester(BaseTrainer):
 
         if self.local_rank <= 0:
             self.log(f"Val Loss={val_loss:>4.2f} "
-                     f"MR={val_stat.mr:>6.2%} "
-                     f"[{val_stat.group_mr[0]:>6.2%}, "
-                     f"{val_stat.group_mr[1]:>6.2%}, "
-                     f"{val_stat.group_mr[2]:>6.2%}")
+                     f"MR={val_stat.mr:>7.2%} "
+                     f"[{val_stat.group_mr[0]:>7.2%}, "
+                     f"{val_stat.group_mr[1]:>7.2%}, "
+                     f"{val_stat.group_mr[2]:>7.2%}]")
             self.log(f"Test Loss={test_loss:>4.2f} "
-                     f"MR={test_stat.mr:>6.2%} "
-                     f"[{test_stat.group_mr[0]:>6.2%}, "
-                     f"{test_stat.group_mr[1]:>6.2%}, "
-                     f"{test_stat.group_mr[2]:>6.2%}")
+                     f"MR={test_stat.mr:>7.2%} "
+                     f"[{test_stat.group_mr[0]:>7.2%}, "
+                     f"{test_stat.group_mr[1]:>7.2%}, "
+                     f"{test_stat.group_mr[2]:>7.2%}]")
 
 
 def parse_args():
