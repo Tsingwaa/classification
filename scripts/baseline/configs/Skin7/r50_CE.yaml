@@ -137,9 +137,9 @@ optimizer:
 lr_scheduler:
   # name: "CyclicLR"
   # name: "StepLR"
-  name: "MultiStepLR"
+  # name: "MultiStepLR"
   # name: "CosineAnnealingWarmRestarts"
-  # name: "CosineAnnealingLR"
+  name: "CosineAnnealingLR"
   param:
     warmup_epochs: 5
     # CyclicLR
@@ -149,8 +149,8 @@ lr_scheduler:
     # base_lr: 5.0e-7
 
     # MultiStepLR
-    milestones: [80, 120, 160, 180, 190]
-    gamma: 0.1
+    # milestones: [80, 120, 160, 180, 190]
+    # gamma: 0.1
 
     # CosineAnnealingWarmRestarts
     # T_0: 0
@@ -158,8 +158,8 @@ lr_scheduler:
     # eta_min: 0
 
     # CosineAnnealingLR
-    # T_max: 200
-    # eta_min: 0
+    T_max: 200
+    eta_min: 0
 
 # test:
 #   name: "test"
