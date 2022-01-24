@@ -1,5 +1,5 @@
 experiment:
-  name: "Skin7_r50_CE_0.1CT"
+  name: "Skin7_r50_CE_1CT"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -152,7 +152,7 @@ loss2:
     num_classes: 7
     feat_dim: 2048
     alpha: 0
-    lambda: 0.1
+    lambda: 1
     margin: -1
 
 optimizer2:

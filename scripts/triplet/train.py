@@ -29,19 +29,6 @@ class Trainer(BaseTrainer):
     def __init__(self, local_rank, config, seed):
         super(Trainer, self).__init__(local_rank, config, seed)
 
-        loss2_config = config['loss2']
-        self.loss2_name = loss2_config['name']
-        self.loss2_params = loss2_config['param']
-        self.lambda_weight = self.loss2_params.get('lambda', 1.)
-
-        opt2_config = config['optimizer2']
-        self.opt2_name = opt2_config['name']
-        self.opt2_params = opt2_config['param']
-
-        scheduler2_config = config['lr_scheduler2']
-        self.scheduler2_name = scheduler2_config['name']
-        self.scheduler2_params = scheduler2_config['param']
-
     def train(self):
         #######################################################################
         # Initialize Dataset and Dataloader
@@ -62,7 +49,6 @@ class Trainer(BaseTrainer):
                                        drop_last=True,
                                        sampler=train_sampler)
 
-        # 无论多卡还是单卡，都需要新建val_loader
         val_transform = self.init_transform(self.val_transform_name,
                                             **self.val_transform_params)
         valset = self.init_dataset(self.valset_name,
@@ -70,7 +56,7 @@ class Trainer(BaseTrainer):
                                    **self.valset_params)
         val_sampler = self.init_sampler(self.val_sampler_name,
                                         dataset=valset,
-                                        **self.trainloader_params)
+                                        **self.valloader_params)
         self.valloader = DataLoaderX(valset,
                                      batch_size=self.val_batchsize,
                                      shuffle=(val_sampler is None),
@@ -80,6 +66,7 @@ class Trainer(BaseTrainer):
                                      sampler=val_sampler)
 
         if self.local_rank != -1:
+            dist.barrier()
 
             if not self.train_sampler_name:
                 self.train_sampler_name = "DistributedSampler"
@@ -117,21 +104,12 @@ class Trainer(BaseTrainer):
                                         weight=weight,
                                         **self.loss_params)
 
-        weight2 = self.get_class_weight(trainset.num_samples_per_cls,
-                                        **self.loss2_params)  # 包含weight_type
-        self.criterion2 = self.init_loss(self.loss2_name,
-                                         weight=weight2,
-                                         **self.loss2_params)
-
         #######################################################################
         # Initialize Optimizer
         #######################################################################
         self.optimizer = self.init_optimizer(self.opt_name,
                                              self.model.parameters(),
                                              **self.opt_params)
-        self.optimizer2 = self.init_optimizer(self.opt2_name,
-                                              self.criterion2.parameters(),
-                                              **self.opt2_params)
 
         #######################################################################
         # Initialize LR Scheduler
@@ -139,9 +117,6 @@ class Trainer(BaseTrainer):
         self.lr_scheduler = self.init_lr_scheduler(self.scheduler_name,
                                                    self.optimizer,
                                                    **self.scheduler_params)
-        self.lr_scheduler2 = self.init_lr_scheduler(self.scheduler2_name,
-                                                    self.optimizer2,
-                                                    **self.scheduler2_params)
 
         #######################################################################
         # Start Training
@@ -162,10 +137,13 @@ class Trainer(BaseTrainer):
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.lr_scheduler.step()
-            self.lr_scheduler2.step()
 
             if self.local_rank != -1:
                 dist.barrier()
+                # barrier的作用是，阻塞进程
+                # 确保每个进程都运行到这一行代码，才能继续执行，这样计算
+                # 平均loss和平均acc的时候，不会出现因为进程执行速度不一致
+                # 而导致错误
                 train_sampler.set_epoch(cur_epoch)
                 val_sampler.set_epoch(cur_epoch)
 
@@ -174,9 +152,7 @@ class Trainer(BaseTrainer):
                 trainloader=self.trainloader,
                 model=self.model,
                 criterion=self.criterion,
-                criterion2=self.criterion2,
                 optimizer=self.optimizer,
-                optimizer2=self.optimizer2,
                 dataset=trainset,
             )
 
@@ -189,25 +165,24 @@ class Trainer(BaseTrainer):
             )
 
             if self.local_rank in [-1, 0]:
-
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
                     last_maj_mrs.append(val_stat.group_mr[0])
                     last_med_mrs.append(val_stat.group_mr[1])
                     last_min_mrs.append(val_stat.group_mr[2])
 
+                # log message into file "train.log" in the self.save_dir
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                     f"LR:{self.optimizer.param_groups[0]['lr']:.1e} "
-                    f"Trainset Loss={train_loss['total']:>4.1f} "
-                    f"[{train_loss[1]:>4.1f},{train_loss[2]:>4.1f}] "
-                    f"MR={train_stat.mr:6.2%} "
+                    f"Trainset Loss={train_loss:>4.1f} "
+                    f"MR={train_stat.mr:>6.2%}"
                     f"[{train_stat.group_mr[0]:>6.2%}, "
                     f"{train_stat.group_mr[1]:>6.2%}, "
                     f"{train_stat.group_mr[2]:>6.2%}]"
                     f" || "
                     f"Valset Loss={val_loss:>4.1f} "
-                    f"MR={val_stat.mr:>6.2%} "
+                    f"MR={val_stat.mr:>6.2%}"
                     f"[{val_stat.group_mr[0]:>6.2%}, "
                     f"{val_stat.group_mr[1]:>6.2%}, "
                     f"{val_stat.group_mr[2]:>6.2%}]",
@@ -222,9 +197,7 @@ class Trainer(BaseTrainer):
                 self.writer.add_scalars(
                     f"{self.exp_name}/Loss",
                     {
-                        "train_total": train_loss['total'],
-                        "train_loss1": train_loss[1],
-                        "train_loss2": train_loss[2],
+                        "train_loss": train_loss,
                         "val_loss": val_loss
                     },
                     cur_epoch,
@@ -264,17 +237,14 @@ class Trainer(BaseTrainer):
                     best_group_mr = val_stat.group_mr
 
                 if (not cur_epoch % self.save_period) or is_best:
-                    self.save_checkpoint(
-                        epoch=cur_epoch,
-                        model=self.model,
-                        optimizer=self.optimizer,
-                        is_best=is_best,
-                        mr=val_stat.mr,
-                        group_mr=val_stat.group_mr,
-                        prefix=f"seed{self.seed}",
-                        save_dir=self.exp_dir,
-                        centers=self.criterion2.centers,
-                    )
+                    self.save_checkpoint(epoch=cur_epoch,
+                                         model=self.model,
+                                         optimizer=self.optimizer,
+                                         is_best=is_best,
+                                         mr=val_stat.mr,
+                                         group_mr=val_stat.group_mr,
+                                         prefix=f"seed{self.seed}",
+                                         save_dir=self.exp_dir)
 
         if self.local_rank in [-1, 0]:
             end_time = datetime.now()
@@ -305,9 +275,8 @@ class Trainer(BaseTrainer):
                 f"*********************************************************\n")
 
     def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
-                    criterion2, optimizer2, dataset, **kwargs):
+                    dataset, **kwargs):
         model.train()
-        criterion2.train()
 
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
@@ -315,73 +284,49 @@ class Trainer(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        loss1_meter = AverageMeter()
-        loss2_meter = AverageMeter()
         train_stat = ExpStat(dataset)
 
         for i, (batch_imgs, batch_targets) in enumerate(trainloader):
-
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_targets = batch_targets.cuda(non_blocking=True)
-            batch_vecs = model(batch_imgs, out_type='vec')
-            batch_probs = model.fc(batch_vecs)
-            loss1 = criterion(batch_probs, batch_targets)
-            loss2 = criterion2(batch_vecs, batch_targets)
-            avg_loss = loss1 + loss2 * self.lambda_weight
+            batch_probs = model(batch_imgs, out_type='fc')
+            avg_loss = criterion(batch_probs, batch_targets)
 
             optimizer.zero_grad()
-            optimizer2.zero_grad()
             avg_loss.backward()
             optimizer.step()
-
-            for param in criterion2.parameters():
-                param.grad.data *= (1. / self.lambda_weight)
-            optimizer2.step()
 
             if self.local_rank != -1:
                 dist.barrier()
                 avg_loss = self._reduce_tensor(avg_loss)
-                loss1 = self._reduce_tensor(loss1)
-                loss2 = self._reduce_tensor(loss2)
-
-            train_loss_meter.update(avg_loss.item(), 1)
-            loss1_meter.update(loss1.item(), 1)
-            loss2_meter.update(loss2.item(), 1)
 
             batch_preds = torch.argmax(batch_probs, dim=1)
+            train_loss_meter.update(avg_loss.item(), 1)
             train_stat.update(batch_targets, batch_preds)
 
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str(
-                    f"LR:[{optimizer.param_groups[0]['lr']:.1e}, "
-                    f"{optimizer2.param_groups[0]['lr']:.1e}] "
-                    f"Total Loss: {train_loss_meter.avg:4.2f} "
-                    f"[{loss1_meter.avg:>3.1f}, {loss2_meter.avg:>3.1f}] ")
+                    f"LR:{optimizer.param_groups[0]['lr']:.1e} "
+                    f"Loss:{train_loss_meter.avg:>3.1f}")
 
         if self.local_rank != -1:
             dist.barrier()
+            # 累加所有进程的train_stat记录的confusion matrix
             train_stat._cm = self._reduce_tensor(train_stat._cm, op='sum')
 
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(
-                f"LR:[{optimizer.param_groups[0]['lr']:.1e}, "
-                f"{optimizer2.param_groups[0]['lr']:.1e}] "
+                f"LR:{optimizer.param_groups[0]['lr']:.1e} "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
-                f"[{loss1_meter.avg:>3.1f}, {loss2_meter.avg:>3.1f}] "
                 f"MR:{train_stat.mr:>7.2%} "
                 f"[{train_stat.group_mr[0]:>3.0%}, "
                 f"{train_stat.group_mr[1]:>3.0%}, "
                 f"{train_stat.group_mr[2]:>3.0%}]")
+
             train_pbar.close()
 
-        train_loss = {
-            'total': train_loss_meter.avg,
-            1: loss1_meter.avg,
-            2: loss2_meter.avg
-        }
-
-        return train_stat, train_loss
+        return train_stat, train_loss_meter.avg
 
     def evaluate(self, cur_epoch, valloader, model, criterion, dataset,
                  **kwargs):
@@ -394,23 +339,23 @@ class Trainer(BaseTrainer):
                             desc=f"                 {desc}")
         val_loss_meter = AverageMeter()
         val_stat = ExpStat(dataset)
-        with torch.no_grad():
-            for i, (batch_imgs, batch_labels) in enumerate(valloader):
-                batch_imgs = batch_imgs.cuda(non_blocking=True)
-                batch_labels = batch_labels.cuda(non_blocking=True)
 
+        with torch.no_grad():
+            for i, (batch_imgs, batch_targets) in enumerate(valloader):
+                batch_imgs = batch_imgs.cuda(non_blocking=True)
+                batch_targets = batch_targets.cuda(non_blocking=True)
                 batch_probs = model(batch_imgs, out_type='fc')
                 batch_preds = torch.argmax(batch_probs, dim=1)
-                avg_loss = criterion(batch_probs, batch_labels)
+                avg_loss = criterion(batch_probs, batch_targets)
 
                 if self.local_rank != -1:
                     dist.barrier()
                     avg_loss = self._reduce_tensor(avg_loss)
 
                 val_loss_meter.update(avg_loss.item(), 1)
-                val_stat.update(batch_labels, batch_preds)
+                val_stat.update(batch_targets, batch_preds)
 
-                if self.local_rank <= 0:
+                if self.local_rank in [-1, 0]:
                     val_pbar.update()
                     val_pbar.set_postfix_str(
                         f"Loss:{val_loss_meter.avg:>3.1f}")
@@ -432,13 +377,16 @@ class Trainer(BaseTrainer):
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    # Local rank设定：单卡默认为-1，多卡不设定，ddp自动设定为0,1,...
     parser.add_argument("--local_rank",
                         type=int,
                         default=-1,
                         help="Local Rank for distributed training. "
-                        "if single-GPU, default: -1")
+                        "if single-GPU, default set to -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--lr", default=0.5, type=float, help="learning rate")
+    parser.add_argument("--wd", default=1e-4, type=float, help="weight decay")
     args = parser.parse_args()
 
     return args
@@ -446,7 +394,6 @@ def parse_args():
 
 def _set_random_seed(seed=0, cuda_deterministic=False):
     """Set seed and control the balance between reproducity and efficiency
-
     Reproducity: cuda_deterministic = True
     Efficiency: cuda_deterministic = False
     """
@@ -471,8 +418,17 @@ def _set_random_seed(seed=0, cuda_deterministic=False):
 def main(args):
     warnings.filterwarnings("ignore")
     _set_random_seed(seed=args.seed)
+
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
+
+    # compare lr and wd
+    # config["experiment"]["name"] += f"_lr{args.lr}_wd{args.wd}"
+    # config["optimizer"]["param"].update({
+    #     "lr": float(args.lr),
+    #     "weight_decay": float(args.wd),
+    # })
+
     trainer = Trainer(local_rank=args.local_rank,
                       config=config,
                       seed=args.seed)
@@ -484,4 +440,5 @@ if __name__ == "__main__":
 
     if "LOCAL_RANK" in os.environ:
         args.local_rank = int(os.environ["LOCAL_RANK"])
+
     main(args)

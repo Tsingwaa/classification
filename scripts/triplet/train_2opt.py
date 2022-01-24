@@ -29,11 +29,6 @@ class Trainer(BaseTrainer):
     def __init__(self, local_rank, config, seed):
         super(Trainer, self).__init__(local_rank, config, seed)
 
-        loss2_config = config['loss2']
-        self.loss2_name = loss2_config['name']
-        self.loss2_params = loss2_config['param']
-        self.lambda_weight = self.loss2_params.get('lambda', 1.)
-
         opt2_config = config['optimizer2']
         self.opt2_name = opt2_config['name']
         self.opt2_params = opt2_config['param']
@@ -62,7 +57,6 @@ class Trainer(BaseTrainer):
                                        drop_last=True,
                                        sampler=train_sampler)
 
-        # 无论多卡还是单卡，都需要新建val_loader
         val_transform = self.init_transform(self.val_transform_name,
                                             **self.val_transform_params)
         valset = self.init_dataset(self.valset_name,
@@ -80,6 +74,7 @@ class Trainer(BaseTrainer):
                                      sampler=val_sampler)
 
         if self.local_rank != -1:
+            dist.barrier()
 
             if not self.train_sampler_name:
                 self.train_sampler_name = "DistributedSampler"
@@ -117,12 +112,6 @@ class Trainer(BaseTrainer):
                                         weight=weight,
                                         **self.loss_params)
 
-        weight2 = self.get_class_weight(trainset.num_samples_per_cls,
-                                        **self.loss2_params)  # 包含weight_type
-        self.criterion2 = self.init_loss(self.loss2_name,
-                                         weight=weight2,
-                                         **self.loss2_params)
-
         #######################################################################
         # Initialize Optimizer
         #######################################################################
@@ -130,7 +119,7 @@ class Trainer(BaseTrainer):
                                              self.model.parameters(),
                                              **self.opt_params)
         self.optimizer2 = self.init_optimizer(self.opt2_name,
-                                              self.criterion2.parameters(),
+                                              self.criterion.parameters(),
                                               **self.opt2_params)
 
         #######################################################################
@@ -174,7 +163,6 @@ class Trainer(BaseTrainer):
                 trainloader=self.trainloader,
                 model=self.model,
                 criterion=self.criterion,
-                criterion2=self.criterion2,
                 optimizer=self.optimizer,
                 optimizer2=self.optimizer2,
                 dataset=trainset,
@@ -198,63 +186,43 @@ class Trainer(BaseTrainer):
 
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
-                    f"LR:{self.optimizer.param_groups[0]['lr']:.1e} "
-                    f"Trainset Loss={train_loss['total']:>4.1f} "
-                    f"[{train_loss[1]:>4.1f},{train_loss[2]:>4.1f}] "
-                    f"MR={train_stat.mr:6.2%} "
-                    f"[{train_stat.group_mr[0]:>6.2%}, "
-                    f"{train_stat.group_mr[1]:>6.2%}, "
-                    f"{train_stat.group_mr[2]:>6.2%}]"
+                    f"Trainset Total Loss={train_loss['total']:.1f} "
+                    f"MR={train_stat.mr:.2%} "
+                    f"[{train_stat.group_mr[0]:>7.2%}, "
+                    f"{train_stat.group_mr[1]:>7.2%}, "
+                    f"{train_stat.group_mr[2]:>7.2%}]"
                     f" || "
-                    f"Valset Loss={val_loss:>4.1f} "
-                    f"MR={val_stat.mr:>6.2%} "
-                    f"[{val_stat.group_mr[0]:>6.2%}, "
-                    f"{val_stat.group_mr[1]:>6.2%}, "
-                    f"{val_stat.group_mr[2]:>6.2%}]",
+                    f"Valset Loss={val_loss:>4.2f} "
+                    f"MR={val_stat.mr:>7.2%} "
+                    f"[{val_stat.group_mr[0]:>7.2%}, "
+                    f"{val_stat.group_mr[1]:>7.2%}, "
+                    f"{val_stat.group_mr[2]:>7.2%}]",
                     log_level='file')
 
                 # Save log by tensorboard
-                self.writer.add_scalar(
-                    f"{self.exp_name}/LR",
-                    self.optimizer.param_groups[-1]["lr"],
-                    cur_epoch,
-                )
+                self.writer.add_scalar(f"{self.exp_name}/LR",
+                                       self.optimizer.param_groups[-1]["lr"],
+                                       cur_epoch)
+                self.writer.add_scalars(f"{self.exp_name}/Loss", {
+                    "train_loss": train_loss,
+                    "val_loss": val_loss
+                }, cur_epoch)
+                self.writer.add_scalars(f"{self.exp_name}/Recall", {
+                    "train_mr": train_stat.mr,
+                    "val_mr": val_stat.mr
+                }, cur_epoch)
                 self.writer.add_scalars(
-                    f"{self.exp_name}/Loss",
-                    {
-                        "train_total": train_loss['total'],
-                        "train_loss1": train_loss[1],
-                        "train_loss2": train_loss[2],
-                        "val_loss": val_loss
-                    },
-                    cur_epoch,
-                )
-                self.writer.add_scalars(
-                    f"{self.exp_name}/Recall",
-                    {
-                        "train_mr": train_stat.mr,
-                        "val_mr": val_stat.mr
-                    },
-                    cur_epoch,
-                )
-                self.writer.add_scalars(
-                    f"{self.exp_name}/TrainGroupRecall",
-                    {
+                    f"{self.exp_name}/TrainGroupRecall", {
                         "maj_mr": train_stat.group_mr[0],
                         "med_mr": train_stat.group_mr[1],
                         "min_mr": train_stat.group_mr[2]
-                    },
-                    cur_epoch,
-                )
+                    }, cur_epoch)
                 self.writer.add_scalars(
-                    f"{self.exp_name}/ValGroupRecall",
-                    {
+                    f"{self.exp_name}/ValGroupRecall", {
                         "maj_mr": val_stat.group_mr[0],
                         "med_mr": val_stat.group_mr[1],
                         "min_mr": val_stat.group_mr[2]
-                    },
-                    cur_epoch,
-                )
+                    }, cur_epoch)
 
                 is_best = val_stat.mr > best_mr
 
@@ -264,17 +232,14 @@ class Trainer(BaseTrainer):
                     best_group_mr = val_stat.group_mr
 
                 if (not cur_epoch % self.save_period) or is_best:
-                    self.save_checkpoint(
-                        epoch=cur_epoch,
-                        model=self.model,
-                        optimizer=self.optimizer,
-                        is_best=is_best,
-                        mr=val_stat.mr,
-                        group_mr=val_stat.group_mr,
-                        prefix=f"seed{self.seed}",
-                        save_dir=self.exp_dir,
-                        centers=self.criterion2.centers,
-                    )
+                    self.save_checkpoint(epoch=cur_epoch,
+                                         model=self.model,
+                                         optimizer=self.optimizer,
+                                         is_best=is_best,
+                                         mr=val_stat.mr,
+                                         group_mr=val_stat.group_mr,
+                                         prefix=f"seed{self.seed}",
+                                         save_dir=self.exp_dir)
 
         if self.local_rank in [-1, 0]:
             end_time = datetime.now()
@@ -305,9 +270,10 @@ class Trainer(BaseTrainer):
                 f"*********************************************************\n")
 
     def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
-                    criterion2, optimizer2, dataset, **kwargs):
+                    optimizer2, dataset, **kwargs):
+
         model.train()
-        criterion2.train()
+        criterion.train()
 
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
@@ -315,49 +281,36 @@ class Trainer(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        loss1_meter = AverageMeter()
-        loss2_meter = AverageMeter()
         train_stat = ExpStat(dataset)
 
-        for i, (batch_imgs, batch_targets) in enumerate(trainloader):
-
-            batch_imgs = batch_imgs.cuda(non_blocking=True)
-            batch_targets = batch_targets.cuda(non_blocking=True)
-            batch_vecs = model(batch_imgs, out_type='vec')
-            batch_probs = model.fc(batch_vecs)
-            loss1 = criterion(batch_probs, batch_targets)
-            loss2 = criterion2(batch_vecs, batch_targets)
-            avg_loss = loss1 + loss2 * self.lambda_weight
+        for i, (batch_imgs, batch_labels) in enumerate(trainloader):
+            batch_imgs = batch_imgs.cuda()
+            batch_labels = batch_labels.cuda()
+            batch_probs = model(batch_imgs)
+            avg_loss = criterion(batch_probs, batch_labels)
 
             optimizer.zero_grad()
             optimizer2.zero_grad()
             avg_loss.backward()
-            optimizer.step()
-
-            for param in criterion2.parameters():
-                param.grad.data *= (1. / self.lambda_weight)
             optimizer2.step()
+            optimizer.step()
 
             if self.local_rank != -1:
                 dist.barrier()
                 avg_loss = self._reduce_tensor(avg_loss)
-                loss1 = self._reduce_tensor(loss1)
-                loss2 = self._reduce_tensor(loss2)
-
-            train_loss_meter.update(avg_loss.item(), 1)
-            loss1_meter.update(loss1.item(), 1)
-            loss2_meter.update(loss2.item(), 1)
 
             batch_preds = torch.argmax(batch_probs, dim=1)
-            train_stat.update(batch_targets, batch_preds)
+            # batch_preds = train_stat.get_preds_by_eudist(
+            #     batch_vecs, criterion.centers.detach())
+            train_loss_meter.update(avg_loss.item(), 1)
+            train_stat.update(batch_labels, batch_preds)
 
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str(
                     f"LR:[{optimizer.param_groups[0]['lr']:.1e}, "
                     f"{optimizer2.param_groups[0]['lr']:.1e}] "
-                    f"Total Loss: {train_loss_meter.avg:4.2f} "
-                    f"[{loss1_meter.avg:>3.1f}, {loss2_meter.avg:>3.1f}] ")
+                    f"Loss: {train_loss_meter.avg:4.2f} ")
 
         if self.local_rank != -1:
             dist.barrier()
@@ -368,30 +321,25 @@ class Trainer(BaseTrainer):
                 f"LR:[{optimizer.param_groups[0]['lr']:.1e}, "
                 f"{optimizer2.param_groups[0]['lr']:.1e}] "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
-                f"[{loss1_meter.avg:>3.1f}, {loss2_meter.avg:>3.1f}] "
                 f"MR:{train_stat.mr:>7.2%} "
                 f"[{train_stat.group_mr[0]:>3.0%}, "
                 f"{train_stat.group_mr[1]:>3.0%}, "
                 f"{train_stat.group_mr[2]:>3.0%}]")
+
             train_pbar.close()
 
-        train_loss = {
-            'total': train_loss_meter.avg,
-            1: loss1_meter.avg,
-            2: loss2_meter.avg
-        }
-
-        return train_stat, train_loss
+        return train_stat, train_loss_meter.avg
 
     def evaluate(self, cur_epoch, valloader, model, criterion, dataset,
                  **kwargs):
         model.eval()
+        criterion.eval()
 
         if self.local_rank in [-1, 0]:
-            desc = kwargs.pop("desc", "Val")
             val_pbar = tqdm(total=len(valloader),
                             ncols=0,
-                            desc=f"                 {desc}")
+                            desc="                 Val")
+
         val_loss_meter = AverageMeter()
         val_stat = ExpStat(dataset)
         with torch.no_grad():
@@ -399,9 +347,13 @@ class Trainer(BaseTrainer):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
 
-                batch_probs = model(batch_imgs, out_type='fc')
+                batch_probs = model(batch_imgs, out='mlp')
                 batch_preds = torch.argmax(batch_probs, dim=1)
                 avg_loss = criterion(batch_probs, batch_labels)
+                # batch_vecs = model(batch_imgs, out='vec')
+                # batch_preds = val_stat.get_preds_by_eudist(
+                #     batch_vecs, criterion.centers.detach())
+                # avg_loss = criterion(batch_vecs, batch_labels)
 
                 if self.local_rank != -1:
                     dist.barrier()
@@ -410,12 +362,13 @@ class Trainer(BaseTrainer):
                 val_loss_meter.update(avg_loss.item(), 1)
                 val_stat.update(batch_labels, batch_preds)
 
-                if self.local_rank <= 0:
+                if self.local_rank in [-1, 0]:
                     val_pbar.update()
                     val_pbar.set_postfix_str(
                         f"Loss:{val_loss_meter.avg:>3.1f}")
 
         if self.local_rank != -1:
+            # all reduce the statistical confusion matrix
             dist.barrier()
             val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
 
@@ -484,4 +437,5 @@ if __name__ == "__main__":
 
     if "LOCAL_RANK" in os.environ:
         args.local_rank = int(os.environ["LOCAL_RANK"])
+
     main(args)

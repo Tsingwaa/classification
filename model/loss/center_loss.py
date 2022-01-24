@@ -49,7 +49,7 @@ class CenterLoss(nn.Module):
         self.margin = margin
         self.centers = nn.Parameter(torch.randn(num_classes, feat_dim))
 
-    def forward(self, feat, labels):
+    def forward(self, feats, targets):
         """
         Args:
             feat_vecs (Tensor, batch_size * feat_dim): feature vectors
@@ -59,19 +59,19 @@ class CenterLoss(nn.Module):
         # self.centers = self.centers.cuda()  # (C, d)
 
         if self.margin == -1:  # 不使用margin
-            center = self.centers[labels]  # (N, d)
-            dist = (feat - center).pow(2).sum(dim=-1)  # (N, 1)
+            center = self.centers[targets]  # (N, d)
+            dist = (feats - center).pow(2).sum(dim=-1)  # (N, 1)
 
             if self.weight is not None:
-                dist *= self.weight[labels]  # (N, 1)
-            loss = 0.5 * torch.clamp(dist, min=1e-12, max=1e+12).mean(dim=1)
+                dist *= self.weight[targets]  # (N, 1)
+            loss = 0.5 * torch.clamp(dist, min=1e-12, max=1e+12).mean(dim=-1)
         else:
-            feat_expand = feat.unsqueeze(1)  # (N, d) -> (N, 1, d)
+            feat_expand = feats.unsqueeze(1)  # (N, d) -> (N, 1, d)
             center_expand = self.centers.unsqueeze(0)  # (C, d) -> (1, C, d)
 
             # (N, 1, d) - (1, C, d) = (N, C, d) --> 2-Norm(N, C)
             dist_all = torch.norm(feat_expand - center_expand, dim=-1)
-            labels = labels.view(-1, 1)
+            targets = targets.view(-1, 1)
 
             min_dist = torch.min(dist_all, dim=-1)[0]
             loss = torch.clamp(self.margin + dist - min_dist, min=0)

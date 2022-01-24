@@ -352,16 +352,18 @@ class BaseTrainer:
 
         return checkpoint, resume_log
 
-    def save_checkpoint(self,
-                        epoch,
-                        model,
-                        optimizer,
-                        is_best,
-                        mr,
-                        group_mr,
-                        save_dir,
-                        prefix=None,
-                        **kwargs):
+    def save_checkpoint(
+        self,
+        epoch,
+        model,
+        optimizer,
+        is_best,
+        mr,
+        group_mr,
+        save_dir,
+        prefix=None,
+        **kwargs,
+    ):
 
         if self.local_rank == -1:
             model_state_dict = model.state_dict()

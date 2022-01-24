@@ -311,7 +311,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, out_type=None):
+    def forward(self, x, out_type='fc'):
         # See note [TorchScript super()]
         x = self.conv1(x)
         x = self.bn1(x)
@@ -339,8 +339,10 @@ class ResNet(nn.Module):
                 return feat_vec
             elif out_type == 'mlp':
                 return self.mlp(feat_vec)
-            else:
+            elif out_type == 'fc':
                 return self.fc(feat_vec)
+            else:
+                raise TypeError
 
 
 @Networks.register_module('ResNet18')
