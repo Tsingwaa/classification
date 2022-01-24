@@ -40,7 +40,6 @@ class FineTuner(BaseTrainer):
         if self.local_rank != -1:
             dist.init_process_group(backend="nccl")
             torch.cuda.set_device(self.local_rank)
-            # self.global_rank = distributed.get_rank()
             self.world_size = dist.get_world_size()
 
         #######################################################################
@@ -98,9 +97,9 @@ class FineTuner(BaseTrainer):
 
         ft_network_config = self.finetune_config.pop("network", None)
 
-        if ft_network_config is not None and ft_network_config["name"]:
-            self.network_name = ft_network_config["name"]
-            self.network_params = ft_network_config["param"]
+        if ft_network_config is not None:
+            self.ft_network_name = ft_network_config["name"]
+            self.ft_network_params = ft_network_config["param"]
 
         self.trainloader_params = self.finetune_config["trainloader"]
         self.train_sampler_name = self.trainloader_params.pop("sampler", None)
@@ -139,6 +138,20 @@ class FineTuner(BaseTrainer):
                                        drop_last=True,
                                        sampler=train_sampler)
 
+        if self.local_rank != -1:
+            dist.barrier()
+
+            if not self.train_sampler_name:
+                self.train_sampler_name = "DistributedSampler"
+
+            if not self.val_sampler_name:
+                self.val_sampler_name = "DistributedSampler"
+
+            self.log(f"world_size {self.world_size},"
+                     f"local_rank {self.local_rank},"
+                     f"train '{self.train_sampler_name}'"
+                     f"val '{self.val_sampler_name}'")
+
         val_transform = self.init_transform(self.val_transform_name,
                                             **self.val_transform_params)
         valset = self.init_dataset(self.valset_name,
@@ -154,12 +167,6 @@ class FineTuner(BaseTrainer):
                                      pin_memory=True,
                                      drop_last=False,
                                      sampler=val_sampler)
-
-        if self.local_rank != -1:
-            print(f"world_size {self.world_size},"
-                  f"local_rank {self.local_rank},"
-                  f"train '{self.train_sampler_name}'"
-                  f"val '{self.val_sampler_name}'")
 
         #######################################################################
         # Initialize Network
@@ -194,7 +201,8 @@ class FineTuner(BaseTrainer):
         if self.local_rank != -1:
             self.model = DistributedDataParallel(self.model,
                                                  device_ids=[self.local_rank],
-                                                 output_device=self.local_rank)
+                                                 output_device=self.local_rank,
+                                                 find_unused_parameters=True)
 
         #######################################################################
         # Initialize LR Scheduler
@@ -207,14 +215,14 @@ class FineTuner(BaseTrainer):
         # Start Training
         #######################################################################
 
-        if self.local_rank in [-1, 0]:
+        if self.local_rank <= 0:
             best_mr = 0.
             best_epoch = 1
             best_group_mr = []
             last_mrs = []
-            last_maj_mrs = []
-            last_med_mrs = []
-            last_min_mrs = []
+            last_head_mrs = []
+            last_mid_mrs = []
+            last_tail_mrs = []
             start_time = datetime.now()
 
         self.final_epoch = self.start_epoch + self.total_epochs
@@ -224,7 +232,6 @@ class FineTuner(BaseTrainer):
             self.lr_scheduler.step()
 
             if self.local_rank != -1:
-                dist.barrier()
                 train_sampler.set_epoch(cur_epoch)
                 val_sampler.set_epoch(cur_epoch)
 
@@ -250,9 +257,9 @@ class FineTuner(BaseTrainer):
 
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
-                    last_maj_mrs.append(val_stat.group_mr[0])
-                    last_med_mrs.append(val_stat.group_mr[1])
-                    last_min_mrs.append(val_stat.group_mr[2])
+                    last_head_mrs.append(val_stat.group_mr[0])
+                    last_mid_mrs.append(val_stat.group_mr[1])
+                    last_tail_mrs.append(val_stat.group_mr[2])
 
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
@@ -293,9 +300,9 @@ class FineTuner(BaseTrainer):
             dur_time = str(end_time - start_time)[:-7]  # 取到秒
 
             final_mr = np.around(np.mean(last_mrs), decimals=4)
-            final_maj_mr = np.around(np.mean(last_maj_mrs), decimals=4)
-            final_med_mr = np.around(np.mean(last_med_mrs), decimals=4)
-            final_min_mr = np.around(np.mean(last_min_mrs), decimals=4)
+            final_maj_mr = np.around(np.mean(last_head_mrs), decimals=4)
+            final_med_mr = np.around(np.mean(last_mid_mrs), decimals=4)
+            final_min_mr = np.around(np.mean(last_tail_mrs), decimals=4)
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
                 f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>6.2%} "
@@ -357,11 +364,11 @@ class FineTuner(BaseTrainer):
             dist.barrier()
             train_stat._cm = self._reduce_tensor(train_stat._cm, op='sum')
 
-        if self.local_rank in [-1, 0]:
+        if self.local_rank <= 0:
             train_pbar.set_postfix_str(
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
-                f"MR:{train_stat.mr:>6.2%} "
+                f"MR:{train_stat.mr:>7.2%} "
                 f"[{train_stat.group_mr[0]:>3.0%}, "
                 f"{train_stat.group_mr[1]:>3.0%}, "
                 f"{train_stat.group_mr[2]:>3.0%}]")
@@ -384,24 +391,24 @@ class FineTuner(BaseTrainer):
         val_loss_meter = AverageMeter()
         val_stat = ExpStat(dataset)
         with torch.no_grad():
-            for i, (batch_imgs, batch_targets) in enumerate(valloader):
+            for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
-                batch_targets = batch_targets.cuda(non_blocking=True)
+                batch_labels = batch_labels.cuda(non_blocking=True)
                 batch_probs = model(batch_imgs)
                 batch_preds = torch.argmax(batch_probs, dim=1)
-                avg_loss = criterion(batch_probs, batch_targets)
+                avg_loss = criterion(batch_probs, batch_labels)
 
                 if self.local_rank != -1:
                     dist.barrier()
                     avg_loss = self._reduce_tensor(avg_loss)
 
                 val_loss_meter.update(avg_loss.item(), 1)
-                val_stat.update(batch_targets, batch_preds)
+                val_stat.update(batch_labels, batch_preds)
 
                 if self.local_rank <= 0:
                     val_pbar.update()
                     val_pbar.set_postfix_str(
-                        f"Loss:{val_loss_meter.avg:>3.1f}")
+                        f"Loss:{val_loss_meter.avg:>4.2f}")
 
         if self.local_rank != -1:
             # all reduce the statistical confusion matrix
@@ -409,8 +416,8 @@ class FineTuner(BaseTrainer):
             val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
 
         if self.local_rank <= 0:
-            val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>3.1f} "
-                                     f"MR:{val_stat.mr:>6.2%} "
+            val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
+                                     f"MR:{val_stat.mr:>7.2%} "
                                      f"[{val_stat.group_mr[0]:>3.0%}, "
                                      f"{val_stat.group_mr[1]:>3.0%}, "
                                      f"{val_stat.group_mr[2]:>3.0%}]")

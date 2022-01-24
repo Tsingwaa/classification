@@ -344,11 +344,10 @@ class BaseTrainer:
         resume_log = f"===> Resume checkpoint from '{resume_fpath}'.\n"\
             f"checkpoint epoch: {epoch}\nIs_best: {is_best}\n"
 
-        if kwargs["mr"]:
+        if "mr" in checkpoint.keys():
             mr = checkpoint["mr"]
             group_mr = checkpoint.get("group_mr", "-")
-
-        resume_log += f"Mean recall: {mr:.2%} Group mr: {group_mr}\n"
+            resume_log += f"Mean recall: {mr:6.2%} {group_mr}\n"
 
         return checkpoint, resume_log
 
