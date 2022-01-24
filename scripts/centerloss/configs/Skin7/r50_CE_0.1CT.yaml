@@ -1,5 +1,5 @@
 experiment:
-  name: "Skin7_r50_CE_0.1center"
+  name: "Skin7_r50_CE_0.1CT"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -111,23 +111,6 @@ loss:
 optimizer:
   name: "SGD"
   param:
-    lr: 0.1
-    weight_decay: 1.0e-4
-    momentum: 0.9
-    nesterov: True
-
-loss2:
-  name: "CenterLoss"
-  param:
-    weight_type: ''
-    num_class: 7
-    feat_dim: 2048
-    alpha: 0
-    lambda: 0.1
-
-optimizer2:
-  name: "SGD"
-  param:
     lr: 0.5
     weight_decay: 1.0e-4
     momentum: 0.9
@@ -142,7 +125,7 @@ lr_scheduler:
   param:
     warmup_epochs: 5
     # CosineAnnealingLR
-    T_max: 195
+    T_max: 200
     eta_min: 0
 
     # CyclicLR
@@ -160,6 +143,26 @@ lr_scheduler:
     # T_mult: 1
     # eta_min: 0
 
+
+loss2:
+  name: "CenterLoss"
+  param:
+    weight_type: ''
+    num_class: 7
+    feat_dim: 2048
+    alpha: 0
+    lambda: 0.1
+    margin: -1
+
+optimizer2:
+  name: "SGD"
+  param:
+    lr: 1
+    weight_decay: 1.0e-4
+    momentum: 0.9
+    nesterov: True
+
+
 lr_scheduler2:
   # name: "CyclicLR"
   # name: "StepLR"
@@ -169,7 +172,7 @@ lr_scheduler2:
   param:
     warmup_epochs: 5
     # CosineAnnealingLR
-    T_max: 300  # keep a relative high learning rate
+    T_max: 195  # keep a relative high learning rate
     eta_min: 0
 
     # CyclicLR

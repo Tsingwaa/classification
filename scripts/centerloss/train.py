@@ -385,7 +385,7 @@ def parse_args():
                         "if single-GPU, default set to -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--lr", default=0.1, type=float, help="learning rate")
+    parser.add_argument("--lr", default=0.5, type=float, help="learning rate")
     parser.add_argument("--wd", default=1e-4, type=float, help="weight decay")
     args = parser.parse_args()
 
@@ -423,11 +423,11 @@ def main(args):
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # compare lr and wd
-    config["experiment"]["name"] += f"_lr{args.lr}_wd{args.wd}"
-    config["optimizer"]["param"].update({
-        "lr": float(args.lr),
-        "weight_decay": float(args.wd),
-    })
+    # config["experiment"]["name"] += f"_lr{args.lr}_wd{args.wd}"
+    # config["optimizer"]["param"].update({
+    #     "lr": float(args.lr),
+    #     "weight_decay": float(args.wd),
+    # })
 
     trainer = Trainer(local_rank=args.local_rank,
                       config=config,

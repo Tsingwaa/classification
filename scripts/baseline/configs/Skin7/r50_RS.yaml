@@ -1,5 +1,5 @@
 experiment:
-  name: "Skin7_r50_CE"
+  name: "Skin7_r50_RS"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -15,7 +15,7 @@ finetune:
   trainloader:
     sampler: ""
     retain_epoch_size: True
-    batch_size: 64
+    batch_size: 256
     num_workers: 4
   network:
     name: ''
@@ -30,7 +30,7 @@ finetune:
   optimizer:
     name: "SGD"
     param:
-      lr: 5.0e-1
+      lr: 1.0e-1
       weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
@@ -54,11 +54,11 @@ val_transform:
     phase: "val"
     resize: [224, 224]
 
-test_transform:
-  name: "MedTransform"
-  param:
-    phase: "test"
-    resize: [224, 224]
+# test_transform:
+#   name: "MedTransform"
+#   param:
+#     phase: "test"
+#     resize: [224, 224]
 
 train_dataset:
   name: "Skin7"
@@ -100,7 +100,8 @@ val_dataset:
 
 
 trainloader:
-  sampler: ''
+  sampler: 'BalanceSampler'
+  retain_epoch_size: False
   batch_size: 64
   num_workers: 4
 
@@ -158,7 +159,7 @@ lr_scheduler:
     # eta_min: 0
 
     # CosineAnnealingLR
-    T_max: 200
+    T_max: 195
     eta_min: 0
 
 # test:
