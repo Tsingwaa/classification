@@ -246,19 +246,25 @@ class Trainer(BaseTrainer):
             dur_time = str(end_time - start_time)[:-7]  # 取到秒
 
             final_mr = np.around(np.mean(last_mrs), decimals=4)
-            final_head_mr = np.around(np.mean(last_maj_mrs), decimals=4)
-            final_mid_mr = np.around(np.mean(last_med_mrs), decimals=4)
-            final_tail_mr = np.around(np.mean(last_min_mrs), decimals=4)
+            final_maj_mr = np.around(np.mean(last_maj_mrs), decimals=4)
+            final_med_mr = np.around(np.mean(last_med_mrs), decimals=4)
+            final_min_mr = np.around(np.mean(last_min_mrs), decimals=4)
 
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
-                f"===> Best mean recall: {best_mr:>7.2%} (epoch{best_epoch})\n"
-                f"Group recalls: [{best_group_mr[0]:>7.2%}, "
-                f"{best_group_mr[1]:>7.2%}, {best_group_mr[2]:>7.2%}]\n\n"
-                f"===> Final average mean recall of last 10 epochs:"
-                f" {final_mr:>7.2%}\n"
-                f"Average Group mean recalls: [{final_head_mr:7.2%}, "
-                f"{final_mid_mr:>7.2%}, {final_tail_mr:>7.2%}]\n\n"
+                f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>6.2%} "
+                f"[{best_group_mr[0]:>6.2%}, "
+                f"{best_group_mr[1]:>6.2%}, "
+                f"{best_group_mr[2]:>6.2%}]\n\n"
+                f"===> Last mean recall: {val_stat.mr:>6.2%} "
+                f"[{val_stat.group_mr[0]:>6.2%}, "
+                f"{val_stat.group_mr[1]:>6.2%}, "
+                f"{val_stat.group_mr[2]:>6.2%}]\n\n"
+                f"===> Final average mean recall of last 5 epochs: "
+                f"{final_mr:>6.2%}"
+                f"[{final_maj_mr:6.2%}, "
+                f"{final_med_mr:>6.2%}, "
+                f"{final_min_mr:>6.2%}]\n\n"
                 f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************\n")
