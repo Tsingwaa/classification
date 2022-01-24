@@ -15,7 +15,7 @@ finetune:
   trainloader:
     sampler: ""
     retain_epoch_size: True
-    batch_size: 256
+    batch_size: 64
     num_workers: 4
   network:
     name: ''
@@ -30,7 +30,7 @@ finetune:
   optimizer:
     name: "SGD"
     param:
-      lr: 1.0e-1
+      lr: 5.0e-1
       weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
