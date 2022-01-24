@@ -293,11 +293,11 @@ class BaseTrainer:
         optimizer = getattr(torch.optim, opt_name)(model_params, **kwargs)
         _prefix = "Initialized"
 
-        if kwargs.get("resume", False):
-            checkpoint = kwargs.pop("checkpoint", None)
-            optimizer = self.update_state_dict(optimizer,
-                                               checkpoint["optimizer"])
-            _prefix = "Resumed"
+        # if kwargs.get("resume", False):
+        #     checkpoint = kwargs.pop("checkpoint", None)
+        #     optimizer = self.update_state_dict(optimizer,
+        #                                        checkpoint["optimizer"])
+        #     _prefix = "Resumed"
 
         self.log(f"===> {_prefix} {opt_name}: {kwargs}", log_level)
 
@@ -370,7 +370,7 @@ class BaseTrainer:
 
         checkpoint = {
             "model": model_state_dict,
-            "optimizer": optimizer.state_dict(),
+            # "optimizer": optimizer.state_dict(),
             "epoch": epoch,
             "is_best": is_best,
             "mr": mr,
