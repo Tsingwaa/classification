@@ -1,5 +1,5 @@
 experiment:
-  name: "Skin7_r50_CE_0.01CT"
+  name: "Skin7_r50_CE_0.01CT_pretr"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -10,7 +10,7 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: "DRW"
+  name: "last_DRW"
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
@@ -26,22 +26,20 @@ finetune:
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: "class_weight"
+      weight_type: "inverse"
       label_smoothing: 0.
   optimizer:
     name: "SGD"
     param:
-      lr: 1.0e-1
-      weight_decay: 2.0e-4
+      lr: 0.5
+      weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
-    name: "StepLR"
+    name: "CosineAnnealingLR"
     param:
-      warmup_epochs: 5
-      step_size: 2
-      # milestones: [5, 10, 15, 20]
-      gamma: 0.1
+      warmup_epochs: 0
+      T_max: 10
 
 train_transform:
   name: "MedTransform"
@@ -100,8 +98,8 @@ valloader:
 network:
   name: "ResNet50"
   param:
-    pretrained: False
-    pretrained_fpath: ""
+    pretrained: True
+    pretrained_fpath: ".cache/torch/hub/resnet50-0676ba61.pth"
 
 loss:
   name: "CrossEntropyLoss"
@@ -112,7 +110,7 @@ loss:
 optimizer:
   name: "SGD"
   param:
-    lr: 0.5
+    lr: 0.001
     weight_decay: 1.0e-4
     momentum: 0.9
     nesterov: True
@@ -158,7 +156,7 @@ loss2:
 optimizer2:
   name: "SGD"
   param:
-    lr: 0.5
+    lr: 0.05
     weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True

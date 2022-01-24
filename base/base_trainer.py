@@ -228,9 +228,12 @@ class BaseTrainer:
             model = self.update_state_dict(model, state_dict)
             _prefix = "Resumed checkpoint model_params to"
         elif kwargs.get("pretrained", False):
-            pretrained_path = checkpoint["pretrained_path"]
+            pretrained_path = kwargs["pretrained_fpath"]
+            pretrained_path = join(self.user_root, pretrained_path)
             state_dict = torch.load(pretrained_path, map_location="cpu")
-            model = self.update_state_dict(model, state_dict)
+            model = self.update_state_dict(model,
+                                           state_dict,
+                                           except_keys=["fc"])
             _prefix = "Resumed pretrained model_params to"
 
         kwargs.pop("checkpoint", None)
@@ -446,7 +449,7 @@ class BaseTrainer:
 
         return total_params
 
-    def update_state_dict(self, module, checkpoint_state_dict):
+    def update_state_dict(self, module, checkpoint_state_dict, except_keys=[]):
         """Only update state dict that the module needs and print those
         unupdated keys of the module"""
         module_state_dict = module.state_dict()
@@ -455,7 +458,8 @@ class BaseTrainer:
 
             for key, value in checkpoint_state_dict.items()
 
-            if key in module_state_dict.keys()
+            if (key in module_state_dict.keys() and not any(
+                ex_key in key for ex_key in except_keys))
         }
         keys_unupdate = [
             key for key in module_state_dict.keys()

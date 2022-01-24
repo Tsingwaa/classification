@@ -9,12 +9,11 @@ from os.path import join
 import numpy as np
 import torch
 import yaml
-from apex import amp
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
 # from sklearn import metrics
-from torch import distributed
+from torch import distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 # from torch.utils.tensorboard import SummaryWriter
@@ -39,10 +38,9 @@ class FineTuner(BaseTrainer):
         self.seed = seed
 
         if self.local_rank != -1:
-            distributed.init_process_group(backend="nccl")
+            dist.init_process_group(backend="nccl")
             torch.cuda.set_device(self.local_rank)
-            self.global_rank = distributed.get_rank()
-            self.world_size = distributed.get_world_size()
+            self.world_size = dist.get_world_size()
 
         #######################################################################
         # Experiment setting
@@ -141,11 +139,18 @@ class FineTuner(BaseTrainer):
                                        sampler=train_sampler)
 
         if self.local_rank != -1:
-            print(f"global_rank {self.global_rank},"
-                  f"world_size {self.world_size},"
-                  f"local_rank {self.local_rank},"
-                  f"train '{self.train_sampler_name}'"
-                  f"val '{self.val_sampler_name}'")
+            dist.barrier()
+
+            if not self.train_sampler_name:
+                self.train_sampler_name = "DistributedSampler"
+
+            if not self.val_sampler_name:
+                self.val_sampler_name = "DistributedSampler"
+
+            self.log(f"world_size {self.world_size},"
+                     f"local_rank {self.local_rank},"
+                     f"train '{self.train_sampler_name}'"
+                     f"val '{self.val_sampler_name}'")
 
         val_transform = self.init_transform(self.val_transform_name,
                                             **self.val_transform_params)
@@ -194,9 +199,6 @@ class FineTuner(BaseTrainer):
         #######################################################################
 
         if self.local_rank != -1:
-            self.model, self.optimizer = amp.initialize(self.model,
-                                                        self.optimizer,
-                                                        opt_level="O1")
             self.model = DistributedDataParallel(self.model,
                                                  device_ids=[self.local_rank],
                                                  output_device=self.local_rank,
@@ -335,29 +337,24 @@ class FineTuner(BaseTrainer):
         train_stat = ExpStat(dataset)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
-            optimizer.zero_grad()
-
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
-
             batch_probs = model(batch_imgs, out_type="fc")
+            batch_preds = torch.argmax(batch_probs, dim=1)
             avg_loss = criterion(batch_probs, batch_labels)
 
-            if self.local_rank != -1:
-                torch.distributed.barrier()
-                with amp.scale_loss(avg_loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-                optimizer.step()
-                avg_loss = self._reduce_tensor(avg_loss)
-            else:
-                avg_loss.backward()
-                optimizer.step()
+            optimizer.zero_grad()
+            avg_loss.backward()
+            optimizer.step()
 
-            batch_preds = torch.argmax(batch_probs, dim=1)
+            if self.local_rank != -1:
+                dist.barrier()
+                avg_loss = self._reduce_tensor(avg_loss)
+
             train_loss_meter.update(avg_loss.item(), 1)
             train_stat.update(batch_labels, batch_preds)
 
-            if self.local_rank <= 0:
+            if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str(
                     f"LR:{optimizer.param_groups[0]['lr']:.1e} "
@@ -365,7 +362,7 @@ class FineTuner(BaseTrainer):
 
         if self.local_rank != -1:
             # all reduce the statistical confusion matrix
-            torch.distributed.barrier()
+            dist.barrier()
             train_stat._cm = self._reduce_tensor(train_stat._cm, op='sum')
 
         if self.local_rank <= 0:
@@ -404,7 +401,7 @@ class FineTuner(BaseTrainer):
                 avg_loss = criterion(batch_probs, batch_labels)
 
                 if self.local_rank != -1:
-                    torch.distributed.barrier()
+                    dist.barrier()
                     avg_loss = self._reduce_tensor(avg_loss)
                 val_loss_meter.update(avg_loss.item(), 1)
 
@@ -418,7 +415,7 @@ class FineTuner(BaseTrainer):
 
         if self.local_rank != -1:
             # all reduce the statistical confusion matrix
-            torch.distributed.barrier()
+            dist.barrier()
             val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
 
         if self.local_rank <= 0:
@@ -436,6 +433,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--local_rank",
                         type=int,
+                        default=-1,
                         help="Local Rank for distributed training. "
                         "if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
@@ -482,4 +480,8 @@ def main(args):
 
 if __name__ == "__main__":
     args = parse_args()
+
+    if "LOCAL_RANK" in os.environ:
+        args.local_rank = int(os.environ["LOCAL_RANK"])
+
     main(args)

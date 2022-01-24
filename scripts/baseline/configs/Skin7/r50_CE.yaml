@@ -1,5 +1,5 @@
 experiment:
-  name: "Skin7_r50_CE"
+  name: "Skin7_r50_CE_pretr"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -118,8 +118,8 @@ valloader:
 network:
   name: "ResNet50"
   param:
-    pretrained: False
-    pretrained_fpath: ""
+    pretrained: True
+    pretrained_fpath: ".cache/torch/hub/resnet50-0676ba61.pth"
 
 loss:
   name: "CrossEntropyLoss"
@@ -130,7 +130,7 @@ loss:
 optimizer:
   name: "SGD"
   param:
-    lr: 0.5
+    lr: 0.001
     weight_decay: 1.0e-4
     momentum: 0.9
     nesterov: True
