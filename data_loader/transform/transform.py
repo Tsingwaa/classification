@@ -168,9 +168,9 @@ class MedTransform:
         if self.phase == 'train':
             ret_transform = transforms.Compose([
                 transforms.RandomRotation(30),
-                # transforms.Resize((300, 300)),
-                # transforms.RandomCrop(self.resize),
-                transforms.RandomResizedCrop(self.resize),
+                transforms.Resize((300, 300)),
+                transforms.RandomCrop(self.resize),
+                # transforms.RandomResizedCrop(self.resize),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std)
