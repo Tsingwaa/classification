@@ -54,11 +54,11 @@ val_transform:
     phase: "val"
     resize: [224, 224]
 
-test_transform:
-  name: "MedTransform"
-  param:
-    phase: "test"
-    resize: [224, 224]
+# test_transform:
+#   name: "MedTransform"
+#   param:
+#     phase: "test"
+#     resize: [224, 224]
 
 train_dataset:
   name: "Skin7"
@@ -158,7 +158,7 @@ lr_scheduler:
     # eta_min: 0
 
     # CosineAnnealingLR
-    T_max: 200
+    T_max: 195
     eta_min: 0
 
 # test:

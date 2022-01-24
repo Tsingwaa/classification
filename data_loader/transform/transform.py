@@ -167,15 +167,17 @@ class MedTransform:
     def __call__(self, x, mean=IN_MEAN, std=IN_STD, **kwargs):
         if self.phase == 'train':
             ret_transform = transforms.Compose([
-                transforms.Resize((300, 300)),
-                transforms.RandomCrop(self.resize),
+                transforms.RandomRotation(30),
+                # transforms.Resize((300, 300)),
+                # transforms.RandomCrop(self.resize),
+                transforms.RandomResizedCrop(self.resize),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std)
             ])
         else:
             ret_transform = transforms.Compose([
-                transforms.Resize((300, 300)),
+                transforms.Resize((256, 256)),
                 transforms.CenterCrop(self.resize),
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std),

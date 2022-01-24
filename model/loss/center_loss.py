@@ -15,13 +15,20 @@ import torch
 from model.loss.builder import Losses
 # from pudb import set_trace
 from torch import nn
-from utils import cos_sim, eu_dist
+
+# from utils import cos_sim, eu_dist
 
 
 @Losses.register_module("CenterLoss")
 class CenterLoss(nn.Module):
-    def __init__(self, num_classes, feat_dim, weight=None, margin=-1,
-                 dist_metric='eu', **kwargs):
+
+    def __init__(self,
+                 num_classes,
+                 feat_dim,
+                 weight=None,
+                 margin=-1,
+                 dist_metric='eu',
+                 **kwargs):
         """Initialize class centers
 
         Args:
@@ -35,6 +42,7 @@ class CenterLoss(nn.Module):
 
         super(CenterLoss, self).__init__()
         self.weight = weight
+
         if self.weight is not None:
             self.weight = self.weight.cuda()
 
@@ -53,6 +61,7 @@ class CenterLoss(nn.Module):
         if self.margin == -1:  # 不使用margin
             center = self.centers[labels]  # (N, d)
             dist = (feat - center).pow(2).sum(dim=-1)  # (N, 1)
+
             if self.weight is not None:
                 dist *= self.weight[labels]  # (N, 1)
             loss = 0.5 * torch.clamp(dist, min=1e-12, max=1e+12).mean(dim=1)
@@ -60,7 +69,7 @@ class CenterLoss(nn.Module):
             feat_expand = feat.unsqueeze(1)  # (N, d) -> (N, 1, d)
             center_expand = self.centers.unsqueeze(0)  # (C, d) -> (1, C, d)
 
-            # (N, 1, d) - (1, C, d) = (N, C, d) --> 2-norm(N, C)
+            # (N, 1, d) - (1, C, d) = (N, C, d) --> 2-Norm(N, C)
             dist_all = torch.norm(feat_expand - center_expand, dim=-1)
             labels = labels.view(-1, 1)
 
@@ -85,18 +94,19 @@ class CenterLoss(nn.Module):
         return loss
 
 
-# if __name__ == '__main__':
-#     use_gpu = False
-#     num_classes = 10
-#     feat_dim = 2
+if __name__ == '__main__':
+    use_gpu = False
+    num_classes = 10
+    feat_dim = 2
 
-#     features = torch.ones(16, 2)
-#     targets = torch.ones((16, )).long()
-#     if use_gpu:
-#         features = features.cuda()
-#         targets = targets.cuda()
+    features = torch.ones(16, 2)
+    targets = torch.ones((16, )).long()
 
-#     center_loss = CenterLoss(num_classes, feat_dim, use_gpu)
+    if use_gpu:
+        features = features.cuda()
+        targets = targets.cuda()
 
-#     loss = center_loss(features, targets)
-#     print(loss)
+    center_loss = CenterLoss(num_classes, feat_dim, use_gpu)
+
+    loss = center_loss(features, targets)
+    print(loss)

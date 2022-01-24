@@ -158,8 +158,7 @@ class Tester(BaseTrainer):
         #######################################################################
 
         if self.local_rank != -1:
-            print(f"global_rank {self.global_rank},"
-                  f"world_size {self.world_size},"
+            print(f"world_size {self.world_size},"
                   f"local_rank {self.local_rank},"
                   f"val '{self.val_sampler_name}'"
                   f"test '{self.test_sampler_name}'")
