@@ -213,7 +213,7 @@ class BaseTrainer:
         dataset = kwargs.pop("dataset", None)
         phase = dataset.phase
         kwargs.pop("sampler", None)
-        sampler_init_log += f"\n{phase} loader: {kwargs}"
+        sampler_init_log += f" for {phase}loader{kwargs}"
         self.log(sampler_init_log, log_level)
 
         return sampler

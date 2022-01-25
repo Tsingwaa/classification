@@ -1,5 +1,5 @@
 experiment:
-  name: "Skin7_r50_CE_0.01CT"
+  name: "Skin7_r50pre_CE_0.01CT_bs32"
   start_epoch: 1
   total_epochs: 200
   log_fname: "train.log"
@@ -82,12 +82,12 @@ val_dataset:
 
 trainloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 network:
@@ -151,7 +151,7 @@ loss2:
 optimizer2:
   name: "SGD"
   param:
-    lr: 0.05
+    lr: 0.005
     weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True
