@@ -16,13 +16,8 @@ finetune:
   trainloader:
     sampler: ""
     retain_epoch_size: False
-    batch_size: 64
+    batch_size: 32
     num_workers: 4
-  network:
-    name: ""
-    param:
-      in_channels: 64
-      num_classes: 7
   loss:
     name: "CrossEntropyLoss"
     param:
@@ -31,7 +26,7 @@ finetune:
   optimizer:
     name: "SGD"
     param:
-      lr: 0.5
+      lr: 0.1
       weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
@@ -87,12 +82,12 @@ val_dataset:
 
 trainloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 network:
