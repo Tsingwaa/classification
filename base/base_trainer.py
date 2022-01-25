@@ -79,7 +79,10 @@ class BaseTrainer:
             self.writer = SummaryWriter(log_dir=self.tb_dir)
 
             # Save stream and file logging record
-            self.log_fpath = join(self.exp_dir, self.exp_config["log_fname"])
+            self.log_fpath = join(
+                self.exp_dir,
+                f"seed{self.seed}_" + self.exp_config['log_fname'],
+            )
             self.logger = self.init_logger(self.log_fpath)
 
             exp_init_log = f"\n****************************************"\
@@ -214,6 +217,7 @@ class BaseTrainer:
                    network_name,
                    resume=False,
                    checkpoint=None,
+                   except_keys=[],
                    **kwargs):
         log_level = kwargs.pop("log_level", "default")
 
@@ -225,7 +229,9 @@ class BaseTrainer:
 
         if resume:
             state_dict = checkpoint["model"]
-            model = self.update_state_dict(model, state_dict)
+            model = self.update_state_dict(model,
+                                           state_dict,
+                                           except_keys=except_keys)
             _prefix = "Resumed checkpoint model_params to"
         elif kwargs.get("pretrained", False):
             pretrained_path = kwargs["pretrained_fpath"]

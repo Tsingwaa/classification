@@ -97,9 +97,9 @@ class FineTuner(BaseTrainer):
 
         ft_network_config = self.finetune_config.pop("network", None)
 
-        if ft_network_config is not None:
-            self.ft_network_name = ft_network_config["name"]
-            self.ft_network_params = ft_network_config["param"]
+        if ft_network_config is not None and ft_network_config["name"]:
+            self.network_name = ft_network_config["name"]
+            self.network_params = ft_network_config["param"]
 
         self.trainloader_params = self.finetune_config["trainloader"]
         self.train_sampler_name = self.trainloader_params.pop("sampler", None)
@@ -201,8 +201,7 @@ class FineTuner(BaseTrainer):
         if self.local_rank != -1:
             self.model = DistributedDataParallel(self.model,
                                                  device_ids=[self.local_rank],
-                                                 output_device=self.local_rank,
-                                                 find_unused_parameters=True)
+                                                 output_device=self.local_rank)
 
         #######################################################################
         # Initialize LR Scheduler
@@ -310,12 +309,12 @@ class FineTuner(BaseTrainer):
                 f"[{best_group_mr[0]:>7.2%}, "
                 f"{best_group_mr[1]:>7.2%}, "
                 f"{best_group_mr[2]:>7.2%}]\n\n"
-                f"===> Last mean recall: {val_stat.mr:>6.2%} "
+                f"===> Last mean recall: {val_stat.mr:>7.2%} "
                 f"[{val_stat.group_mr[0]:>7.2%}, "
                 f"{val_stat.group_mr[1]:>7.2%}, "
                 f"{val_stat.group_mr[2]:>7.2%}]\n\n"
                 f"===> Final average mean recall of last 5 epochs: "
-                f"{final_mr:>6.2%} "
+                f"{final_mr:>7.2%} "
                 f"[{final_maj_mr:>7.2%}, "
                 f"{final_med_mr:>7.2%}, "
                 f"{final_min_mr:>7.2%}]\n\n"

@@ -97,9 +97,9 @@ class FineTuner(BaseTrainer):
 
         ft_network_config = self.finetune_config.pop("network", None)
 
-        if ft_network_config is not None:
-            self.ft_network_name = ft_network_config["name"]
-            self.ft_network_params = ft_network_config["param"]
+        if ft_network_config is not None and ft_network_config["name"]:
+            self.network_name = ft_network_config["name"]
+            self.network_params = ft_network_config["param"]
 
         self.trainloader_params = self.finetune_config["trainloader"]
         self.train_sampler_name = self.trainloader_params.pop("sampler", None)
@@ -175,6 +175,7 @@ class FineTuner(BaseTrainer):
                                      resume=True,
                                      checkpoint=self.checkpoint,
                                      num_classes=trainset.num_classes,
+                                     except_keys=["fc"],
                                      **self.network_params)
         self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
 
@@ -201,8 +202,7 @@ class FineTuner(BaseTrainer):
         if self.local_rank != -1:
             self.model = DistributedDataParallel(self.model,
                                                  device_ids=[self.local_rank],
-                                                 output_device=self.local_rank,
-                                                 find_unused_parameters=True)
+                                                 output_device=self.local_rank)
 
         #######################################################################
         # Initialize LR Scheduler
@@ -266,9 +266,9 @@ class FineTuner(BaseTrainer):
                     f"LR:{self.optimizer.param_groups[0]['lr']:.1e} "
                     f"Trainset Loss={train_loss:>4.1f} "
                     f"MR={train_stat.mr:>6.2%}"
-                    f"[{train_stat.group_mr[0]:>6.2%}, "
-                    f"{train_stat.group_mr[1]:>6.2%}, "
-                    f"{train_stat.group_mr[2]:>6.2%}]"
+                    f"[{train_stat.group_mr[0]:>7.2%}, "
+                    f"{train_stat.group_mr[1]:>7.2%}, "
+                    f"{train_stat.group_mr[2]:>7.2%}]"
                     f" || "
                     f"Valset Loss={val_loss:>4.1f} "
                     f"MR={val_stat.mr:>6.2%}"
@@ -305,16 +305,16 @@ class FineTuner(BaseTrainer):
             final_min_mr = np.around(np.mean(last_tail_mrs), decimals=4)
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
-                f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>6.2%} "
-                f"[{best_group_mr[0]:>6.2%}, "
-                f"{best_group_mr[1]:>6.2%}, "
-                f"{best_group_mr[2]:>6.2%}]\n\n"
-                f"===> Last mean recall: {val_stat.mr:>6.2%} "
+                f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>7.2%} "
+                f"[{best_group_mr[0]:>7.2%}, "
+                f"{best_group_mr[1]:>7.2%}, "
+                f"{best_group_mr[2]:>7.2%}]\n\n"
+                f"===> Last mean recall: {val_stat.mr:>7.2%} "
                 f"[{val_stat.group_mr[0]:>7.2%}, "
                 f"{val_stat.group_mr[1]:>7.2%}, "
                 f"{val_stat.group_mr[2]:>7.2%}]\n\n"
                 f"===> Final average mean recall of last 5 epochs: "
-                f"{final_mr:>6.2%} "
+                f"{final_mr:>7.2%} "
                 f"[{final_maj_mr:>7.2%}, "
                 f"{final_med_mr:>7.2%}, "
                 f"{final_min_mr:>7.2%}]\n\n"

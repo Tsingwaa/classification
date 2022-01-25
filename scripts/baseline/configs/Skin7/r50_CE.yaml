@@ -1,27 +1,22 @@
 experiment:
-  name: "Skin7_r50_CE_pretr"
+  name: "Skin7_r50_CE_bs32_wd5"
   start_epoch: 1
-  total_epochs: 200
+  total_epochs: 100
   log_fname: "train.log"
   resume: False
-  resume_fpath: "best.pth.tar"
+  resume_fpath: "last.pth.tar"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: "best_DRW"
+  name: "last_DRW"
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: ""
+    sampler: "BalanceSampler"
     retain_epoch_size: True
     batch_size: 64
     num_workers: 4
-  network:
-    name: ''
-    param:
-      in_channels: 512
-      num_classes: 20
   loss:
     name: "CrossEntropyLoss"
     param:
@@ -30,7 +25,7 @@ finetune:
   optimizer:
     name: "SGD"
     param:
-      lr: 5.0e-1
+      lr: 1.0e-1
       weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
@@ -102,12 +97,12 @@ val_dataset:
 
 trainloader:
   sampler: ''
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 valloader:
   sampler: ''
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 # testloader:
@@ -131,7 +126,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.001
-    weight_decay: 1.0e-4
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 
@@ -159,8 +154,8 @@ lr_scheduler:
     # eta_min: 0
 
     # CosineAnnealingLR
-    T_max: 200
-    eta_min: 0
+    T_max: 95
+    eta_min: 1.0e-6
 
 # test:
 #   name: "test"
