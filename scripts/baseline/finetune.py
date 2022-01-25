@@ -369,9 +369,9 @@ class FineTuner(BaseTrainer):
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
                 f"MR:{train_stat.mr:>7.2%} "
-                f"[{train_stat.group_mr[0]:>3.0%}, "
-                f"{train_stat.group_mr[1]:>3.0%}, "
-                f"{train_stat.group_mr[2]:>3.0%}]")
+                f"[{train_stat.group_mr[0]:>7.2%}, "
+                f"{train_stat.group_mr[1]:>7.2%}, "
+                f"{train_stat.group_mr[2]:>7.2%}]")
 
             train_pbar.close()
 
@@ -418,9 +418,9 @@ class FineTuner(BaseTrainer):
         if self.local_rank <= 0:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
                                      f"MR:{val_stat.mr:>7.2%} "
-                                     f"[{val_stat.group_mr[0]:>3.0%}, "
-                                     f"{val_stat.group_mr[1]:>3.0%}, "
-                                     f"{val_stat.group_mr[2]:>3.0%}]")
+                                     f"[{val_stat.group_mr[0]:>7.2%}, "
+                                     f"{val_stat.group_mr[1]:>7.2%}, "
+                                     f"{val_stat.group_mr[2]:>7.2%}]")
             val_pbar.close()
 
         return val_stat, val_loss_meter.avg

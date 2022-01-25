@@ -1,5 +1,5 @@
 experiment:
-  name: "Skin7_r50_CE_bs32_wd5"
+  name: "Skin7_r50_CE_bs32"
   start_epoch: 1
   total_epochs: 100
   log_fname: "train.log"
@@ -13,9 +13,9 @@ finetune:
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: "BalanceSampler"
+    sampler: ""
     retain_epoch_size: True
-    batch_size: 64
+    batch_size: 32
     num_workers: 4
   loss:
     name: "CrossEntropyLoss"
@@ -126,7 +126,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.001
-    weight_decay: 5.0e-4
+    weight_decay: 1.0e-4
     momentum: 0.9
     nesterov: True
 

@@ -28,6 +28,7 @@ class Xray6(torch.utils.data.Dataset):
         if "/" not in root:  # 给定root为数据集根目录
             root = join(DATASETS_ROOT, root)
 
+        self.phase = phase
         self.mean, self.std = self.splitfold_mean_std[fold_i]
         self.transform = transform
 

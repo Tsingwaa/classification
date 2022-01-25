@@ -204,11 +204,16 @@ class BaseTrainer:
             sampler_init_log = "===> Initialized DistributedSampler"
         elif sampler_name in {None, "None", ""}:
             sampler = None
-            sampler_init_log = "===> Use Default Sampler"
+            sampler_init_log = "===> Initialized Default Sampler"
         else:
             sampler = Samplers.get(sampler_name)(**kwargs)
             sampler_init_log = f"===> Initialized {sampler_name} with"\
                 f" resampled size={len(sampler)}"
+
+        dataset = kwargs.pop("dataset", None)
+        phase = dataset.phase
+        kwargs.pop("sampler", None)
+        sampler_init_log += f"\n{phase} loader: {kwargs}"
         self.log(sampler_init_log, log_level)
 
         return sampler

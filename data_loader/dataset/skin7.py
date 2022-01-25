@@ -20,6 +20,7 @@ class Skin7(torch.utils.data.Dataset):
     def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
         """fold_i: [0, 1, 2, 3, 4]"""
 
+        self.phase = phase
         self.transform = transform
         self.mean, self.std = self.splitfold_mean_std[fold_i]
 

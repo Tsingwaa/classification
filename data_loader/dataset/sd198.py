@@ -22,6 +22,7 @@ class SD198(torch.utils.data.Dataset):
     def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
 
         self.mean, self.std = self.splitfold_mean_std[fold_i]
+        self.phase = phase
         self.transform = transform
 
         if "/" not in root:
