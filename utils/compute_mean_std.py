@@ -75,7 +75,7 @@ def compute_mean_and_std(img_paths):
 if __name__ == "__main__":
     seed = 0
     np.random.seed(seed)
-    dataset_name = "Xray14"
+    dataset_name = "Xray8"
     root = "Xray14"
 
     for fold_i in range(5):

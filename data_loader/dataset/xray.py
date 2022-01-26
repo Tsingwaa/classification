@@ -19,13 +19,39 @@ class Xray14(torch.utils.data.Dataset):
         ([0.4929, 0.4929, 0.4929], [0.2487, 0.2487, 0.2487]),
         ([0.4925, 0.4925, 0.4925], [0.2490, 0.2490, 0.2490]),
     ]
+    select_classes = list(range(14))
+    # 2:  9550->0
+    # 0:  4210->1
+    # 11: 3955->2
+    # 10: 2705->3
+    # 8:  2195->4
+    # 9:  2135->5
+    # 3:  1310->6
+    # 13: 1125->7
+    # 1:  1090->8
+    # 5:  895 ->9
+    # 4:  725 ->10
+    # 12: 630 ->11
+    # 6:  305 ->12
+    # 7:  110 ->13
+    remap = {
+        2: 0,
+        0: 1,
+        11: 2,
+        10: 3,
+        8: 4,
+        9: 5,
+        3: 6,
+        13: 7,
+        1: 8,
+        5: 9,
+        4: 10,
+        12: 11,
+        6: 12,
+        7: 13,
+    }
 
-    def __init__(self,
-                 root,
-                 phase,
-                 fold_i=0,
-                 transform=None,
-                 select_classes=list(range(14))):
+    def __init__(self, root, phase, fold_i=0, transform=None):
         super(Xray14, self).__init__()
 
         if "/" not in root:  # 给定root为数据集根目录
@@ -36,46 +62,19 @@ class Xray14(torch.utils.data.Dataset):
         self.transform = transform
 
         splitfold_path = join(root, "categories/split.json")
-        self.img_names, self.targets = self.get_data(splitfold_path, fold_i,
-                                                     phase, select_classes)
+        self.img_names, self.targets = self.get_data(
+            splitfold_path,
+            fold_i,
+            phase,
+            self.select_classes,
+        )
 
         data_dir = join(root, "categories")
         self.img_paths = [
             join(data_dir, img_name) for img_name in self.img_names
         ]
 
-        # 2:  9550->0
-        # 0:  4210->1
-        # 11: 3955->2
-        # 10: 2705->3
-        # 8:  2195->4
-        # 9:  2135->5
-        # 3:  1310->6
-        # 13: 1125->7
-        # 1:  1090->8
-        # 5:  895 ->9
-        # 4:  725 ->10
-        # 12: 630 ->11
-        # 6:  305 ->12
-        # 7:  110 ->13
-        remap = {
-            2: 0,
-            0: 1,
-            11: 2,
-            10: 3,
-            8: 4,
-            9: 5,
-            3: 6,
-            13: 7,
-            1: 8,
-            5: 9,
-            4: 10,
-            12: 11,
-            6: 12,
-            7: 13,
-        }
-
-        self.targets = [remap[target] for target in self.targets]
+        self.targets = [self.remap[target] for target in self.targets]
         self.num_samples_per_cls = [
             self.targets.count(i) for i in range(self.num_classes)
         ]
@@ -123,8 +122,30 @@ class Xray14(torch.utils.data.Dataset):
         return img_names, targets
 
 
+@Datasets.register_module("Xray13")
+class Xray13(Xray14):
+    select_classes = list(range(1, 14))
+    num_classes = 13
+    splitfold_mean_std = [
+        ([0.5028, 0.5028, 0.5028], [0.2496, 0.2496, 0.2496]),
+        ([0.5032, 0.5032, 0.5032], [0.2500, 0.2500, 0.2500]),
+        ([0.5029, 0.5029, 0.5029], [0.2499, 0.2499, 0.2499]),
+        ([0.5031, 0.5031, 0.5031], [0.2504, 0.2504, 0.2504]),
+        ([0.5031, 0.5031, 0.5031], [0.2500, 0.2500, 0.2500]),
+    ]
+
+    # 0: 4210 -> 0
+    # 11:3955 -> 1
+    # 9: 2135 -> 2
+    # 1: 1090 -> 3
+    # 5: 895  -> 4
+    # 7: 110  -> 5
+    remap = {i: i - 1 for i in range(1, 14)}
+
+
 @Datasets.register_module("Xray6")
 class Xray6(Xray14):
+    select_classes = [0, 1, 5, 7, 9, 11]
     num_classes = 6
     splitfold_mean_std = [
         ([0.5028, 0.5028, 0.5028], [0.2496, 0.2496, 0.2496]),
@@ -134,54 +155,26 @@ class Xray6(Xray14):
         ([0.5031, 0.5031, 0.5031], [0.2500, 0.2500, 0.2500]),
     ]
 
-    def __init__(self,
-                 root,
-                 phase,
-                 fold_i=0,
-                 transform=None,
-                 select_classes=[0, 1, 5, 7, 9, 11]):
-
-        if "/" not in root:  # 给定root为数据集根目录
-            root = join(DATASETS_ROOT, root)
-
-        self.phase = phase
-        self.fold_i = fold_i
-        self.transform = transform
-
-        splitfold_path = join(root, "categories/split.json")
-        self.img_names, self.targets = self.get_data(splitfold_path, fold_i,
-                                                     phase, select_classes)
-
-        data_dir = join(root, "categories")
-        self.img_paths = [
-            join(data_dir, img_name) for img_name in self.img_names
-        ]
-
-        # 0: 4210 -> 0
-        # 11:3955 -> 1
-        # 9: 2135 -> 2
-        # 1: 1090 -> 3
-        # 5: 895  -> 4
-        # 7: 110  -> 5
-        remap = {
-            0: 0,
-            11: 1,
-            9: 2,
-            1: 3,
-            5: 4,
-            7: 5,
-        }
-
-        self.targets = [remap[target] for target in self.targets]
-        self.num_samples_per_cls = [
-            self.targets.count(i) for i in range(self.num_classes)
-        ]
-        self.group_mode = "class"
+    # 0: 4210 -> 0
+    # 11:3955 -> 1
+    # 9: 2135 -> 2
+    # 1: 1090 -> 3
+    # 5: 895  -> 4
+    # 7: 110  -> 5
+    remap = {
+        0: 0,
+        11: 1,
+        9: 2,
+        1: 3,
+        5: 4,
+        7: 5,
+    }
 
 
-@Datasets.register_module("Xray6")
-class Xray9(Xray14):
-    num_classes = 6
+@Datasets.register_module("Xray8")
+class Xray8(Xray14):
+    select_classes = [0, 1, 5, 7, 8, 9, 10, 11]
+    num_classes = 8
     splitfold_mean_std = [
         ([0.5028, 0.5028, 0.5028], [0.2496, 0.2496, 0.2496]),
         ([0.5032, 0.5032, 0.5032], [0.2500, 0.2500, 0.2500]),
@@ -190,55 +183,24 @@ class Xray9(Xray14):
         ([0.5031, 0.5031, 0.5031], [0.2500, 0.2500, 0.2500]),
     ]
 
-    def __init__(self,
-                 root,
-                 phase,
-                 fold_i=0,
-                 transform=None,
-                 select_classes=[0, 1, 2, 5, 7, 8, 9, 10, 11]):
-
-        if "/" not in root:  # 给定root为数据集根目录
-            root = join(DATASETS_ROOT, root)
-
-        self.phase = phase
-        self.fold_i = fold_i
-        self.transform = transform
-
-        splitfold_path = join(root, "categories/split.json")
-        self.img_names, self.targets = self.get_data(splitfold_path, fold_i,
-                                                     phase, select_classes)
-
-        data_dir = join(root, "categories")
-        self.img_paths = [
-            join(data_dir, img_name) for img_name in self.img_names
-        ]
-
-        # 2: 9550 -> 0
-        # 0: 4210 -> 1
-        # 11:3955 -> 2
-        # 10:2705 -> 3
-        # 8: 2195 -> 4
-        # 9: 2135 -> 5
-        # 1: 1090 -> 6
-        # 5: 895  -> 7
-        # 7: 110  -> 8
-        remap = {
-            2: 0,
-            0: 1,
-            11: 2,
-            10: 3,
-            8: 4,
-            9: 5,
-            1: 6,
-            5: 7,
-            7: 8,
-        }
-
-        self.targets = [remap[target] for target in self.targets]
-        self.num_samples_per_cls = [
-            self.targets.count(i) for i in range(self.num_classes)
-        ]
-        self.group_mode = "class"
+    # 0: 4210 -> 0
+    # 11:3955 -> 1
+    # 10:2705 -> 2
+    # 8: 2195 -> 3
+    # 9: 2135 -> 4
+    # 1: 1090 -> 5
+    # 5: 895  -> 6
+    # 7: 110  -> 7
+    remap = {
+        0: 0,
+        11: 1,
+        10: 2,
+        8: 3,
+        9: 4,
+        1: 5,
+        5: 6,
+        7: 7,
+    }
 
 
 if __name__ == "__main__":
