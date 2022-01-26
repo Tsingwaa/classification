@@ -254,8 +254,7 @@ class Trainer(BaseTrainer):
                         model=self.model,
                         optimizer=self.optimizer,
                         is_best=is_best,
-                        mr=val_stat.mr,
-                        group_mr=val_stat.group_mr,
+                        stat=val_stat,
                         prefix=f"seed{self.seed}_fold{self.fold_i}",
                         save_dir=self.exp_dir)
 

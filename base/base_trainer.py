@@ -371,8 +371,7 @@ class BaseTrainer:
         model,
         optimizer,
         is_best,
-        mr,
-        group_mr,
+        stat,
         save_dir,
         prefix=None,
         **kwargs,
@@ -388,8 +387,10 @@ class BaseTrainer:
             # "optimizer": optimizer.state_dict(),
             "epoch": epoch,
             "is_best": is_best,
-            "mr": mr,
-            "group_mr": group_mr,
+            "mr": stat.mr,
+            "cm": stat.cm,
+            "recalls": stat.recalls,
+            "group_mr": stat.group_mr,
         }
         checkpoint.update(kwargs)  # Add custom state dict.
 
