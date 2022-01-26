@@ -109,7 +109,7 @@ class Xray14(torch.utils.data.Dataset):
         elif phase in ['val', 'test']:
             data = fold2data[str(fold_i)]
         else:
-            raise NotImplementedError
+            raise TypeError
 
         # fnames(str list): "class/fname"
         # targets(int list): elem in select_classes
