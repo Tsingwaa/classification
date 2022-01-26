@@ -124,13 +124,15 @@ class Xray14(torch.utils.data.Dataset):
 
 
 @Datasets.register_module("Xray6")
-class Xray6(torch.utils.data.Dataset):
+class Xray6(Xray14):
     num_classes = 6
-    splitfold_mean_std = [([0.5028, 0.5028, 0.5028], [0.2496, 0.2496, 0.2496]),
-                          ([0.5032, 0.5032, 0.5032], [0.2500, 0.2500, 0.2500]),
-                          ([0.5029, 0.5029, 0.5029], [0.2499, 0.2499, 0.2499]),
-                          ([0.5031, 0.5031, 0.5031], [0.2504, 0.2504, 0.2504]),
-                          ([0.5031, 0.5031, 0.5031], [0.2500, 0.2500, 0.2500])]
+    splitfold_mean_std = [
+        ([0.5028, 0.5028, 0.5028], [0.2496, 0.2496, 0.2496]),
+        ([0.5032, 0.5032, 0.5032], [0.2500, 0.2500, 0.2500]),
+        ([0.5029, 0.5029, 0.5029], [0.2499, 0.2499, 0.2499]),
+        ([0.5031, 0.5031, 0.5031], [0.2504, 0.2504, 0.2504]),
+        ([0.5031, 0.5031, 0.5031], [0.2500, 0.2500, 0.2500]),
+    ]
 
     def __init__(self,
                  root,
@@ -138,7 +140,6 @@ class Xray6(torch.utils.data.Dataset):
                  fold_i=0,
                  transform=None,
                  select_classes=[0, 1, 5, 7, 9, 11]):
-        super(Xray6, self).__init__()
 
         if "/" not in root:  # 给定root为数据集根目录
             root = join(DATASETS_ROOT, root)
@@ -177,48 +178,67 @@ class Xray6(torch.utils.data.Dataset):
         ]
         self.group_mode = "class"
 
-    def __getitem__(self, index):
-        img_path, target = self.img_paths[index], self.targets[index]
-        img = Image.open(img_path).convert('RGB')
-        # img = cv2.imread(img_path)
-        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        if self.transform is not None:
-            mean, std = self.splitfold_mean_std[self.fold_i]
-            img = self.transform(img, mean=mean, std=std)
+@Datasets.register_module("Xray6")
+class Xray9(Xray14):
+    num_classes = 6
+    splitfold_mean_std = [
+        ([0.5028, 0.5028, 0.5028], [0.2496, 0.2496, 0.2496]),
+        ([0.5032, 0.5032, 0.5032], [0.2500, 0.2500, 0.2500]),
+        ([0.5029, 0.5029, 0.5029], [0.2499, 0.2499, 0.2499]),
+        ([0.5031, 0.5031, 0.5031], [0.2504, 0.2504, 0.2504]),
+        ([0.5031, 0.5031, 0.5031], [0.2500, 0.2500, 0.2500]),
+    ]
 
-        return img, target
+    def __init__(self,
+                 root,
+                 phase,
+                 fold_i=0,
+                 transform=None,
+                 select_classes=[0, 1, 2, 5, 7, 8, 9, 10, 11]):
 
-    def __len__(self):
-        return len(self.targets)
+        if "/" not in root:  # 给定root为数据集根目录
+            root = join(DATASETS_ROOT, root)
 
-    def get_data(self, splitfold_path, fold_i, phase, select_classes):
+        self.phase = phase
+        self.fold_i = fold_i
+        self.transform = transform
 
-        with open(splitfold_path, "r") as f:
-            fold2data = json.load(f)
-            # {"0":[['Atelectasis/00003548_003.png', 0],...,], "1":...}
+        splitfold_path = join(root, "categories/split.json")
+        self.img_names, self.targets = self.get_data(splitfold_path, fold_i,
+                                                     phase, select_classes)
 
-        if phase == 'train':
-            data = []
-
-            for fold_j in range(5):
-                if fold_j != fold_i:
-                    data.extend(fold2data[str(fold_j)])
-        elif phase == 'val':
-            data = fold2data[str(fold_i)]
-        else:
-            raise NotImplementedError
-
-        # fnames(str list): "class/fname"
-        # targets(int list): elem in select_classes
-        img_names = [
-            img_name for img_name, target in data if target in select_classes
-        ]
-        targets = [
-            target for img_name, target in data if target in select_classes
+        data_dir = join(root, "categories")
+        self.img_paths = [
+            join(data_dir, img_name) for img_name in self.img_names
         ]
 
-        return img_names, targets
+        # 2: 9550 -> 0
+        # 0: 4210 -> 1
+        # 11:3955 -> 2
+        # 10:2705 -> 3
+        # 8: 2195 -> 4
+        # 9: 2135 -> 5
+        # 1: 1090 -> 6
+        # 5: 895  -> 7
+        # 7: 110  -> 8
+        remap = {
+            2: 0,
+            0: 1,
+            11: 2,
+            10: 3,
+            8: 4,
+            9: 5,
+            1: 6,
+            5: 7,
+            7: 8,
+        }
+
+        self.targets = [remap[target] for target in self.targets]
+        self.num_samples_per_cls = [
+            self.targets.count(i) for i in range(self.num_classes)
+        ]
+        self.group_mode = "class"
 
 
 if __name__ == "__main__":
