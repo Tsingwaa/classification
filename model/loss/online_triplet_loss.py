@@ -15,6 +15,7 @@ def _pairwise_distances(embeddings, squared=False):
     Returns:
         pairwise_distances: tensor of shape (batch_size, batch_size)
     """
+    # shape (batch_size, batch_size)
     dot_product = torch.matmul(embeddings, embeddings.t())
 
     # Get squared L2 norm for each embedding. We can just take the diagonal of
@@ -25,7 +26,8 @@ def _pairwise_distances(embeddings, squared=False):
 
     # Compute the pairwise distance matrix as we have:
     # ||a - b||^2 = ||a||^2  - 2 <a, b> + ||b||^2
-    # shape (batch_size, batch_size)
+    # shape: (1, batch_size) - (batch_size, batch_size) + (batch_size, 1)
+    #        = (batch_size, batch_size)
     distances = square_norm.unsqueeze(0) - 2.0 * dot_product +\
         square_norm.unsqueeze(1)
 
@@ -45,77 +47,77 @@ def _pairwise_distances(embeddings, squared=False):
     return distances
 
 
-def _get_triplet_mask(labels):
+def _get_triplet_mask(targets):
     """Return a 3D mask where mask[a, p, n] is True iff the triplet (a, p, n)
     is valid.
 
     A triplet (i, j, k) is valid if:
         - i, j, k are distinct
-        - labels[i] == labels[j] and labels[i] != labels[k]
+        - targets[i] == targets[j] and targets[i] != targets[k]
     Args:
-        labels: tf.int32 `Tensor` with shape [batch_size]
+        targets: int32 `Tensor` with shape [batch_size]
     """
     # Check that i, j and k are distinct
-    indices_equal = torch.eye(labels.size(0), device=labels.device).bool()
-    indices_not_equal = ~indices_equal
-    i_not_equal_j = indices_not_equal.unsqueeze(2)
-    i_not_equal_k = indices_not_equal.unsqueeze(1)
-    j_not_equal_k = indices_not_equal.unsqueeze(0)
+    indices_equal = torch.eye(targets.size(0), device=targets.device).bool()
+    indices_not_equal = ~indices_equal  # (N, N)
+    i_not_equal_j = indices_not_equal.unsqueeze(2)  # (N, N, 1)
+    i_not_equal_k = indices_not_equal.unsqueeze(1)  # (N, 1, N)
+    j_not_equal_k = indices_not_equal.unsqueeze(0)  # (1, N, N)
 
     distinct_indices = (i_not_equal_j & i_not_equal_k) & j_not_equal_k
 
-    label_equal = labels.unsqueeze(0) == labels.unsqueeze(1)
+    label_equal = targets.unsqueeze(0) == targets.unsqueeze(1)
     i_equal_j = label_equal.unsqueeze(2)
     i_equal_k = label_equal.unsqueeze(1)
 
-    valid_labels = ~i_equal_k & i_equal_j
+    valid_targets = ~i_equal_k & i_equal_j
 
-    return valid_labels & distinct_indices
+    return valid_targets & distinct_indices
 
 
-def _get_anchor_positive_triplet_mask(labels):
+def _get_anchor_positive_triplet_mask(targets):
     """Return a 2D mask where mask[a, p] is True iff a and p are distinct and
     have same label.
     Args:
-        labels: tf.int32 `Tensor` with shape [batch_size]
+        targets: tf.int32 `Tensor` with shape [batch_size]
     Returns:
         mask: tf.bool `Tensor` with shape [batch_size, batch_size]
     """
     # Check that i and j are distinct
-    indices_equal = torch.eye(labels.size(0), device=labels.device).bool()
+    indices_equal = torch.eye(targets.size(0), device=targets.device).bool()
     indices_not_equal = ~indices_equal
 
-    # Check if labels[i] == labels[j]
+    # Check if targets[i] == targets[j]
     # Uses broadcasting where the 1st argument has shape (1, batch_size) and
     # the 2nd (batch_size, 1)
-    labels_equal = labels.unsqueeze(0) == labels.unsqueeze(1)
+    targets_equal = targets.unsqueeze(0) == targets.unsqueeze(1)
 
-    return labels_equal & indices_not_equal
+    return targets_equal & indices_not_equal
 
 
-def _get_anchor_negative_triplet_mask(labels):
-    """Return a 2D mask where mask[a, n] is True iff a and n have distinct labels.
+def _get_anchor_negative_triplet_mask(targets):
+    """Return a 2D mask where mask[a, n] is True iff a and n have distinct targets.
     Args:
-        labels: tf.int32 `Tensor` with shape [batch_size]
+        targets: tf.int32 `Tensor` with shape [batch_size]
     Returns:
         mask: tf.bool `Tensor` with shape [batch_size, batch_size]
     """
-    # Check if labels[i] != labels[k]
+    # Check if targets[i] != targets[k]
     # Uses broadcasting where the 1st argument has shape (1, batch_size) and
     # the 2nd (batch_size, 1)
 
-    return ~(labels.unsqueeze(0) == labels.unsqueeze(1))
+    return ~(targets.unsqueeze(0) == targets.unsqueeze(1))
 
 
 # Cell
-def batch_hard_triplet_loss(labels, embeddings, margin, squared=False):
+def batch_hard_triplet_loss(targets, embeddings, margin, squared=False):
     """Build the triplet loss over a batch of embeddings.
 
     For each anchor, we get the hardest positive and hardest negative to form
     a triplet.
 
     Args:
-        labels: labels of the batch, of size (batch_size,)
+        targets: targets of the batch, of size (batch_size,)
         embeddings: tensor of shape (batch_size, embed_dim)
         margin: margin for triplet loss
         squared: Boolean. If true, output is the pairwise squared euclidean
@@ -131,7 +133,7 @@ def batch_hard_triplet_loss(labels, embeddings, margin, squared=False):
     # For each anchor, get the hardest positive
     # First, we need to get a mask for every valid positive (they should have
     # same label)
-    mask_anchor_positive = _get_anchor_positive_triplet_mask(labels).float()
+    mask_anchor_positive = _get_anchor_positive_triplet_mask(targets).float()
 
     # We put to 0 any element where (a, p) is not valid
     # (valid if a != p and label(a) == label(p))
@@ -142,8 +144,8 @@ def batch_hard_triplet_loss(labels, embeddings, margin, squared=False):
 
     # For each anchor, get the hardest negative
     # First, we need to get a mask for every valid negative
-    # (they should have different labels)
-    mask_anchor_negative = _get_anchor_negative_triplet_mask(labels).float()
+    # (they should have different targets)
+    mask_anchor_negative = _get_anchor_negative_triplet_mask(targets).float()
 
     # We add the maximum value in each row to the invalid negatives
     # (label(a) == label(n))
@@ -163,14 +165,14 @@ def batch_hard_triplet_loss(labels, embeddings, margin, squared=False):
 
 
 # Cell
-def batch_all_triplet_loss(labels, embeddings, margin, squared=False):
+def batch_all_triplet_loss(targets, embeddings, margin, squared=False):
     """Build the triplet loss over a batch of embeddings.
 
     We generate all the valid triplets and average the loss over the positive
     ones.
 
     Args:
-        labels: labels of the batch, of size (batch_size,)
+        targets: targets of the batch, of size (batch_size,)
         embeddings: tensor of shape (batch_size, embed_dim)
         margin: margin for triplet loss
         squared: Boolean. If true, output is the pairwise squared euclidean
@@ -196,7 +198,7 @@ def batch_all_triplet_loss(labels, embeddings, margin, squared=False):
 
     # Put to zero the invalid triplets
     # (where label(a) != label(p) or label(n) == label(a) or a == p)
-    mask = _get_triplet_mask(labels)
+    mask = _get_triplet_mask(targets)
     triplet_loss = mask.float() * triplet_loss
 
     # Remove negative losses (i.e. the easy triplets)

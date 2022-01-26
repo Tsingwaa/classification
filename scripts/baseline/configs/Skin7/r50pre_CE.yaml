@@ -16,7 +16,7 @@ finetune:
     sampler: ""
     retain_epoch_size: True
     batch_size: 32
-    num_workers: 8
+    num_workers: 4
   loss:
     name: "CrossEntropyLoss"
     param:

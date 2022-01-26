@@ -15,7 +15,6 @@ finetune:
   unfreeze_keys: ["fc"]
   trainloader:
     sampler: ""
-    retain_epoch_size: False
     batch_size: 32
     num_workers: 4
   loss:
@@ -26,8 +25,8 @@ finetune:
   optimizer:
     name: "SGD"
     param:
-      lr: 0.1
-      weight_decay: 1.0e-4
+      lr: 0.01
+      weight_decay: 1.0e-5
       momentum: 0.9
       nesterov: True
   lr_scheduler:
