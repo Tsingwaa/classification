@@ -59,29 +59,30 @@ def _get_triplet_mask(targets):
     """
     # Check that i, j and k are distinct
     indices_equal = torch.eye(targets.size(0), device=targets.device).bool()
-    indices_not_equal = ~indices_equal  # (N, N)
+    indices_not_equal = ~indices_equal  # (N, N) diag elem is False
     i_not_equal_j = indices_not_equal.unsqueeze(2)  # (N, N, 1)
     i_not_equal_k = indices_not_equal.unsqueeze(1)  # (N, 1, N)
     j_not_equal_k = indices_not_equal.unsqueeze(0)  # (1, N, N)
 
+    # (N, N, N)
     distinct_indices = (i_not_equal_j & i_not_equal_k) & j_not_equal_k
 
     label_equal = targets.unsqueeze(0) == targets.unsqueeze(1)
-    i_equal_j = label_equal.unsqueeze(2)
-    i_equal_k = label_equal.unsqueeze(1)
+    i_equal_j = label_equal.unsqueeze(2)  # (N, N, 1)
+    i_equal_k = label_equal.unsqueeze(1)  # (N, 1, N)
 
-    valid_targets = ~i_equal_k & i_equal_j
+    valid_mask = ~i_equal_k & i_equal_j  # (N, N, N): i!=k, i=j
 
-    return valid_targets & distinct_indices
+    return valid_mask & distinct_indices
 
 
 def _get_anchor_positive_triplet_mask(targets):
     """Return a 2D mask where mask[a, p] is True iff a and p are distinct and
     have same label.
     Args:
-        targets: tf.int32 `Tensor` with shape [batch_size]
+        targets: int32 `Tensor` with shape [batch_size]
     Returns:
-        mask: tf.bool `Tensor` with shape [batch_size, batch_size]
+        mask: bool `Tensor` with shape [batch_size, batch_size]
     """
     # Check that i and j are distinct
     indices_equal = torch.eye(targets.size(0), device=targets.device).bool()
@@ -98,9 +99,9 @@ def _get_anchor_positive_triplet_mask(targets):
 def _get_anchor_negative_triplet_mask(targets):
     """Return a 2D mask where mask[a, n] is True iff a and n have distinct targets.
     Args:
-        targets: tf.int32 `Tensor` with shape [batch_size]
+        targets: int32 `Tensor` with shape [batch_size]
     Returns:
-        mask: tf.bool `Tensor` with shape [batch_size, batch_size]
+        mask: bool `Tensor` with shape [batch_size, batch_size]
     """
     # Check if targets[i] != targets[k]
     # Uses broadcasting where the 1st argument has shape (1, batch_size) and
@@ -109,7 +110,6 @@ def _get_anchor_negative_triplet_mask(targets):
     return ~(targets.unsqueeze(0) == targets.unsqueeze(1))
 
 
-# Cell
 def batch_hard_triplet_loss(targets, embeddings, margin, squared=False):
     """Build the triplet loss over a batch of embeddings.
 
@@ -127,17 +127,17 @@ def batch_hard_triplet_loss(targets, embeddings, margin, squared=False):
     Returns:
         triplet_loss: scalar tensor containing the triplet loss
     """
-    # Get the pairwise distance matrix
+    # Get the pairwise distance matrix  (N, N)
     pairwise_dist = _pairwise_distances(embeddings, squared=squared)
 
-    # For each anchor, get the hardest positive
+    # For each anchor, get the hardest positive (N, N)
     # First, we need to get a mask for every valid positive (they should have
     # same label)
     mask_anchor_positive = _get_anchor_positive_triplet_mask(targets).float()
 
     # We put to 0 any element where (a, p) is not valid
     # (valid if a != p and label(a) == label(p))
-    anchor_positive_dist = mask_anchor_positive * pairwise_dist
+    anchor_positive_dist = mask_anchor_positive * pairwise_dist  # (N, N)
 
     # shape (batch_size, 1)
     hardest_positive_dist, _ = anchor_positive_dist.max(1, keepdim=True)
@@ -164,7 +164,6 @@ def batch_hard_triplet_loss(targets, embeddings, margin, squared=False):
     return triplet_loss
 
 
-# Cell
 def batch_all_triplet_loss(targets, embeddings, margin, squared=False):
     """Build the triplet loss over a batch of embeddings.
 
