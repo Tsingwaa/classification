@@ -14,6 +14,7 @@ class TripletLoss(nn.Module):
     def __init__(self, margin=None):
         super(TripletLoss, self).__init__()
         self.margin = margin
+
         if self.margin is None:  # if no margin assigned, use soft-margin
             self.Loss = nn.SoftMarginLoss()
         else:
@@ -23,6 +24,7 @@ class TripletLoss(nn.Module):
         if self.margin is None:
             num_samples = anchor.shape[0]
             y = torch.ones((num_samples, 1)).view(-1)
+
             if anchor.is_cuda:
                 y = y.cuda()
             ap_dist = torch.norm(anchor - pos, 2, dim=1).view(-1)
