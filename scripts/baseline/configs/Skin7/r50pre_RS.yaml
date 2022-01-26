@@ -1,11 +1,10 @@
 experiment:
-  name: "Skin7_r50pre_CE_0.01CT_wd5"
+  name: "Skin7_r50pre_RS"
   start_epoch: 1
   total_epochs: 100
   log_fname: "train.log"
   resume: False
   resume_fpath: "last.pth.tar"
-  extract_phase: "train"
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -15,9 +14,9 @@ finetune:
   unfreeze_keys: ["fc"]
   trainloader:
     sampler: ""
-    retain_epoch_size: False
+    retain_epoch_size: True
     batch_size: 32
-    num_workers: 4
+    num_workers: 8
   loss:
     name: "CrossEntropyLoss"
     param:
@@ -26,15 +25,16 @@ finetune:
   optimizer:
     name: "SGD"
     param:
-      lr: 0.1
-      weight_decay: 1.0e-4
+      lr: 1.0e-2
+      weight_decay: 1.0e-5
       momentum: 0.9
       nesterov: True
   lr_scheduler:
-    name: "CosineAnnealingLR"
+    name: 'CosineAnnealingLR'
     param:
       warmup_epochs: 0
       T_max: 10
+      eta_min: 1.0e-6
 
 train_transform:
   name: "MedTransform"
@@ -51,26 +51,37 @@ val_transform:
 train_dataset:
   name: "Skin7"
   param:
-    phase: "train"
-    root: "Skin7"
+    phase: 'train'
+    root: 'Skin7'
     fold_i: 0
 
 val_dataset:
   name: "Skin7"
   param:
-    phase: "test"
-    root: "Skin7"
+    phase: 'test'
+    root: 'Skin7'
     fold_i: 0
 
+# test_dataset:
+#   name: ""
+#   param:
+#     phase: 'test'
+#     root: ''
+
 trainloader:
-  sampler: ""
+  sampler: 'BalanceSampler'
   batch_size: 32
   num_workers: 4
 
 valloader:
-  sampler: ""
+  sampler: ''
   batch_size: 32
   num_workers: 4
+
+# testloader:
+#   sampler: ''
+#   batch_size: 128
+#   num_workers: 4
 
 network:
   name: "ResNet50"
@@ -81,7 +92,7 @@ network:
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: ""
+    weight_type: ''
     label_smoothing: 0.
 
 optimizer:
@@ -98,28 +109,3 @@ lr_scheduler:
     warmup_epochs: 5
     T_max: 95
     eta_min: 1.0e-6
-
-loss2:
-  name: "CenterLoss"
-  param:
-    weight_type: ""
-    num_classes: 7
-    feat_dim: 2048
-    alpha: 0
-    lambda: 0.01
-    margin: -1
-
-optimizer2:
-  name: "SGD"
-  param:
-    lr: 0.005
-    weight_decay: 1.0e-5
-    momentum: 0.9
-    nesterov: True
-
-lr_scheduler2:
-  name: "CosineAnnealingLR"
-  param:
-    warmup_epochs: 5
-    T_max: 95  # keep a relative high learning rate
-    eta_min: 1.0e-5

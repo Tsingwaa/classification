@@ -14,12 +14,12 @@ All rights reserved.
 
 import random
 
-import numpy as np
 from data_loader.sampler.builder import Samplers
 from torch.utils.data.sampler import Sampler
 
 
 class RandomCycleIter:
+
     def __init__(self, data_list, test_mode=False):
         self.data_list = list(data_list)
         self.length = len(self.data_list)
@@ -32,9 +32,11 @@ class RandomCycleIter:
     def __next__(self):
         self.i += 1
         # 取下一个元素i + 1；初始时，为self.length
+
         if self.i == self.length:
             # 如果迭代完一轮，则从头来过；
             self.i = 0
+
             if not self.test_mode:
                 random.shuffle(self.data_list)
 
@@ -47,6 +49,7 @@ def class_aware_sample_generator(cls_iter,
                                  num_samples_each_cls_draw=1):
     i = 0
     j = 0
+
     while i < total_samples:
         if j >= num_samples_each_cls_draw:
             j = 0
@@ -73,6 +76,7 @@ def class_aware_sample_generator(cls_iter,
 
 @Samplers.register_module('ClassAwareSampler')
 class ClassAwareSampler(Sampler):
+
     def __init__(self, dataset, num_samples_each_cls_draw=1, **kwargs):
         """根据dataset得到类等价的sampler, 上采样器
         Args:
@@ -84,6 +88,7 @@ class ClassAwareSampler(Sampler):
 
         # turn list [0,..., num_classes-1] to RandomCycleIterator
         cls_data_list = [list() for _ in range(num_classes)]
+
         for i, label in enumerate(dataset.labels):
             cls_data_list[label].append(i)
 
@@ -116,29 +121,34 @@ def get_sampler():
 def get_balanced_samper(dataset):
     # 基于dataset，设置各类的data indexes
     buckets = [[] for _ in range(dataset.cls_num)]
+
     for idx, label in enumerate(dataset.labels):
         buckets[label].append(idx)
     sampler = BalancedSampler(buckets, retain_epoch_size=True)
+
     return sampler
 
 
 @Samplers.register_module('BalanceSampler')
 class BalancedSampler(Sampler):
-    def __init__(self, dataset, retain_epoch_size=False, **kwargs):
+
+    def __init__(self, dataset, retain_epoch_size=True, **kwargs):
         self.retain_epoch_size = retain_epoch_size
         self.num_buckets = dataset.num_classes
         self.buckets = {bucket: [] for bucket in range(self.num_buckets)}
+
         for index, target in enumerate(dataset.targets):
             self.buckets[target].append(index)
 
         # Pointer for each class to mark which index we should choose next.
         # Initialize pointer as the first one (index = 0)
         self.bucket_pointers = [0] * self.num_buckets
-        self.max_bucket_size = max(
-            [len(bucket) for bucket in self.buckets.values()])
+        self.max_bucket_size = max(dataset.num_samples_per_cls)
+        self.num_samples = sum(dataset.num_samples_per_cls)
 
     def __iter__(self):
         count = self.__len__()
+
         while count > 0:
             yield self._next_item()
             count -= 1
@@ -151,6 +161,7 @@ class BalancedSampler(Sampler):
         # choose the pointed item
         item = bucket[self.bucket_pointers[bucket_idx]]
         self.bucket_pointers[bucket_idx] += 1
+
         if self.bucket_pointers[bucket_idx] == len(bucket):
             # if all is drawn, shuffle and redraw.
             self.bucket_pointers[bucket_idx] = 0
@@ -160,9 +171,9 @@ class BalancedSampler(Sampler):
 
     def __len__(self):
         if self.retain_epoch_size:
-            # Acrually we need to upscale to next full batch
-            return sum([len(bucket) for bucket in self.buckets.values()])
+            return self.num_samples
         else:
             # Ensures every instance has the chance to be visited in an epoch
             # oversample each class size to max class size.
+
             return self.max_bucket_size * self.num_buckets

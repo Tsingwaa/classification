@@ -1,5 +1,5 @@
 experiment:
-  name: "Skin7_r50pre_CE_0.1CT"
+  name: "Skin7_r50pre_CE_0.1CT_wd5"
   start_epoch: 1
   total_epochs: 100
   log_fname: "train.log"
@@ -113,7 +113,7 @@ optimizer2:
   name: "SGD"
   param:
     lr: 0.005
-    weight_decay: 0
+    weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True
 
