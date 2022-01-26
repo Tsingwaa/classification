@@ -88,7 +88,7 @@ optimizer:
   name: "SGD"
   param:
     lr: 0.001
-    weight_decay: 1.0e-4
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 
@@ -113,7 +113,7 @@ optimizer2:
   name: "SGD"
   param:
     lr: 0.005
-    weight_decay: 1.0e-5
+    weight_decay: 1.0e-6
     momentum: 0.9
     nesterov: True
 
@@ -123,4 +123,4 @@ lr_scheduler2:
   param:
     warmup_epochs: 5
     T_max: 95  # keep a relative high learning rate
-    eta_min: 1.0e-5
+    eta_min: 1.0e-6

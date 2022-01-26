@@ -20,13 +20,12 @@ class SD198(torch.utils.data.Dataset):
                           ([0.4564, 0.4862, 0.6042], [0.2455, 0.2445, 0.2658])]
 
     def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
-
-        self.mean, self.std = self.splitfold_mean_std[fold_i]
-        self.phase = phase
-        self.transform = transform
-
         if "/" not in root:
             root = join(DATASETS_ROOT, root)
+
+        self.phase = phase
+        self.fold_i = fold_i
+        self.transform = transform
 
         self.img_names, self.targets = self.get_data(fold_i, root, phase)
 
@@ -52,11 +51,10 @@ class SD198(torch.utils.data.Dataset):
     def __getitem__(self, index):
         img_path, target = self.img_paths[index], self.targets[index]
         img = Image.open(img_path).convert('RGB')
-        # img = cv2.imread(img_path)
-        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         if self.transform is not None:
-            img = self.transform(img, mean=self.mean, std=self.std)
+            mean, std = self.splitfold_mean_std[self.fold_i]
+            img = self.transform(img, mean=mean, std=std)
 
         return img, target
 

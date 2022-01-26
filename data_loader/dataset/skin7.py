@@ -20,30 +20,35 @@ class Skin7(torch.utils.data.Dataset):
     def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
         """fold_i: [0, 1, 2, 3, 4]"""
 
-        self.phase = phase
-        self.transform = transform
-        self.mean, self.std = self.splitfold_mean_std[fold_i]
-
         if "/" not in root:
             root = join(DATASETS_ROOT, root)
-        data_dir = join(root, 'ISIC2018_Task3_Training_Input')
 
+        self.phase = phase
+        self.fold_i = fold_i
+        self.transform = transform
+
+        data_dir = join(root, 'ISIC2018_Task3_Training_Input')
         self.img_names, self.targets = self.get_data(fold_i, root, phase)
 
         self.img_paths = [
             join(data_dir, img_name) for img_name in self.img_names
         ]
-        # class-indexes -> cardinality [223, 1341, 103, 66, 220, 23, 29]
-        # the sorted cardinality       [1341, 223, 220, 103, 66, 29, 23]
-        # sort the target by cardinality in decreasing order
+
+        # 1: 1341 -> 0
+        # 0: 223  -> 1
+        # 4: 220  -> 2
+        # 2: 103  -> 3
+        # 3: 66   -> 4
+        # 6: 29   -> 5
+        # 5: 23   -> 6
         remap = {
-            0: 1,
             1: 0,
+            0: 1,
+            4: 2,
             2: 3,
             3: 4,
-            4: 2,
-            5: 6,
             6: 5,
+            5: 6,
         }
         self.targets = [remap[target] for target in self.targets]
         self.num_samples_per_cls = [
@@ -60,7 +65,8 @@ class Skin7(torch.utils.data.Dataset):
         # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         if self.transform is not None:
-            img = self.transform(img, mean=self.mean, std=self.std)
+            mean, std = self.splitfold_mean_std[self.fold_i]
+            img = self.transform(img, mean=mean, std=std)
 
         return img, target
 
