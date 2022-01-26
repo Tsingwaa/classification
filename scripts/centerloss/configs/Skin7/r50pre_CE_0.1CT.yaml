@@ -1,5 +1,5 @@
 experiment:
-  name: "Skin7_r50pre_CE_0.1CT_wd5"
+  name: "Skin7_r50pre_CE_0.1CT"
   start_epoch: 1
   total_epochs: 100
   log_fname: "train.log"
