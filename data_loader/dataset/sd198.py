@@ -73,4 +73,4 @@ class SD198(torch.utils.data.Dataset):
 
 
 if __name__ == '__main__':
-    trainset = SD198(train=True, fold_i=0)
+    trainset = SD198(phase='train', fold_i=0)

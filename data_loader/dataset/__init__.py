@@ -8,4 +8,4 @@ from .Imagenet_lt import *
 from .miniImageNet import *
 from .sd198 import *
 from .skin7 import *
-from .xray6 import *
+from .xray import *

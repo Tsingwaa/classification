@@ -32,7 +32,7 @@ class Xray14(torch.utils.data.Dataset):
             root = join(DATASETS_ROOT, root)
 
         self.phase = phase
-        self.mean, self.std = self.splitfold_mean_std[fold_i]
+        self.fold_i = fold_i
         self.transform = transform
 
         splitfold_path = join(root, "categories/split.json")
@@ -86,7 +86,8 @@ class Xray14(torch.utils.data.Dataset):
         img = Image.open(img_path).convert('RGB')
 
         if self.transform is not None:
-            img = self.transform(img, mean=self.mean, std=self.std)
+            mean, std = self.splitfold_mean_std[self.fold_i]
+            img = self.transform(img, mean=mean, std=std)
 
         return img, target
 
@@ -143,7 +144,7 @@ class Xray6(torch.utils.data.Dataset):
             root = join(DATASETS_ROOT, root)
 
         self.phase = phase
-        self.mean, self.std = self.splitfold_mean_std[fold_i]
+        self.fold_i = fold_i
         self.transform = transform
 
         splitfold_path = join(root, "categories/split.json")
@@ -180,7 +181,8 @@ class Xray6(torch.utils.data.Dataset):
         # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         if self.transform is not None:
-            img = self.transform(img, mean=self.mean, std=self.std)
+            mean, std = self.splitfold_mean_std[self.fold_i]
+            img = self.transform(img, mean=mean, std=std)
 
         return img, target
 

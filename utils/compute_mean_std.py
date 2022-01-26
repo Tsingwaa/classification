@@ -75,14 +75,14 @@ def compute_mean_and_std(img_paths):
 if __name__ == "__main__":
     seed = 0
     np.random.seed(seed)
-    dataset_name = "SD198"
-    root = "SD198"
+    dataset_name = "Xray14"
+    root = "Xray14"
 
     for fold_i in range(5):
         print(f"===> Processing {dataset_name} fold-{fold_i}...")
         trainset = Datasets.get(dataset_name)(
             root=root,
-            train=True,
+            phase="train",
             fold_i=fold_i,
         )
         train_mean, train_std = compute_mean_and_std(trainset.img_paths)
