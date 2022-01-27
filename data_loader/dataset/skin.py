@@ -1,10 +1,13 @@
-from os.path import join
-
 # import cv2
+from os.path import expanduser, join
+
 import pandas as pd
 import torch
+import yaml
 from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from PIL import Image
+
+PROJECT_ROOT = expanduser("~/Projects/classification/")
 
 
 @Datasets.register_module("Skin7")
@@ -85,6 +88,78 @@ class Skin7(torch.utils.data.Dataset):
         dataframe = pd.read_csv(csv_fpath)
         img_names = list(dataframe.iloc[:, 0])
         targets = list(dataframe.iloc[:, 1])
+
+        return img_names, targets
+
+
+@Datasets.register_module("Skin8")
+class Skin8(torch.utils.data.Dataset):
+    """Original image size: (3, 450, 600)"""
+    num_classes = 8
+    split_path = join(PROJECT_ROOT, "data_loader/data/Skin8/split_data.yaml")
+
+    # splitfold_mean_std = [
+    #     ([0.5709, 0.5464, 0.7634], [0.1701, 0.1528, 0.1408]),
+    #     ([0.5707, 0.5462, 0.7634], [0.1707, 0.1531, 0.1416]),
+    #     ([0.5704, 0.5462, 0.7642], [0.1704, 0.1528, 0.1410]),
+    #     ([0.5701, 0.5458, 0.7636], [0.1702, 0.1530, 0.1413]),
+    #     ([0.5705, 0.5461, 0.7629], [0.1703, 0.1528, 0.1413]),
+    # ]
+
+    def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
+        # phase: "train" or "test"
+        # fold_i: one of [0, 1, 2, 3, 4]
+
+        if "/" not in root:
+            root = join(DATASETS_ROOT, root)
+
+        self.phase = phase
+        self.fold_i = fold_i
+        self.transform = transform
+
+        data_dir = join(root, 'Data')
+        self.img_names, self.targets = self.get_data(fold_i, phase)
+
+        self.img_paths = [
+            join(data_dir, img_name) for img_name in self.img_names
+        ]
+
+        self.num_samples_per_cls = [
+            self.targets.count(i) for i in range(self.num_classes)
+        ]
+        self.group_mode = "class"
+
+    def __getitem__(self, index):
+        img_path, target = self.img_paths[index], self.targets[index]
+        img = Image.open(img_path).convert('RGB')
+        # img = cv2.imread(img_path)
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        if self.transform is not None:
+            mean, std = self.splitfold_mean_std[self.fold_i]
+            img = self.transform(img, mean=mean, std=std)
+
+        return img, target
+
+    def __len__(self):
+        return len(self.targets)
+
+    def get_data(self, fold_i, phase):
+        """fetch the img names and targets"""
+        with open(self.split_path, "r") as f:
+            fold2data = yaml.load(f, Loader=yaml.FullLoader)
+
+        if phase == "train":
+            data = []
+
+            for fold_j in range(5):
+                if fold_j != fold_i:
+                    data.extend(fold2data[fold_j])
+        else:  # "val" or "test"
+            data = fold2data[fold_i]
+
+        img_names = [img_name for img_name, target in data]
+        targets = [target for img_name, target in data]
 
         return img_names, targets
 
