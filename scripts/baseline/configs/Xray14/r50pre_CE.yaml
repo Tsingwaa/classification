@@ -1,5 +1,5 @@
 experiment:
-  name: "Xray14_r50pre_CE"
+  name: "Xray13_r50pre_CE"
   start_epoch: 1
   total_epochs: 100
   log_fname: "train.log"
@@ -49,14 +49,14 @@ val_transform:
     resize: [224, 224]
 
 train_dataset:
-  name: "Xray14"
+  name: "Xray13"
   param:
     phase: 'train'
     root: 'Xray14'
     fold_i: 0
 
 val_dataset:
-  name: "Xray14"
+  name: "Xray13"
   param:
     phase: 'test'
     root: 'Xray14'

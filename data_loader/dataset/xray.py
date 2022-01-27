@@ -52,6 +52,7 @@ class Xray14(torch.utils.data.Dataset):
     }
 
     def __init__(self, root, phase, fold_i=0, transform=None):
+        # phase: "train" or "test"
         super(Xray14, self).__init__()
 
         if "/" not in root:  # 给定root为数据集根目录

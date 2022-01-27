@@ -20,6 +20,8 @@ class SD198(torch.utils.data.Dataset):
                           ([0.4564, 0.4862, 0.6042], [0.2455, 0.2445, 0.2658])]
 
     def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
+        # phase: "train" or "test"
+
         if "/" not in root:
             root = join(DATASETS_ROOT, root)
 
@@ -62,6 +64,8 @@ class SD198(torch.utils.data.Dataset):
         return len(self.targets)
 
     def get_data(self, fold_i, root, phase):
+        if phase == "test":
+            phase = "val"  # test替换为val
         img_lst_fpath = join(root, f"8_2_split/{phase}_{fold_i}.txt")
         df = pd.read_csv(img_lst_fpath, sep=" ")
         img_names = [d[0] for d in df.values]

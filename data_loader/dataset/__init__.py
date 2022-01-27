@@ -7,5 +7,5 @@ from .cifar import *
 from .Imagenet_lt import *
 from .miniImageNet import *
 from .sd198 import *
-from .skin7 import *
+from .skin import *
 from .xray import *
