@@ -171,7 +171,7 @@ class Xray13(Xray14):
 class Xray9(Xray14):
 
     select_classes = [0, 1, 5, 7, 8, 9, 10, 11, 12]
-    num_classes = 13
+    num_classes = 9
     splitfold_mean_std = [
         ([0.4895, 0.4895, 0.4895], [0.2492, 0.2492, 0.2492]),
         ([0.4896, 0.4896, 0.4896], [0.2489, 0.2489, 0.2489]),

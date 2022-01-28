@@ -4,10 +4,8 @@ from os.path import join
 import pandas as pd
 import torch
 import yaml
-from data_loader.dataset.builder import DATASETS_ROOT, Datasets
+from data_loader.dataset.builder import DATASETS_ROOT, PROJECT_ROOT, Datasets
 from PIL import Image
-
-PROJECT_ROOT = expanduser("~/Projects/classification/")
 
 
 @Datasets.register_module("Skin7")

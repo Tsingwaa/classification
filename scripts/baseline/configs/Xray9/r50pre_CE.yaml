@@ -70,12 +70,12 @@ val_dataset:
 
 trainloader:
   sampler: ''
-  batch_size: 32
+  batch_size: 64
   num_workers: 6
 
 valloader:
   sampler: ''
-  batch_size: 32
+  batch_size: 64
   num_workers: 6
 
 # testloader:
@@ -87,7 +87,7 @@ network:
   name: "ResNet50"
   param:
     pretrained: True
-    pretrained_fpath: ".cache/torch/hub/checkpoints/resnet50-0676ba61.pth"
+    pretrained_fpath: "~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth"
 
 loss:
   name: "CrossEntropyLoss"

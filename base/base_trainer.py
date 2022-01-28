@@ -5,7 +5,7 @@ import abc
 # import shutil
 import logging
 import os
-from os.path import join
+from os.path import expanduser, join
 
 # ########### Third-Party Package ############
 import numpy as np
@@ -45,8 +45,7 @@ class BaseTrainer:
         #######################################################################
         self.exp_config = config["experiment"]
         self.exp_name = self.exp_config["name"]
-        self.user_root = os.environ["HOME"]
-        self.exp_root = join(self.user_root, "Experiments")
+        self.exp_root = expanduser("~/Experiments")
         self.start_epoch = self.exp_config["start_epoch"]
         self.total_epochs = self.exp_config["total_epochs"]
 
@@ -190,10 +189,10 @@ class BaseTrainer:
             if "fold_i" in kwargs.keys() else ""
         dataset_init_log = f"===> Initialized {kwargs['phase']} "\
             f"{fold_str}{prefix}{dataset_name}: size={len(dataset)}, "\
-            f"classes={dataset.num_classes}\n"\
-            f"imgs_per_cls={dataset.num_samples_per_cls}"
-        self.log(dataset_init_log, log_level)
+            f"classes={dataset.num_classes}\n"
 
+        self.log(dataset_init_log, log_level)
+        self.log(f"imgs_per_cls={dataset.num_samples_per_cls}", log_level)
         return dataset
 
     def init_sampler(self, sampler_name, **kwargs):
@@ -239,8 +238,7 @@ class BaseTrainer:
                                            except_keys=except_keys)
             _prefix = "Resumed checkpoint model_params to"
         elif kwargs.get("pretrained", False):
-            pretrained_path = kwargs["pretrained_fpath"]
-            pretrained_path = join(self.user_root, pretrained_path)
+            pretrained_path = expanduser(kwargs["pretrained_fpath"])
             state_dict = torch.load(pretrained_path, map_location="cpu")
             model = self.update_state_dict(model,
                                            state_dict,
@@ -408,7 +406,7 @@ class BaseTrainer:
 
         # Save log to file
         file_handler = logging.FileHandler(log_fpath, mode="a")
-        file_handler.setLevel(logging.DEBUG)
+        file_handler.setLevel(logging.INFO)
         file_handler_formatter = logging.Formatter(
             "%(asctime)s: %(levelname)s:"
             " [%(filename)s:%(lineno)d]: %(message)s",
@@ -418,7 +416,7 @@ class BaseTrainer:
 
         # print to the screen
         stream_handler = logging.StreamHandler()
-        stream_handler.setLevel(logging.INFO)
+        stream_handler.setLevel(logging.WARNING)
         # stream_handler.setFormatter(formatter)
 
         # add two handler to the logger
@@ -431,11 +429,11 @@ class BaseTrainer:
         if self.local_rank in [-1, 0]:
             if log_level == "default":
                 # both stram and file
-                self.logger.info(log)
+                self.logger.warning(log)
             elif log_level == "stream":
                 print(log)
             elif log_level == "file":
-                self.logger.debug(log)
+                self.logger.info(log)
 
     def freeze_model(self, model, unfreeze_keys=["fc"]):
         """Freeze model parameters except some given keys
@@ -467,15 +465,12 @@ class BaseTrainer:
         module_state_dict = module.state_dict()
         items_to_update = {
             key: value
-
             for key, value in checkpoint_state_dict.items()
-
             if (key in module_state_dict.keys() and not any(
                 ex_key in key for ex_key in except_keys))
         }
         keys_unupdate = [
             key for key in module_state_dict.keys()
-
             if key not in items_to_update.keys()
         ]
 

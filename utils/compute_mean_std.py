@@ -37,9 +37,17 @@ def compute_mean_and_std(img_paths):
     mean_g /= len(img_paths)
     mean_r /= len(img_paths)
 
-    mean = (mean_r.item() / 255.0, mean_g.item() / 255.0, mean_b.item() / 255.0)
+    mean = (
+        mean_r.item() / 255.0,
+        mean_g.item() / 255.0,
+        mean_b.item() / 255.0,
+    )
 
-    print("===> mean: [{:.4f},{:.4f},{:.4f}]".format(mean[0], mean[1], mean[2]))
+    print("===> mean: [{:.4f},{:.4f},{:.4f}]".format(
+        mean[0],
+        mean[1],
+        mean[2],
+    ))
 
     diff_r = 0.0
     diff_g = 0.0
