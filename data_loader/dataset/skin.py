@@ -1,5 +1,5 @@
 # import cv2
-from os.path import expanduser, join
+from os.path import join
 
 import pandas as pd
 import torch
@@ -93,18 +93,18 @@ class Skin7(torch.utils.data.Dataset):
 
 
 @Datasets.register_module("Skin8")
-class Skin8(torch.utils.data.Dataset):
-    """Original image size: (3, 450, 600)"""
+class Skin8(Skin7):
     num_classes = 8
     split_path = join(PROJECT_ROOT, "data_loader/data/Skin8/split_data.yaml")
 
-    # splitfold_mean_std = [
-    #     ([0.5709, 0.5464, 0.7634], [0.1701, 0.1528, 0.1408]),
-    #     ([0.5707, 0.5462, 0.7634], [0.1707, 0.1531, 0.1416]),
-    #     ([0.5704, 0.5462, 0.7642], [0.1704, 0.1528, 0.1410]),
-    #     ([0.5701, 0.5458, 0.7636], [0.1702, 0.1530, 0.1413]),
-    #     ([0.5705, 0.5461, 0.7629], [0.1703, 0.1528, 0.1413]),
-    # ]
+    # [10300, 3617, 2658, 2099, 693, 502, 202, 191]
+    splitfold_mean_std = [
+        ([0.5243, 0.5298, 0.6669], [0.2321, 0.2237, 0.2458]),
+        ([0.5253, 0.5304, 0.6690], [0.2319, 0.2231, 0.2456]),
+        ([0.5240, 0.5294, 0.6674], [0.2324, 0.2239, 0.2463]),
+        ([0.5244, 0.5298, 0.6676], [0.2324, 0.2238, 0.2459]),
+        ([0.5242, 0.5296, 0.6684], [0.2320, 0.2234, 0.2461]),
+    ]
 
     def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
         # phase: "train" or "test"
@@ -128,21 +128,6 @@ class Skin8(torch.utils.data.Dataset):
             self.targets.count(i) for i in range(self.num_classes)
         ]
         self.group_mode = "class"
-
-    def __getitem__(self, index):
-        img_path, target = self.img_paths[index], self.targets[index]
-        img = Image.open(img_path).convert('RGB')
-        # img = cv2.imread(img_path)
-        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-        if self.transform is not None:
-            mean, std = self.splitfold_mean_std[self.fold_i]
-            img = self.transform(img, mean=mean, std=std)
-
-        return img, target
-
-    def __len__(self):
-        return len(self.targets)
 
     def get_data(self, fold_i, phase):
         """fetch the img names and targets"""
