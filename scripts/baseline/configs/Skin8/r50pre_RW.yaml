@@ -1,5 +1,5 @@
 experiment:
-  name: "Skin8_r50pre_CE"
+  name: "Skin8_r50pre_RW"
   start_epoch: 1
   total_epochs: 100
   log_fname: "train.log"
@@ -9,23 +9,24 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: "last_DRS"
+  name: "last_DRW"
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: "BalanceSampler"
+    sampler: ""
+    retain_epoch_size: True
     batch_size: 32
-    num_workers: 4
+    num_workers: 8
   loss:
     name: "CrossEntropyLoss"
     param:
-      weight_type: ""
+      weight_type: "inverse"
       label_smoothing: 0.
   optimizer:
     name: "SGD"
     param:
       lr: 1.0e-2
-      weight_decay: 1.0e-4
+      weight_decay: 1.0e-5
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -70,12 +71,12 @@ val_dataset:
 trainloader:
   sampler: ''
   batch_size: 64
-  num_workers: 6
+  num_workers: 8
 
 valloader:
   sampler: ''
   batch_size: 64
-  num_workers: 6
+  num_workers: 8
 
 # testloader:
 #   sampler: ''
@@ -91,7 +92,7 @@ network:
 loss:
   name: "CrossEntropyLoss"
   param:
-    weight_type: ''
+    weight_type: 'inverse'
     label_smoothing: 0.
 
 optimizer:

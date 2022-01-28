@@ -87,7 +87,7 @@ network:
   name: "ResNet50"
   param:
     pretrained: True
-    pretrained_fpath: ".cache/torch/hub/checkpoints/resnet50-0676ba61.pth"
+    pretrained_fpath: "~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth"
 
 loss:
   name: "CrossEntropyLoss"

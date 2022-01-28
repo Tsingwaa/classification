@@ -12,6 +12,7 @@ from torch.utils.data.sampler import Sampler
 
 
 class RandomCycleIter:
+
     def __init__(self, data, test_mode=False):
         self.data_list = list(data)
         self.length = len(self.data_list)
@@ -33,6 +34,7 @@ class RandomCycleIter:
 
 
 class PriorityTree(object):
+
     def __init__(self,
                  capacity,
                  init_weights,
