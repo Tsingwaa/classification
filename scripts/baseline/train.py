@@ -10,7 +10,6 @@ import torch
 import yaml
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
-# from pudb import set_trace
 from torch import distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
@@ -123,7 +122,7 @@ class Trainer(BaseTrainer):
         #######################################################################
 
         if self.local_rank in [-1, 0]:
-            best_mr = 0.
+            best_mr = 0.0
             best_epoch = 1
             best_group_mr = []
             # average of mean recall in the last several epochs(default: 5)
@@ -186,7 +185,7 @@ class Trainer(BaseTrainer):
                     f"[{val_stat.group_mr[0]:>6.2%}, "
                     f"{val_stat.group_mr[1]:>6.2%}, "
                     f"{val_stat.group_mr[2]:>6.2%}]",
-                    log_level='file')
+                    log_level="file")
 
                 # Save log by tensorboard
                 self.writer.add_scalar(
@@ -215,7 +214,7 @@ class Trainer(BaseTrainer):
                     {
                         "maj_mr": train_stat.group_mr[0],
                         "med_mr": train_stat.group_mr[1],
-                        "min_mr": train_stat.group_mr[2]
+                        "min_mr": train_stat.group_mr[2],
                     },
                     cur_epoch,
                 )
@@ -224,7 +223,7 @@ class Trainer(BaseTrainer):
                     {
                         "maj_mr": val_stat.group_mr[0],
                         "med_mr": val_stat.group_mr[1],
-                        "min_mr": val_stat.group_mr[2]
+                        "min_mr": val_stat.group_mr[2],
                     },
                     cur_epoch,
                 )
@@ -237,13 +236,15 @@ class Trainer(BaseTrainer):
                     best_group_mr = val_stat.group_mr
 
                 if (not cur_epoch % self.save_period) or is_best:
-                    self.save_checkpoint(epoch=cur_epoch,
-                                         model=self.model,
-                                         optimizer=self.optimizer,
-                                         is_best=is_best,
-                                         stat=val_stat,
-                                         prefix=f"seed{self.seed}",
-                                         save_dir=self.exp_dir)
+                    self.save_checkpoint(
+                        epoch=cur_epoch,
+                        model=self.model,
+                        optimizer=self.optimizer,
+                        is_best=is_best,
+                        stat=val_stat,
+                        prefix=f"seed{self.seed}",
+                        save_dir=self.exp_dir,
+                    )
 
         if self.local_rank in [-1, 0]:
             end_time = datetime.now()
@@ -280,7 +281,8 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
+                desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]",
+            )
 
         train_loss_meter = AverageMeter()
         train_stat = ExpStat(dataset)
@@ -288,7 +290,7 @@ class Trainer(BaseTrainer):
         for i, (batch_imgs, batch_targets) in enumerate(trainloader):
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_targets = batch_targets.cuda(non_blocking=True)
-            batch_probs = model(batch_imgs, out_type='fc')
+            batch_probs = model(batch_imgs, out_type="fc")
             avg_loss = criterion(batch_probs, batch_targets)
 
             optimizer.zero_grad()
@@ -312,7 +314,7 @@ class Trainer(BaseTrainer):
         if self.local_rank != -1:
             dist.barrier()
             # 累加所有进程的train_stat记录的confusion matrix
-            train_stat._cm = self._reduce_tensor(train_stat._cm, op='sum')
+            train_stat._cm = self._reduce_tensor(train_stat._cm, op="sum")
 
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(
@@ -343,7 +345,7 @@ class Trainer(BaseTrainer):
             for i, (batch_imgs, batch_targets) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_targets = batch_targets.cuda(non_blocking=True)
-                batch_probs = model(batch_imgs, out_type='fc')
+                batch_probs = model(batch_imgs, out_type="fc")
                 batch_preds = torch.argmax(batch_probs, dim=1)
                 avg_loss = criterion(batch_probs, batch_targets)
 
@@ -361,7 +363,7 @@ class Trainer(BaseTrainer):
 
         if self.local_rank != -1:
             dist.barrier()
-            val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
+            val_stat._cm = self._reduce_tensor(val_stat._cm, op="sum")
 
         if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
@@ -377,11 +379,13 @@ class Trainer(BaseTrainer):
 def parse_args():
     parser = argparse.ArgumentParser()
     # Local rank设定：单卡默认为-1，多卡不设定，ddp自动设定为0,1,...
-    parser.add_argument("--local_rank",
-                        type=int,
-                        default=-1,
-                        help="Local Rank for distributed training. "
-                        "if single-GPU, default set to -1")
+    parser.add_argument(
+        "--local_rank",
+        type=int,
+        default=-1,
+        help="Local Rank for distributed training. "
+        "if single-GPU, default set to -1",
+    )
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lr", default=0.5, type=float, help="learning rate")

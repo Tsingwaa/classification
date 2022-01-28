@@ -1,4 +1,4 @@
-export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
+export PYTHONPATH=$HOME/Projects/classification
 
 # Distributed Training
 # OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$1 torchrun --nproc_per_node=$2 \

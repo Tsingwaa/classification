@@ -19,9 +19,9 @@ from tqdm import tqdm
 def compute_mean_and_std(img_paths):
     # 输入PyTorch的数据路径列表，输出均值和标准差
 
-    mean_r = 0.
-    mean_g = 0.
-    mean_b = 0.
+    mean_r = 0.0
+    mean_g = 0.0
+    mean_b = 0.0
 
     for img_path in tqdm(img_paths, ncols=80, desc="Computing mean"):
         img = Image.open(img_path)  # 默认打开的通道为BGR
@@ -37,17 +37,15 @@ def compute_mean_and_std(img_paths):
     mean_g /= len(img_paths)
     mean_r /= len(img_paths)
 
-    mean = (mean_r.item() / 255.0, mean_g.item() / 255.0,
-            mean_b.item() / 255.0)
+    mean = (mean_r.item() / 255.0, mean_g.item() / 255.0, mean_b.item() / 255.0)
 
-    print('===> mean: [{:.4f},{:.4f},{:.4f}]'.format(mean[0], mean[1],
-                                                     mean[2]))
+    print("===> mean: [{:.4f},{:.4f},{:.4f}]".format(mean[0], mean[1], mean[2]))
 
-    diff_r = 0.
-    diff_g = 0.
-    diff_b = 0.
+    diff_r = 0.0
+    diff_g = 0.0
+    diff_b = 0.0
 
-    N = 0.
+    N = 0.0
 
     for img_path in tqdm(img_paths, ncols=80, desc="Computing std"):
         img = Image.open(img_path)  # 默认打开的通道为BGR
@@ -67,7 +65,7 @@ def compute_mean_and_std(img_paths):
 
     std = (std_r.item() / 255.0, std_g.item() / 255.0, std_b.item() / 255.0)
 
-    print('===> std: [{:.4f},{:.4f},{:.4f}]\n'.format(std[0], std[1], std[2]))
+    print("===> std: [{:.4f},{:.4f},{:.4f}]\n".format(std[0], std[1], std[2]))
 
     return mean, std
 
@@ -88,4 +86,4 @@ if __name__ == "__main__":
         print(trainset.num_samples_per_cls)
         train_mean, train_std = compute_mean_and_std(trainset.img_paths)
 
-    print('All is done.')
+    print("All is done.")
