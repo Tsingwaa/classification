@@ -173,8 +173,9 @@ class BaseTrainer:
 
         transform = Transforms.get(transform_name)(**kwargs)
 
-        transform_init_log = f"===> Initialized {kwargs['phase']} "\
-            f" {transform_name}: {kwargs}"
+        phase = kwargs.pop("phase", None)
+        transform_init_log = f"===> Initialized {phase} "\
+            f"{transform_name}: {kwargs}"
         self.log(transform_init_log, log_level)
 
         return transform
@@ -187,12 +188,14 @@ class BaseTrainer:
 
         fold_str = f"fold-{kwargs['fold_i']} " \
             if "fold_i" in kwargs.keys() else ""
-        dataset_init_log = f"===> Initialized {kwargs['phase']} "\
+        phase = kwargs.pop("phase", None)
+        dataset_init_log = f"===> Initialized {phase} "\
             f"{fold_str}{prefix}{dataset_name}: size={len(dataset)}, "\
             f"classes={dataset.num_classes}"
 
         self.log(dataset_init_log, log_level)
-        self.log(f"imgs_per_cls={dataset.num_samples_per_cls}", log_level)
+        self.log(f"===> {phase}_imgs_per_cls={dataset.num_samples_per_cls}",
+                 log_level)
         return dataset
 
     def init_sampler(self, sampler_name, **kwargs):

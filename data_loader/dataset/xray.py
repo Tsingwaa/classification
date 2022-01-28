@@ -1,10 +1,8 @@
-import json
 from os.path import join
 
-# import cv2
 import torch
-# import torchvision.transforms as T
-from data_loader.dataset.builder import DATASETS_ROOT, Datasets
+import yaml
+from data_loader.dataset.builder import DATASETS_ROOT, PROJECT_ROOT, Datasets
 from PIL import Image
 
 
@@ -62,7 +60,8 @@ class Xray14(torch.utils.data.Dataset):
         self.fold_i = fold_i
         self.transform = transform
 
-        splitfold_path = join(root, "categories/split.json")
+        splitfold_path = join(PROJECT_ROOT,
+                              "data_loader/data/Xray/split_data.yaml")
         self.img_names, self.targets = self.get_data(
             splitfold_path,
             fold_i,
@@ -97,7 +96,7 @@ class Xray14(torch.utils.data.Dataset):
     def get_data(self, splitfold_path, fold_i, phase, select_classes):
 
         with open(splitfold_path, "r") as f:
-            fold2data = json.load(f)
+            fold2data = yaml.load(f, Loader=yaml.FullLoader)
             # {"0":[['Atelectasis/00003548_003.png', 0],...,], "1":...}
 
         if phase == 'train':
@@ -105,9 +104,9 @@ class Xray14(torch.utils.data.Dataset):
 
             for fold_j in range(5):
                 if fold_j != fold_i:
-                    data.extend(fold2data[str(fold_j)])
+                    data.extend(fold2data[fold_j])
         elif phase in ['val', 'test']:
-            data = fold2data[str(fold_i)]
+            data = fold2data[fold_i]
         else:
             raise TypeError
 
