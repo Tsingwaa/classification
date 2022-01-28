@@ -1,5 +1,5 @@
 experiment:
-  name: Xray8_r50pre_CE_0.1CT
+  name: Xray8_r50pre_CE_0.01CT
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -87,7 +87,7 @@ optimizer:
   name: SGD
   param:
     lr: 0.001
-    weight_decay: 5.0e-4
+    weight_decay: 5.0e-5
     momentum: 0.9
     nesterov: True
 
@@ -105,7 +105,7 @@ loss2:
     num_classes: 8
     feat_dim: 2048
     alpha: 0
-    lambda: 0.1
+    lambda: 0.01
     margin: -1
 
 optimizer2:
@@ -115,7 +115,6 @@ optimizer2:
     weight_decay: 1.0e-6
     momentum: 0.9
     nesterov: True
-
 
 lr_scheduler2:
   name: CosineAnnealingLR

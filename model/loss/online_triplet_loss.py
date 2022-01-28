@@ -23,7 +23,7 @@ class OnlineHardTripletLoss(torch.nn.Module):
         triplet_loss: scalar tensor containing the triplet loss
     """
 
-    def __init__(self, margin, squared=False, **kwargs):
+    def __init__(self, margin=100, squared=False, **kwargs):
 
         super(OnlineHardTripletLoss, self).__init__()
         self.margin = margin

@@ -385,10 +385,10 @@ class BaseTrainer:
             # "optimizer": optimizer.state_dict(),
             "epoch": epoch,
             "is_best": is_best,
-            "mr": stat.mr,
-            "cm": stat.cm,
-            "recalls": stat.recalls,
-            "group_mr": stat.group_mr,
+            "mr": stat.mr if stat else None,
+            "cm": stat.cm if stat else None,
+            "recalls": stat.recalls if stat else None,
+            "group_mr": stat.group_mr if stat else None,
         }
         checkpoint.update(kwargs)  # Add custom state dict.
 
@@ -402,7 +402,7 @@ class BaseTrainer:
 
     def init_logger(self, log_fpath):
         logger = logging.getLogger()
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.INFO)
 
         # Save log to file
         file_handler = logging.FileHandler(log_fpath, mode="a")

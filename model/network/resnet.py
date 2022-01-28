@@ -232,20 +232,23 @@ class ResNet(nn.Module):
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0])
+        self.layer1 = self._make_layer(block,
+                                       planes=64,
+                                       blocks=layers[0],
+                                       stride=1)
         self.layer2 = self._make_layer(block,
-                                       128,
-                                       layers[1],
+                                       planes=128,
+                                       blocks=layers[1],
                                        stride=2,
                                        dilate=replace_stride_with_dilation[0])
         self.layer3 = self._make_layer(block,
-                                       256,
-                                       layers[2],
+                                       planes=256,
+                                       blocks=layers[2],
                                        stride=2,
                                        dilate=replace_stride_with_dilation[1])
         self.layer4 = self._make_layer(block,
-                                       512,
-                                       layers[3],
+                                       planes=512,
+                                       blocks=layers[3],
                                        stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))

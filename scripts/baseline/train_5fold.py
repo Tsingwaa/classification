@@ -5,7 +5,7 @@ import os
 import random
 import warnings
 from datetime import datetime
-from os.path import join
+from os.path import expanduser, join
 
 import numpy as np
 import torch
@@ -472,20 +472,48 @@ def main(args):
         avg_last_maj_mr = np.around(np.mean(last_maj_mrs), decimals=4)
         avg_last_med_mr = np.around(np.mean(last_med_mrs), decimals=4)
         avg_last_min_mr = np.around(np.mean(last_min_mrs), decimals=4)
-        log_5fold = f"===> Average best mean recall: {avg_best_mr:>7.2%}\n"\
-            f"Average best group mean recall: [{avg_best_maj_mr:>7.2%}, "\
-            f"{avg_best_med_mr:>7.2%}, {avg_best_min_mr[1]:>7.2%}]\n\n"\
+
+        log_fpath = expanduser(
+            join("~/Experiments", config['experiment']['name'] + '_5fold.log'))
+        log_5fold = f"===> Average best mean recall: {avg_best_mr:>6.2%}\n"\
+            f"Average best group mean recall: [{avg_best_maj_mr:>6.2%}, "\
+            f"{avg_best_med_mr:>6.2%}, {avg_best_min_mr[1]:>6.2%}]\n\n"\
             f"===> Average mean recall of the last epoch:"\
-            f" {avg_last_mr:>7.2%}\n"\
-            f"Average last group mean recall: [{avg_last_maj_mr:7.2%}, "\
-            f"{avg_last_med_mr:>7.2%}, {avg_last_min_mr:>7.2%}]\n\n"\
+            f" {avg_last_mr:>6.2%}\n"\
+            f"Average last group mean recall: [{avg_last_maj_mr:6.2%}, "\
+            f"{avg_last_med_mr:>6.2%}, {avg_last_min_mr:>7.2%}]\n\n"\
+            f"===> Save path: '{log_fpath}'\n"\
             f"*********************************************************"\
             f"*********************************************************\n"
-        save_5fold_log_fpath = join(os.environ['Home'], "Experiments",
-                                    config['experiment']['name'] + '_5fold')
-        logging.basicConfig(filename=save_5fold_log_fpath, filemode='a')
-        logging.info(log_5fold)
-        print(log_5fold)
+
+        logger = get_logger(log_fpath)
+        logger.info(log_5fold)
+
+
+def get_logger(log_fpath):
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    # Save log to file
+    file_handler = logging.FileHandler(log_fpath, mode="a")
+    file_handler.setLevel(logging.INFO)
+    file_handler_formatter = logging.Formatter(
+        "%(asctime)s: %(levelname)s:"
+        " [%(filename)s:%(lineno)d]: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    file_handler.setFormatter(file_handler_formatter)
+
+    # print to the screen
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+    # stream_handler.setFormatter(formatter)
+
+    # add two handler to the logger
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+
+    return logger
 
 
 if __name__ == "__main__":
