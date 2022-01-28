@@ -189,7 +189,7 @@ class BaseTrainer:
             if "fold_i" in kwargs.keys() else ""
         dataset_init_log = f"===> Initialized {kwargs['phase']} "\
             f"{fold_str}{prefix}{dataset_name}: size={len(dataset)}, "\
-            f"classes={dataset.num_classes}\n"
+            f"classes={dataset.num_classes}"
 
         self.log(dataset_init_log, log_level)
         self.log(f"imgs_per_cls={dataset.num_samples_per_cls}", log_level)

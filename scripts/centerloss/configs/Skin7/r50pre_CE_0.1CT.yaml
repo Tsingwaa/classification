@@ -1,90 +1,90 @@
 experiment:
-  name: "Skin7_r50pre_CE_0.1CT"
+  name: Skin7_r50pre_CE_0.1CT
   start_epoch: 1
   total_epochs: 100
-  log_fname: "train.log"
+  log_fname: train.log
   resume: False
-  resume_fpath: "last.pth.tar"
-  extract_phase: "train"
+  resume_fpath: last.pth.tar
+  extract_phase: train
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: "last_DRW"
+  name: last_DRW
   total_epochs: 10
-  unfreeze_keys: ["fc"]
+  unfreeze_keys: [fc]
   trainloader:
-    sampler: ""
+    sampler: 
     batch_size: 32
     num_workers: 4
   loss:
-    name: "CrossEntropyLoss"
+    name: CrossEntropyLoss
     param:
-      weight_type: "inverse"
+      weight_type: inverse
       label_smoothing: 0.
   optimizer:
-    name: "SGD"
+    name: SGD
     param:
       lr: 0.01
       weight_decay: 1.0e-5
       momentum: 0.9
       nesterov: True
   lr_scheduler:
-    name: "CosineAnnealingLR"
+    name: CosineAnnealingLR
     param:
       warmup_epochs: 0
       T_max: 10
 
 train_transform:
-  name: "MedTransform"
+  name: MedTransform
   param:
-    phase: "train"
+    phase: train
     resize: [224, 224]
 
 val_transform:
-  name: "MedTransform"
+  name: MedTransform
   param:
-    phase: "val"
+    phase: val
     resize: [224, 224]
 
 train_dataset:
-  name: "Skin7"
+  name: Skin7
   param:
-    phase: "train"
-    root: "Skin7"
+    phase: train
+    root: Skin7
     fold_i: 0
 
 val_dataset:
-  name: "Skin7"
+  name: Skin7
   param:
-    phase: "test"
-    root: "Skin7"
+    phase: test
+    root: Skin7
     fold_i: 0
 
 trainloader:
-  sampler: ""
+  sampler: 
   batch_size: 32
   num_workers: 4
 
 valloader:
-  sampler: ""
+  sampler: 
   batch_size: 32
   num_workers: 4
 
 network:
-  name: "ResNet50"
+  name: ResNet50
   param:
     pretrained: True
-    pretrained_fpath: ".cache/torch/hub/checkpoints/resnet50-0676ba61.pth"
+    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:
-  name: "CrossEntropyLoss"
+  name: CrossEntropyLoss
   param:
-    weight_type: ""
+    weight_type: 
     label_smoothing: 0.
 
 optimizer:
-  name: "SGD"
+  name: SGD
   param:
     lr: 0.001
     weight_decay: 5.0e-4
@@ -92,16 +92,16 @@ optimizer:
     nesterov: True
 
 lr_scheduler:
-  name: "CosineAnnealingLR"
+  name: CosineAnnealingLR
   param:
     warmup_epochs: 5
     T_max: 95
     eta_min: 1.0e-6
 
 loss2:
-  name: "CenterLoss"
+  name: CenterLoss
   param:
-    weight_type: ""
+    weight_type: 
     num_classes: 7
     feat_dim: 2048
     alpha: 0
@@ -109,7 +109,7 @@ loss2:
     margin: -1
 
 optimizer2:
-  name: "SGD"
+  name: SGD
   param:
     lr: 0.005
     weight_decay: 1.0e-6
@@ -118,7 +118,7 @@ optimizer2:
 
 
 lr_scheduler2:
-  name: "CosineAnnealingLR"
+  name: CosineAnnealingLR
   param:
     warmup_epochs: 5
     T_max: 95  # keep a relative high learning rate
