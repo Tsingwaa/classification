@@ -60,8 +60,8 @@ class BaseTrainer:
                 self.resume_fpath = join(
                     self.exp_root, self.exp_name,
                     f"seed{self.seed}_{self.exp_config['resume_fpath']}")
-            self.checkpoint, resume_log =\
-                self.resume_checkpoint(self.resume_fpath)
+            self.checkpoint, resume_log = self.resume_checkpoint(
+                self.resume_fpath)
             self.start_epoch = self.checkpoint["epoch"] + 1
 
         if self.local_rank in [-1, 0]:

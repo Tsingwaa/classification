@@ -1,5 +1,6 @@
 """finetune script """
 import argparse
+import logging
 import os
 import random
 import warnings
@@ -472,6 +473,7 @@ def main(args):
                           config=config,
                           seed=args.seed)
     finetuner.finetune()
+    logging.shutdown()
 
 
 if __name__ == "__main__":

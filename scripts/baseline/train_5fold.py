@@ -269,19 +269,19 @@ class Trainer(BaseTrainer):
 
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
-                f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>7.2%} "
-                f"[{best_group_mr[0]:>7.2%}, "
-                f"{best_group_mr[1]:>7.2%}, "
-                f"{best_group_mr[2]:>7.2%}]\n\n"
+                f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>6.2%} "
+                f"[{best_group_mr[0]:>6.2%}, "
+                f"{best_group_mr[1]:>6.2%}, "
+                f"{best_group_mr[2]:>6.2%}]\n\n"
                 f"===> Last mean recall: {val_stat.mr:>6.2%} "
-                f"[{val_stat.group_mr[0]:>7.2%}, "
-                f"{val_stat.group_mr[1]:>7.2%}, "
-                f"{val_stat.group_mr[2]:>7.2%}]\n\n"
+                f"[{val_stat.group_mr[0]:>6.2%}, "
+                f"{val_stat.group_mr[1]:>6.2%}, "
+                f"{val_stat.group_mr[2]:>6.2%}]\n\n"
                 f"===> Final average mean recall of last 5 epochs: "
                 f"{final_mr:>6.2%} "
-                f"[{final_maj_mr:>7.2%}, "
-                f"{final_med_mr:>7.2%}, "
-                f"{final_min_mr:>7.2%}]\n\n"
+                f"[{final_maj_mr:>6.2%}, "
+                f"{final_med_mr:>6.2%}, "
+                f"{final_min_mr:>6.2%}]\n\n"
                 f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************\n")
@@ -382,7 +382,7 @@ class Trainer(BaseTrainer):
 
         if self.local_rank <= 0:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
-                                     f"MR:{val_stat.mr:>7.2%} "
+                                     f"MR:{val_stat.mr:>6.2%} "
                                      f"[{val_stat.group_mr[0]:>3.0%}, "
                                      f"{val_stat.group_mr[1]:>3.0%}, "
                                      f"{val_stat.group_mr[2]:>3.0%}]")
@@ -437,6 +437,7 @@ def main(args):
 
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
+
     best_mrs = []
     best_maj_mrs = []
     best_med_mrs = []
@@ -452,6 +453,7 @@ def main(args):
                           seed=args.seed,
                           fold_i=fold_i)
         best_mr, best_group_mr, last_mr, last_group_mr = trainer.train()
+        logging.shutdown()
 
         if args.local_rank in [-1, 0]:
             best_mrs.append(best_mr)
@@ -481,13 +483,14 @@ def main(args):
             f"===> Average mean recall of the last epoch:"\
             f" {avg_last_mr:>6.2%}\n"\
             f"Average last group mean recall: [{avg_last_maj_mr:6.2%}, "\
-            f"{avg_last_med_mr:>6.2%}, {avg_last_min_mr:>7.2%}]\n\n"\
+            f"{avg_last_med_mr:>6.2%}, {avg_last_min_mr:>6.2%}]\n\n"\
             f"===> Save path: '{log_fpath}'\n"\
             f"*********************************************************"\
             f"*********************************************************\n"
 
         logger = get_logger(log_fpath)
         logger.info(log_5fold)
+        logging.shutdown()
 
 
 def get_logger(log_fpath):
