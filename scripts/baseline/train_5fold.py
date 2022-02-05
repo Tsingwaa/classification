@@ -29,16 +29,17 @@ class DataLoaderX(DataLoader):
 class Trainer(BaseTrainer):
 
     def __init__(self, local_rank, config, seed, fold_i=0):
-
         self.fold_i = fold_i
-
+        print(config)
         if "fold" not in config["experiment"]["name"]:
             config["experiment"]["name"] += f"_fold{fold_i}"
 
         config["train_dataset"]["param"].update({"fold_i": fold_i})
         config["val_dataset"]["param"].update({"fold_i": fold_i})
+        print(config)
 
         super(Trainer, self).__init__(local_rank, config, seed)
+        self.log(f"Local_rank: {local_rank}, seed: {seed}, fold_i: {fold_i}\n")
 
     def train(self):
         #######################################################################
@@ -479,7 +480,7 @@ def main(args):
             join("~/Experiments", config['experiment']['name'] + '_5fold.log'))
         log_5fold = f"===> Average best mean recall: {avg_best_mr:>6.2%}\n"\
             f"Average best group mean recall: [{avg_best_maj_mr:>6.2%}, "\
-            f"{avg_best_med_mr:>6.2%}, {avg_best_min_mr[1]:>6.2%}]\n\n"\
+            f"{avg_best_med_mr:>6.2%}, {avg_best_min_mr:>6.2%}]\n\n"\
             f"===> Average mean recall of the last epoch:"\
             f" {avg_last_mr:>6.2%}\n"\
             f"Average last group mean recall: [{avg_last_maj_mr:6.2%}, "\
