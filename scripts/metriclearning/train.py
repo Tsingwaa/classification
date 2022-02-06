@@ -192,6 +192,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
+                ncols=120,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -272,8 +273,8 @@ def parse_args():
                         "if single-GPU, default set to -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--lr", default=0.5, type=float, help="learning rate")
-    parser.add_argument("--wd", default=1e-4, type=float, help="weight decay")
+    # parser.add_argument("--lr", default=0.5, type=float, help="learning rate")
+    # parser.add_argument("--wd", default=1e-4, type=float, help="weight decay")
     args = parser.parse_args()
 
     return args
@@ -293,12 +294,12 @@ def _set_random_seed(seed=0, cuda_deterministic=False):
     torch.cuda.manual_seed_all(seed)
 
     if cuda_deterministic:  # slower, but more reproducible
-        torch.backends.cudnn.enabled = False
         torch.backends.cudnn.deterministic = True  # 固定内部随机性
+        torch.backends.cudnn.enabled = False
         torch.backends.cudnn.benchmark = False
     else:
-        torch.backends.cudnn.enabled = True
         torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = True  # 输入尺寸一致，加速训练
 
 

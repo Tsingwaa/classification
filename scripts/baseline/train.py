@@ -282,6 +282,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
+                ncols=140,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]",
             )
 
@@ -389,8 +390,8 @@ def parse_args():
     )
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--lr", default=0.5, type=float, help="learning rate")
-    parser.add_argument("--wd", default=1e-4, type=float, help="weight decay")
+    # parser.add_argument("--lr", default=0.5, type=float, help="learning rate")
+    # parser.add_argument("--wd", default=1e-4, type=float, help="weight decay")
     args = parser.parse_args()
 
     return args

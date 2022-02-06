@@ -3,7 +3,7 @@ from os.path import join
 from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from PIL import Image
 
-from med_mnist import DermaMNIST
+from medmnist import DermaMNIST
 
 
 @Datasets.register_module("DermaMNIST")

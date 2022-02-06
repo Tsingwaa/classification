@@ -6,14 +6,16 @@
 from os.path import join
 
 import numpy as np
-import PIL
 from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from medmnist import PathMNIST
+from PIL import Image
+
+# from pudb import set_trace
 
 
-@Datasets.register_module("ImbPathMNIST")
-class ImbalancePathMNIST(PathMNIST):
-    num_classes = 7
+@Datasets.register_module("ImbalancedPathMNIST")
+class ImbalancedPathMNIST(PathMNIST):
+    num_classes = 9
     mean = [0.5, 0.5, 0.5]
     std = [0.5, 0.5, 0.5]
 
@@ -23,50 +25,62 @@ class ImbalancePathMNIST(PathMNIST):
                  transform=None,
                  download=False,
                  imb_type='exp',
-                 imb_factor=0.05,
+                 imb_factor=0.01,
                  **kwargs):
         if '/' not in root:
             root = join(DATASETS_ROOT, root)
 
-        super(ImbalancePathMNIST, self).__init__(root=root,
-                                                 split=phase,
-                                                 download=download)
+        super(ImbalancedPathMNIST, self).__init__(root=root,
+                                                  split=phase,
+                                                  download=download)
         self.phase = phase
+        self.transform = transform
         self.imb_type = imb_type
         self.imb_factor = imb_factor
         # self.class_adapt = kwargs.get('class_adapt', False)
         np.random.seed(0)
 
         self.data = self.imgs
-        # 5: 12182 -> 0
-        # 3: 10401 -> 1
-        # 2: 10360 -> 2
-        # 1: 9509  -> 3
-        # 0: 9366  -> 4
-        # 4: 8006  -> 5
-        # 6: 7886  -> 6
-        remap = {
-            5: 0,
-            3: 1,
-            2: 2,
-            1: 3,
-            0: 4,
-            4: 5,
-            6: 6,
-        }
-        self.targets = [remap[label] for label in self.labels]
+        # 8: 12885 -> 0
+        # 5: 12182 -> 1
+        # 3: 10401 -> 2
+        # 2: 10360 -> 3
+        # 1: 9509  -> 4
+        # 7: 9401  -> 5
+        # 0: 9366  -> 6
+        # 4: 8006  -> 7
+        # 6: 7886  -> 8
+        # remap = {
+        #     8: 0,
+        #     5: 1,
+        #     3: 2,
+        #     2: 3,
+        #     1: 4,
+        #     7: 5,
+        #     0: 6,
+        #     4: 7,
+        #     6: 8,
+        # }
+        # self.targets = [
+        #     remap[label] for label in self.labels.squeeze().tolist()
+        # ]
+        self.targets = self.labels.squeeze().tolist()
 
         self.num_samples_per_cls = [
             self.targets.count(i) for i in range(self.num_classes)
         ]
-        max_num_samples = max(self.num_samples_per_cls)
-        self.num_samples_per_cls = self.get_img_num_per_cls(max_num_samples)
-        self.gen_imbalanced_data()
 
-        # get other property
-        self.class_weight = self.get_class_weight()
-        self.indexes_per_cls = self.get_indexes_per_cls()
-        self.group_mode = "shot"
+        if phase == 'train':
+            max_num_samples = self.num_samples_per_cls[0]
+            self.num_samples_per_cls = self.get_img_num_per_cls(
+                max_num_samples)
+            self.gen_imbalanced_data()
+
+            # get other property
+            self.class_weight = self.get_class_weight()
+            self.indexes_per_cls = self.get_indexes_per_cls()
+
+        self.group_mode = "class"
 
     def get_img_num_per_cls(self, max_num_samples):
         num_samples_per_cls = []
@@ -119,7 +133,7 @@ class ImbalancePathMNIST(PathMNIST):
 
     def __getitem__(self, index):
         img, target = self.data[index], self.targets[index]
-        img = PIL.Image.fromarray(img)
+        img = Image.fromarray(img)
 
         if self.transform is not None:
             img = self.transform(img, mean=self.mean, std=self.std)
@@ -143,9 +157,12 @@ class ImbalancePathMNIST(PathMNIST):
 
         return indexes_per_cls
 
+    def __len__(self):
+        return len(self.targets)
+
 
 if __name__ == '__main__':
-    trainset = ImbalancePathMNIST(root="medmnist",
-                                  phase="train",
-                                  download=False,
-                                  transform=None)
+    trainset = ImbalancedPathMNIST(root="medmnist",
+                                   phase="train",
+                                   download=False,
+                                   transform=None)
