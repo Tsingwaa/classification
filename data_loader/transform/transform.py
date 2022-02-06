@@ -186,6 +186,53 @@ class MedTransform:
         return ret_transform(x)
 
 
+@Transforms.register_module('PathMNISTTransform')
+class PathMNISTTransform:
+
+    def __init__(self, phase='train', resize=(32, 32), strong=False, **kwargs):
+        self.phase = phase
+        self.resize = resize
+        self.strong = strong
+
+    def __call__(self, x, mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5], **kwargs):
+        if self.phase == 'train':
+            if self.strong:
+                ret_transform = transforms.Compose([
+                    transforms.RandomHorizontalFlip(0.5),
+                    # transforms.RandomVerticalFlip(0.5),
+                    transforms.RandomAffine(
+                        degrees=30,
+                        translate=(0.4, 0.4),
+                        scale=(0.5, 1.5),
+                        shear=20,
+                        fill=(127, 127, 127),
+                    ),
+                    transforms.RandomResizedCrop(self.resize),
+                    # transforms.ColorJitter(brightness=0.4,
+                    #                        saturation=0.4,
+                    #                        contrast=0.4,
+                    #                        hue=0.4),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean, std),
+                    # transforms.RandomErasing(),
+                ])
+            else:
+                ret_transform = transforms.Compose([
+                    transforms.RandomCrop(self.resize, padding=4),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean, std),
+                ])
+        else:
+            ret_transform = transforms.Compose([
+                transforms.Resize(self.resize),
+                transforms.ToTensor(),
+                transforms.Normalize(mean, std),
+            ])
+
+        return ret_transform(x)
+
+
 @Transforms.register_module('ImagenetTransform')
 class ImagenetTransform:
 

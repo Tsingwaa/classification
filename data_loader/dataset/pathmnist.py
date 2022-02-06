@@ -27,9 +27,9 @@ class ImbalancePathMNIST(PathMNIST):
                  **kwargs):
         if '/' not in root:
             root = join(DATASETS_ROOT, root)
+
         super(ImbalancePathMNIST, self).__init__(root=root,
                                                  split=phase,
-                                                 transform=transform,
                                                  download=download)
         self.phase = phase
         self.imb_type = imb_type
