@@ -389,8 +389,8 @@ def parse_args():
     )
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--lr", default=0.1, type=float, help="learning rate")
-    parser.add_argument("--wd", default=5e-4, type=float, help="weight decay")
+    # parser.add_argument("--lr", default=0.1, type=float, help="learning rate")
+    # parser.add_argument("--wd", default=5e-4, type=float, help="weight decay")
     args = parser.parse_args()
 
     return args
@@ -427,11 +427,11 @@ def main(args):
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # compare lr and wd
-    config["experiment"]["name"] += f"_lr{args.lr}_wd{args.wd}"
-    config["optimizer"]["param"].update({
-        "lr": float(args.lr),
-        "weight_decay": float(args.wd),
-    })
+    # config["experiment"]["name"] += f"_lr{args.lr}_wd{args.wd}"
+    # config["optimizer"]["param"].update({
+    #     "lr": float(args.lr),
+    #     "weight_decay": float(args.wd),
+    # })
 
     trainer = Trainer(local_rank=args.local_rank,
                       config=config,
