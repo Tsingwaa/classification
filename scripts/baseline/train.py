@@ -389,8 +389,8 @@ def parse_args():
     )
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--lr", default=1e-3, type=float, help="learning rate")
-    parser.add_argument("--wd", default=1e-4, type=float, help="weight decay")
+    parser.add_argument("--lr", default=0.1, type=float, help="learning rate")
+    parser.add_argument("--wd", default=5e-4, type=float, help="weight decay")
     args = parser.parse_args()
 
     return args
