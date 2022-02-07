@@ -21,8 +21,8 @@ class ImbalanceCIFAR10(torchvision.datasets.CIFAR10):
     std = [0.2023, 0.1994, 0.2010]
 
     def __init__(self,
-                 root,
                  phase,
+                 root="cifar10",
                  transform=None,
                  download=True,
                  imb_type='exp',
@@ -148,6 +148,22 @@ class ImbalanceCIFAR100(ImbalanceCIFAR10):
     }
     num_classes = 100
 
+    def __init__(self,
+                 phase,
+                 root="cifar100",
+                 transform=None,
+                 download=True,
+                 imb_type='exp',
+                 imb_factor=0.01,
+                 **kwargs):
+        super(ImbalanceCIFAR100, self).__init__(phase=phase,
+                                                root=root,
+                                                transform=transform,
+                                                download=download,
+                                                imb_type=imb_type,
+                                                imb_factor=imb_factor,
+                                                **kwargs)
+
 
 @Datasets.register_module("CIFAR10")
 class CIFAR10_(torchvision.datasets.CIFAR10):
@@ -156,13 +172,13 @@ class CIFAR10_(torchvision.datasets.CIFAR10):
     std = [0.2023, 0.1994, 0.2010]
 
     def __init__(self,
-                 data_root,
                  phase,
+                 root="cifar10",
                  transform=None,
                  download=True,
                  **kwargs):
         self.train = True if phase == 'train' else False
-        data_root = join(DATASETS_ROOT, data_root)
+        data_root = join(DATASETS_ROOT, root)
         super(CIFAR10_, self).__init__(root=data_root,
                                        train=self.train,
                                        transform=transform,
@@ -196,14 +212,14 @@ class CIFAR100_(torchvision.datasets.CIFAR100):
     std = [0.2023, 0.1994, 0.2010]
 
     def __init__(self,
-                 data_root,
                  phase,
+                 root="cifar100",
                  transform=None,
                  download=True,
                  **kwargs):
         self.train = True if phase == 'train' else False
-        data_root = join(DATASETS_ROOT, data_root)
-        super(CIFAR100_, self).__init__(root=data_root,
+        root = join(DATASETS_ROOT, root)
+        super(CIFAR100_, self).__init__(root=root,
                                         train=self.train,
                                         transform=transform,
                                         download=download)
@@ -216,10 +232,6 @@ class CIFAR100_(torchvision.datasets.CIFAR100):
             img = self.transform(img, mean=self.mean, std=self.std)
 
         return img, target
-
-    @property
-    def num_classes(self):
-        return len(self.classes)
 
     @property
     def num_samples_per_cls(self):

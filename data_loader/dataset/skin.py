@@ -20,7 +20,12 @@ class Skin7(torch.utils.data.Dataset):
         ([0.5705, 0.5461, 0.7629], [0.1703, 0.1528, 0.1413]),
     ]
 
-    def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
+    def __init__(self,
+                 phase,
+                 root="Skin7",
+                 fold_i=0,
+                 transform=None,
+                 **kwargs):
         # phase: "train" or "test"
         # fold_i: one of [0, 1, 2, 3, 4]
 
@@ -104,7 +109,12 @@ class Skin8(Skin7):
         ([0.5242, 0.5296, 0.6684], [0.2320, 0.2234, 0.2461]),
     ]
 
-    def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
+    def __init__(self,
+                 phase,
+                 root="ISIC2019",
+                 fold_i=0,
+                 transform=None,
+                 **kwargs):
         # phase: "train" or "test"
         # fold_i: one of [0, 1, 2, 3, 4]
 

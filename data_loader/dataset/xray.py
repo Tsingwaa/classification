@@ -49,7 +49,7 @@ class Xray14(torch.utils.data.Dataset):
         7: 13,
     }
 
-    def __init__(self, root, phase, fold_i=0, transform=None):
+    def __init__(self, phase, root="Xray14", fold_i=0, transform=None):
         # phase: "train" or "test"
         super(Xray14, self).__init__()
 

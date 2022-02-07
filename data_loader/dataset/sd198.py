@@ -19,7 +19,12 @@ class SD198(torch.utils.data.Dataset):
                           ([0.4520, 0.4799, 0.5938], [0.2460, 0.2443, 0.2652]),
                           ([0.4564, 0.4862, 0.6042], [0.2455, 0.2445, 0.2658])]
 
-    def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
+    def __init__(self,
+                 phase,
+                 root="SD198",
+                 fold_i=0,
+                 transform=None,
+                 **kwargs):
         # phase: "train" or "test"
 
         if "/" not in root:
@@ -40,7 +45,6 @@ class SD198(torch.utils.data.Dataset):
         class_name_idx = np.load(class_idx_path)
         self.class_to_idx = {
             cls_idx: cls_name
-
             for cls_name, cls_idx in class_name_idx
         }
         self.classes = list(self.class_to_idx.values())

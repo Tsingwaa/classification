@@ -20,8 +20,8 @@ class ImbalancedPathMNIST(PathMNIST):
     std = [0.5, 0.5, 0.5]
 
     def __init__(self,
-                 root,
                  phase,
+                 root="medmnist",
                  transform=None,
                  download=False,
                  imb_type='exp',

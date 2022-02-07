@@ -1,16 +1,15 @@
 from os.path import join
 
 from data_loader.dataset.builder import DATASETS_ROOT, Datasets
-from PIL import Image
-
 from medmnist import DermaMNIST
+from PIL import Image
 
 
 @Datasets.register_module("DermaMNIST")
 class MyDermaMNIST(DermaMNIST):
     num_classes = 7
 
-    def __init__(self, root, phase, fold_i=0, transform=None, **kwargs):
+    def __init__(self, phase, root="medmnist", transform=None, **kwargs):
         if "/" not in root:
             root = join(DATASETS_ROOT, root)
 
