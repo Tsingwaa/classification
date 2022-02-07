@@ -61,10 +61,32 @@ class ImbalancedPathMNIST(PathMNIST):
         #     4: 7,
         #     6: 8,
         # }
-        # self.targets = [
-        #     remap[label] for label in self.labels.squeeze().tolist()
-        # ]
-        self.targets = self.labels.squeeze().tolist()
+        # 0: 94 -> 0
+        # 1: 1  -> 1
+        # 2: 86 -> 2
+        # 3: 0  -> 8
+        # 4: 45 -> 4
+        # 5: 5  -> 7
+        # 6: 45 -> 5
+        # 7: 34 -> 6
+        # 8: 72 -> 3
+
+        remap = {
+            0: 0,
+            1: 1,
+            2: 2,
+            3: 8,
+            4: 4,
+            5: 7,
+            6: 5,
+            7: 6,
+            8: 3,
+        }
+
+        self.targets = [
+            remap[label] for label in self.labels.squeeze().tolist()
+        ]
+        # self.targets = self.labels.squeeze().tolist()
 
         self.num_samples_per_cls = [
             self.targets.count(i) for i in range(self.num_classes)

@@ -1,5 +1,5 @@
 experiment:
-  name: PathMNIST0.01_r32_CE
+  name: PathMNIST0.01_r32_CE_bs64
   start_epoch: 1
   total_epochs: 200
   log_fname: train.log
@@ -9,17 +9,17 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRS
+  name: last_DRW
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: BalanceSampler
-    batch_size: 32
+    sampler: ""
+    batch_size: 64
     num_workers: 4
   loss:
     name: CrossEntropyLoss
     param:
-      weight_type: ""
+      weight_type: inverse
       label_smoothing: 0.
   optimizer:
     name: SGD
@@ -53,13 +53,11 @@ train_dataset:
     phase: train
     imb_type: exp
     imb_factor: 0.01
-    # fold_i: 0
 
 val_dataset:
   name: ImbalancedPathMNIST
   param:
     phase: test
-    # fold_i: 0
 
 # test_dataset:
 #   name: 
@@ -98,7 +96,7 @@ optimizer:
   name: SGD
   param:
     lr: 0.05
-    weight_decay: 1.0e-4
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 

@@ -51,15 +51,13 @@ train_dataset:
   name: ImbalancedPathMNIST
   param:
     phase: train
-    root: medmnist
-    fold_i: 0
+    imb_type: exp
+    imb_factor: 0.01
 
 val_dataset:
   name: ImbalancedPathMNIST
   param:
     phase: test
-    root: medmnist
-    fold_i: 0
 
 trainloader:
   sampler: ""
@@ -86,8 +84,8 @@ loss:
 optimizer:
   name: SGD
   param:
-    lr: 0.1
-    weight_decay: 1.0e-4
+    lr: 0.05
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 
@@ -111,7 +109,7 @@ loss2:
 optimizer2:
   name: SGD
   param:
-    lr: 0.5
+    lr: 0.05
     weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True

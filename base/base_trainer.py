@@ -305,6 +305,8 @@ class BaseTrainer:
         #      "weight_decay": 0.0}]
         log_level = kwargs.pop("log_level", "default")
 
+        model_params = filter(lambda p: p.requires_grad, model_params)
+
         optimizer = getattr(torch.optim, opt_name)(model_params, **kwargs)
         _prefix = "Initialized"
 

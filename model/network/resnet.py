@@ -253,11 +253,21 @@ class ResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
-        self.mlp = nn.Sequential(
-            nn.Linear(512 * block.expansion, 128 * block.expansion),
-            nn.BatchNorm1d(128 * block.expansion),
+        self.projector = nn.Sequential(
+            nn.Linear(512 * block.expansion, 512 * block.expansion),
+            nn.BatchNorm1d(512 * block.expansion),
             nn.ReLU(inplace=True),
-            nn.Linear(128 * block.expansion, num_classes),
+            # nn.Linear(512 * block.expansion, 512 * block.expansion),
+            # nn.BatchNorm1d(512 * block.expansion),
+            # nn.ReLU(inplace=True),
+            nn.Linear(512 * block.expansion, 512 * block.expansion),
+            nn.BatchNorm1d(512 * block.expansion),
+        )
+        self.predictor = nn.Sequential(
+            nn.Linear(512 * block.expansion, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+            nn.Linear(512, 512 * block.expansion),
         )
 
         for m in self.modules():
@@ -340,12 +350,21 @@ class ResNet(nn.Module):
 
             if out_type == 'vec':
                 return feat_vec
-            elif out_type == 'mlp':
-                return self.mlp(feat_vec)
             elif out_type == 'fc':
                 return self.fc(feat_vec)
             else:
                 raise TypeError
+
+    def get_simsiam(self, x1, x2):
+        x1 = self.forward(x1, out_type="vec")
+        z1 = self.projector(x1)
+        p1 = self.predictor(z1)
+
+        with torch.no_grad():
+            x2 = self.forward(x2, out_type="vec")
+            z2 = self.projector(x2)
+
+        return p1, z2
 
 
 @Networks.register_module('ResNet18')

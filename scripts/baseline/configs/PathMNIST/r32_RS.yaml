@@ -14,7 +14,7 @@ finetune:
   unfreeze_keys: ["fc"]
   trainloader:
     sampler: ""
-    batch_size: 64
+    batch_size: 128
     num_workers: 4
   loss:
     name: CrossEntropyLoss
@@ -69,12 +69,12 @@ val_dataset:
 
 trainloader:
   sampler: BalanceSampler
-  batch_size: 64
+  batch_size: 128
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 128
   num_workers: 4
 
 # testloader:
@@ -98,7 +98,7 @@ optimizer:
   name: SGD
   param:
     lr: 0.05
-    weight_decay: 1.0e-4
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 

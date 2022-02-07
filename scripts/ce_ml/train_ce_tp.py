@@ -295,6 +295,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
+                ncols=140,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -415,6 +416,7 @@ def parse_args():
                         "if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--margin", type=int, default=100)
     args = parser.parse_args()
 
     return args
@@ -449,6 +451,11 @@ def main(args):
     _set_random_seed(seed=args.seed)
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
+
+    # reset margin
+    config["experiment"]["name"] += f"_mrg{args.margin}"
+    config["loss2"]["param"].update({"margin": float(args.margin)})
+
     trainer = Trainer(local_rank=args.local_rank,
                       config=config,
                       seed=args.seed)
