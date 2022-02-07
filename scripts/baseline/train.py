@@ -258,19 +258,18 @@ class Trainer(BaseTrainer):
 
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
-                f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>7.2%} "
-                f"[{best_group_mr[0]:>7.2%}, "
-                f"{best_group_mr[1]:>7.2%}, "
-                f"{best_group_mr[2]:>7.2%}]\n\n"
+                f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>6.2%} "
+                f"[{best_group_mr[0]:>6.2%}, "
+                f"{best_group_mr[1]:>6.2%}, "
+                f"{best_group_mr[2]:>6.2%}]\n\n"
                 f"===> Last mean recall: {val_stat.mr:>6.2%} "
-                f"[{val_stat.group_mr[0]:>7.2%}, "
-                f"{val_stat.group_mr[1]:>7.2%}, "
-                f"{val_stat.group_mr[2]:>7.2%}]\n\n"
-                f"===> Final average mean recall of last 5 epochs: "
-                f"{final_mr:>6.2%} "
-                f"[{final_maj_mr:>7.2%}, "
-                f"{final_med_mr:>7.2%}, "
-                f"{final_min_mr:>7.2%}]\n\n"
+                f"[{val_stat.group_mr[0]:>6.2%}, "
+                f"{val_stat.group_mr[1]:>6.2%}, "
+                f"{val_stat.group_mr[2]:>6.2%}]\n\n"
+                f"===> Final average mean recall of last 5 epochs: {final_mr:>6.2%} "
+                f"[{final_maj_mr:>6.2%}, "
+                f"{final_med_mr:>6.2%}, "
+                f"{final_min_mr:>6.2%}]\n\n"
                 f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************\n")
@@ -282,7 +281,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                ncols=140,
+                ncols=120,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]",
             )
 
@@ -323,9 +322,9 @@ class Trainer(BaseTrainer):
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
                 f"MR:{train_stat.mr:>7.2%} "
-                f"[{train_stat.group_mr[0]:>3.0%}, "
-                f"{train_stat.group_mr[1]:>3.0%}, "
-                f"{train_stat.group_mr[2]:>3.0%}]")
+                f"[{train_stat.group_mr[0]:>4.0%}, "
+                f"{train_stat.group_mr[1]:>4.0%}, "
+                f"{train_stat.group_mr[2]:>4.0%}]")
 
             train_pbar.close()
 
@@ -369,7 +368,7 @@ class Trainer(BaseTrainer):
 
         if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
-                                     f"MR:{val_stat.mr:>7.2%} "
+                                     f"MR:{val_stat.mr:>6.2%} "
                                      f"[{val_stat.group_mr[0]:>3.0%}, "
                                      f"{val_stat.group_mr[1]:>3.0%}, "
                                      f"{val_stat.group_mr[2]:>3.0%}]")
@@ -390,8 +389,8 @@ def parse_args():
     )
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
-    # parser.add_argument("--lr", default=0.5, type=float, help="learning rate")
-    # parser.add_argument("--wd", default=1e-4, type=float, help="weight decay")
+    parser.add_argument("--lr", default=1e-3, type=float, help="learning rate")
+    parser.add_argument("--wd", default=1e-4, type=float, help="weight decay")
     args = parser.parse_args()
 
     return args
@@ -428,11 +427,11 @@ def main(args):
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # compare lr and wd
-    # config["experiment"]["name"] += f"_lr{args.lr}_wd{args.wd}"
-    # config["optimizer"]["param"].update({
-    #     "lr": float(args.lr),
-    #     "weight_decay": float(args.wd),
-    # })
+    config["experiment"]["name"] += f"_lr{args.lr}_wd{args.wd}"
+    config["optimizer"]["param"].update({
+        "lr": float(args.lr),
+        "weight_decay": float(args.wd),
+    })
 
     trainer = Trainer(local_rank=args.local_rank,
                       config=config,

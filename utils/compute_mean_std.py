@@ -84,14 +84,15 @@ if __name__ == "__main__":
     dataset_name = "Skin8"
     root = "ISIC2019"
 
-    for fold_i in range(5):
-        print(f"===> Processing {dataset_name} fold-{fold_i}...")
-        trainset = Datasets.get(dataset_name)(
-            root=root,
-            phase="train",
-            fold_i=fold_i,
-        )
-        print(trainset.num_samples_per_cls)
-        train_mean, train_std = compute_mean_and_std(trainset.img_paths)
+    trainset = Datasets.get(dataset_name)(root=root, phase="train")
+    # for fold_i in range(5):
+    #     print(f"===> Processing {dataset_name} fold-{fold_i}...")
+    #     trainset = Datasets.get(dataset_name)(
+    #         root=root,
+    #         phase="train",
+    #         fold_i=fold_i,
+    #     )
+    #     print(trainset.num_samples_per_cls)
+    #     train_mean, train_std = compute_mean_and_std(trainset.img_paths)
 
     print("All is done.")

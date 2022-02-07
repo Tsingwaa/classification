@@ -5,7 +5,7 @@ import os
 import random
 import warnings
 from datetime import datetime
-from os.path import join
+from os.path import expanduser, join
 
 import numpy as np
 import torch
@@ -51,8 +51,7 @@ class FineTuner(BaseTrainer):
         self.finetune_config = config["finetune"]
         self.finetune_name = self.finetune_config["name"]
 
-        self.user_root = os.environ["HOME"]
-        self.exp_root = join(self.user_root, "Experiments")
+        self.exp_root = expanduser("~/Experiments")
         self.total_epochs = self.finetune_config["total_epochs"]
 
         self._set_configs(config)
@@ -176,6 +175,7 @@ class FineTuner(BaseTrainer):
                                      resume=True,
                                      checkpoint=self.checkpoint,
                                      num_classes=trainset.num_classes,
+                                     except_keys=self.unfreeze_keys,
                                      **self.network_params)
         self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
 

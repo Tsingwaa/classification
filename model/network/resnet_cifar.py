@@ -175,12 +175,12 @@ class ResNet_CIFAR(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.avgpool(x)
-        feat = torch.flatten(x, 1)  # (N, 64)
+        feat_vec = torch.flatten(x, 1)  # (N, 64)
 
-        if out_type == 'feat':
-            return feat
+        if out_type == 'vec':
+            return feat_vec
         elif '2' in out_type:
-            feat_2d = F.relu(self.fc_2(feat))  # (N, 2)
+            feat_2d = F.relu(self.fc_2(feat_vec))  # (N, 2)
 
             if out_type == 'feat_2d':
                 return feat_2d
@@ -189,9 +189,9 @@ class ResNet_CIFAR(nn.Module):
         elif out_type == 'affinity':
             # feat = self.bn_a(feat)
 
-            return self.affinity(feat)  # (N, C+1)
+            return self.affinity(feat_vec)  # (N, C+1)
         else:  # Default output logits
-            return self.fc(feat)  # (N, C)
+            return self.fc(feat_vec)  # (N, C)
 
 
 class ResNet_CIFAR2(nn.Module):
@@ -243,7 +243,7 @@ class ResNet_CIFAR2(nn.Module):
         else:
             feat_map = self.layer3[-1](feat_map)
             feat_vec = self.avgpool(feat_map)
-            feat_vec = torch.squeeze(feat_vec)
+            feat_vec = torch.flatten(feat_vec, 1)
 
             if out_type == 'vec':
                 return feat_vec

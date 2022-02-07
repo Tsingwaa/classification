@@ -1,11 +1,10 @@
-"""finetune script """
+"""trainer script """
 import argparse
 import logging
 import os
 import random
 import warnings
 from datetime import datetime
-from os.path import expanduser, join
 
 import numpy as np
 import torch
@@ -13,11 +12,9 @@ import yaml
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
-# from sklearn import metrics
 from torch import distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
-# from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from utils import AverageMeter, ExpStat
 
@@ -28,97 +25,17 @@ class DataLoaderX(DataLoader):
         return BackgroundGenerator(super().__iter__())
 
 
-class FineTuner(BaseTrainer):
+class Trainer(BaseTrainer):
 
     def __init__(self, local_rank, config, seed):
+        super(Trainer, self).__init__(local_rank, config, seed)
 
-        #######################################################################
-        # Device setting
-        #######################################################################
-        self.local_rank = local_rank
-        self.seed = seed
+        loss2_config = config['loss2']
+        self.loss2_name = loss2_config['name']
+        self.loss2_params = loss2_config['param']
+        self.lambda_weight = self.loss2_params.get('lambda', 1.)
 
-        if self.local_rank != -1:
-            dist.init_process_group(backend="nccl")
-            torch.cuda.set_device(self.local_rank)
-            self.world_size = dist.get_world_size()
-
-        #######################################################################
-        # Experiment setting
-        #######################################################################
-        self.exp_config = config["experiment"]
-        self.exp_name = self.exp_config["name"]
-        self.finetune_config = config["finetune"]
-        self.finetune_name = self.finetune_config["name"]
-
-        self.exp_root = expanduser("~/Experiments")
-        self.total_epochs = self.finetune_config["total_epochs"]
-
-        self._set_configs(config)
-
-        self.resume = True
-
-        if "/" in self.exp_config["resume_fpath"]:
-            self.resume_fpath = self.exp_config["resume_fpath"]
-        else:
-            self.resume_fpath = join(
-                self.exp_root, self.exp_name,
-                f"seed{self.seed}_{self.exp_config['resume_fpath']}")
-
-        self.checkpoint, resume_log = self.resume_checkpoint(self.resume_fpath)
-
-        self.start_epoch = 1
-
-        if self.local_rank in [-1, 0]:
-            self.eval_period = self.exp_config["eval_period"]  # default: 1
-            self.save_period = self.exp_config["save_period"]  # default: 10
-            self.exp_dir = join(self.exp_root, self.exp_name)
-            os.makedirs(self.exp_dir, exist_ok=True)
-
-            # Set logger to save .log file and output to screen.
-            self.log_fpath = join(self.exp_dir,
-                                  f"seed{self.seed}_{self.finetune_name}.log")
-            self.logger = self.init_logger(self.log_fpath)
-            exp_init_log = f"\n****************************************"\
-                f"****************************************************"\
-                f"\nExperiment: Finetune {self.exp_name}\n"\
-                f"Total_epochs: {self.total_epochs}\n"\
-                f"Save dir: {self.exp_dir}\n"\
-                f"Save peroid: {self.save_period}\n"\
-                f"Resume Training: {self.resume}\n"\
-                f"Distributed Training: "\
-                f"{True if self.local_rank != -1 else False}\n"\
-                f"**********************************************"\
-                f"**********************************************\n"
-            self.log(exp_init_log)
-            self.log(resume_log)
-
-        self.unfreeze_keys = self.finetune_config["unfreeze_keys"]
-
-        ft_network_config = self.finetune_config.pop("network", None)
-
-        if ft_network_config is not None and ft_network_config["name"]:
-            self.network_name = ft_network_config["name"]
-            self.network_params = ft_network_config["param"]
-
-        self.trainloader_params = self.finetune_config["trainloader"]
-        self.train_sampler_name = self.trainloader_params.pop("sampler", None)
-        self.train_batchsize = self.trainloader_params["batch_size"]
-        self.train_workers = self.trainloader_params["num_workers"]
-
-        ft_loss_config = self.finetune_config["loss"]
-        self.loss_name = ft_loss_config["name"]
-        self.loss_params = ft_loss_config["param"]
-
-        ft_opt_config = self.finetune_config["optimizer"]
-        self.opt_name = ft_opt_config["name"]
-        self.opt_params = ft_opt_config["param"]
-
-        ft_lrS_config = self.finetune_config["lr_scheduler"]
-        self.scheduler_name = ft_lrS_config["name"]
-        self.scheduler_params = ft_lrS_config["param"]
-
-    def finetune(self):
+    def train(self):
         #######################################################################
         # Initialize Dataset and Dataloader
         #######################################################################
@@ -130,7 +47,7 @@ class FineTuner(BaseTrainer):
         train_sampler = self.init_sampler(self.train_sampler_name,
                                           dataset=trainset,
                                           **self.trainloader_params)
-        self.trainloader = DataLoaderX(dataset=trainset,
+        self.trainloader = DataLoaderX(trainset,
                                        batch_size=self.train_batchsize,
                                        shuffle=(train_sampler is None),
                                        num_workers=self.train_workers,
@@ -138,20 +55,7 @@ class FineTuner(BaseTrainer):
                                        drop_last=True,
                                        sampler=train_sampler)
 
-        if self.local_rank != -1:
-            dist.barrier()
-
-            if not self.train_sampler_name:
-                self.train_sampler_name = "DistributedSampler"
-
-            if not self.val_sampler_name:
-                self.val_sampler_name = "DistributedSampler"
-
-            self.log(f"world_size {self.world_size},"
-                     f"local_rank {self.local_rank},"
-                     f"train '{self.train_sampler_name}'"
-                     f"val '{self.val_sampler_name}'")
-
+        # 无论多卡还是单卡，都需要新建val_loader
         val_transform = self.init_transform(self.val_transform_name,
                                             **self.val_transform_params)
         valset = self.init_dataset(self.valset_name,
@@ -159,41 +63,34 @@ class FineTuner(BaseTrainer):
                                    **self.valset_params)
         val_sampler = self.init_sampler(self.val_sampler_name,
                                         dataset=valset,
-                                        **self.valloader_params)
-        self.valloader = DataLoaderX(dataset=valset,
+                                        **self.trainloader_params)
+        self.valloader = DataLoaderX(valset,
                                      batch_size=self.val_batchsize,
-                                     shuffle=False,
+                                     shuffle=(val_sampler is None),
                                      num_workers=self.val_workers,
                                      pin_memory=True,
                                      drop_last=False,
                                      sampler=val_sampler)
 
+        if self.local_rank != -1:
+
+            if not self.train_sampler_name:
+                self.train_sampler_name = "DistributedSampler"
+
+            if not self.val_sampler_name:
+                self.val_sampler_name = "DistributedSampler"
+
+            self.log(f"world_size={self.world_size}, "
+                     f"local_rank={self.local_rank}, "
+                     f"train_sampler='{self.train_sampler_name}', "
+                     f"val_sampler='{self.val_sampler_name}'")
+
         #######################################################################
         # Initialize Network
         #######################################################################
         self.model = self.init_model(self.network_name,
-                                     resume=True,
-                                     checkpoint=self.checkpoint,
                                      num_classes=trainset.num_classes,
-                                     except_keys=["fc"],
                                      **self.network_params)
-        self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
-
-        #######################################################################
-        # Initialize Loss
-        #######################################################################
-        weight = self.get_class_weight(trainset.num_samples_per_cls,
-                                       **self.loss_params)
-        self.criterion = self.init_loss(self.loss_name,
-                                        weight=weight,
-                                        **self.loss_params)
-
-        #######################################################################
-        # Initialize Optimizer
-        #######################################################################
-        self.optimizer = self.init_optimizer(self.opt_name,
-                                             self.model.parameters(),
-                                             **self.opt_params)
 
         #######################################################################
         # Initialize DistributedDataParallel
@@ -203,6 +100,28 @@ class FineTuner(BaseTrainer):
             self.model = DistributedDataParallel(self.model,
                                                  device_ids=[self.local_rank],
                                                  output_device=self.local_rank)
+
+        #######################################################################
+        # Initialize Loss
+        #######################################################################
+        weight = self.get_class_weight(trainset.num_samples_per_cls,
+                                       **self.loss_params)  # 包含weight_type
+        self.criterion = self.init_loss(self.loss_name,
+                                        weight=weight,
+                                        **self.loss_params)
+
+        weight2 = self.get_class_weight(trainset.num_samples_per_cls,
+                                        **self.loss2_params)  # 包含weight_type
+        self.criterion2 = self.init_loss(self.loss2_name,
+                                         weight=weight2,
+                                         **self.loss2_params)
+
+        #######################################################################
+        # Initialize Optimizer
+        #######################################################################
+        self.optimizer = self.init_optimizer(self.opt_name,
+                                             self.model.parameters(),
+                                             **self.opt_params)
 
         #######################################################################
         # Initialize LR Scheduler
@@ -215,23 +134,24 @@ class FineTuner(BaseTrainer):
         # Start Training
         #######################################################################
 
-        if self.local_rank <= 0:
+        if self.local_rank in [-1, 0]:
             best_mr = 0.
             best_epoch = 1
             best_group_mr = []
-            last_mrs = []
-            last_head_mrs = []
-            last_mid_mrs = []
-            last_tail_mrs = []
+            # average of mean recall in the last several epochs(default: 5)
+            last_mrs = []  # General: include all classes.
+            last_maj_mrs = []  # Majority classes: > 100 images
+            last_med_mrs = []  # Medium classes: 20 ~ 100 images
+            last_min_mrs = []  # Minority classes: < 20 images
             start_time = datetime.now()
 
         self.final_epoch = self.start_epoch + self.total_epochs
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
-            # learning rate decay by epoch
             self.lr_scheduler.step()
 
             if self.local_rank != -1:
+                dist.barrier()
                 train_sampler.set_epoch(cur_epoch)
                 val_sampler.set_epoch(cur_epoch)
 
@@ -240,8 +160,8 @@ class FineTuner(BaseTrainer):
                 trainloader=self.trainloader,
                 model=self.model,
                 criterion=self.criterion,
+                criterion2=self.criterion2,
                 optimizer=self.optimizer,
-                lr_scheduler=self.lr_scheduler,
                 dataset=trainset,
             )
 
@@ -257,25 +177,69 @@ class FineTuner(BaseTrainer):
 
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
-                    last_head_mrs.append(val_stat.group_mr[0])
-                    last_mid_mrs.append(val_stat.group_mr[1])
-                    last_tail_mrs.append(val_stat.group_mr[2])
+                    last_maj_mrs.append(val_stat.group_mr[0])
+                    last_med_mrs.append(val_stat.group_mr[1])
+                    last_min_mrs.append(val_stat.group_mr[2])
 
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                     f"LR:{self.optimizer.param_groups[0]['lr']:.1e} "
-                    f"Trainset Loss={train_loss:>4.1f} "
-                    f"MR={train_stat.mr:>6.2%}"
+                    f"Trainset Loss={train_loss['total']:>4.1f} "
+                    f"[{train_loss[1]:>4.1f},{train_loss[2]:>4.1f}] "
+                    f"MR={train_stat.mr:>7.2%}"
                     f"[{train_stat.group_mr[0]:>7.2%}, "
                     f"{train_stat.group_mr[1]:>7.2%}, "
                     f"{train_stat.group_mr[2]:>7.2%}]"
                     f" || "
                     f"Valset Loss={val_loss:>4.1f} "
-                    f"MR={val_stat.mr:>6.2%}"
+                    f"MR={val_stat.mr:>6.2%} "
                     f"[{val_stat.group_mr[0]:>6.2%}, "
                     f"{val_stat.group_mr[1]:>6.2%}, "
                     f"{val_stat.group_mr[2]:>6.2%}]",
                     log_level='file')
+
+                # Save log by tensorboard
+                self.writer.add_scalar(
+                    f"{self.exp_name}/LR",
+                    self.optimizer.param_groups[-1]["lr"],
+                    cur_epoch,
+                )
+                self.writer.add_scalars(
+                    f"{self.exp_name}/Loss",
+                    {
+                        "train_total": train_loss['total'],
+                        "train_loss1": train_loss[1],
+                        "train_loss2": train_loss[2],
+                        "val_loss": val_loss
+                    },
+                    cur_epoch,
+                )
+                self.writer.add_scalars(
+                    f"{self.exp_name}/Recall",
+                    {
+                        "train_mr": train_stat.mr,
+                        "val_mr": val_stat.mr
+                    },
+                    cur_epoch,
+                )
+                self.writer.add_scalars(
+                    f"{self.exp_name}/TrainGroupRecall",
+                    {
+                        "maj_mr": train_stat.group_mr[0],
+                        "med_mr": train_stat.group_mr[1],
+                        "min_mr": train_stat.group_mr[2]
+                    },
+                    cur_epoch,
+                )
+                self.writer.add_scalars(
+                    f"{self.exp_name}/ValGroupRecall",
+                    {
+                        "maj_mr": val_stat.group_mr[0],
+                        "med_mr": val_stat.group_mr[1],
+                        "min_mr": val_stat.group_mr[2]
+                    },
+                    cur_epoch,
+                )
 
                 is_best = val_stat.mr > best_mr
 
@@ -291,55 +255,62 @@ class FineTuner(BaseTrainer):
                         optimizer=self.optimizer,
                         is_best=is_best,
                         stat=val_stat,
-                        prefix=f"seed{self.seed}_{self.finetune_name}",
-                        save_dir=self.exp_dir)
+                        prefix=f"seed{self.seed}",
+                        save_dir=self.exp_dir,
+                    )
 
         if self.local_rank in [-1, 0]:
             end_time = datetime.now()
             dur_time = str(end_time - start_time)[:-7]  # 取到秒
 
             final_mr = np.around(np.mean(last_mrs), decimals=4)
-            final_maj_mr = np.around(np.mean(last_head_mrs), decimals=4)
-            final_med_mr = np.around(np.mean(last_mid_mrs), decimals=4)
-            final_min_mr = np.around(np.mean(last_tail_mrs), decimals=4)
+            final_maj_mr = np.around(np.mean(last_maj_mrs), decimals=4)
+            final_med_mr = np.around(np.mean(last_med_mrs), decimals=4)
+            final_min_mr = np.around(np.mean(last_min_mrs), decimals=4)
+
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
-                f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>6.2%} "
-                f"[{best_group_mr[0]:>6.2%}, "
-                f"{best_group_mr[1]:>6.2%}, "
-                f"{best_group_mr[2]:>6.2%}]\n\n"
+                f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>7.2%} "
+                f"[{best_group_mr[0]:>7.2%}, "
+                f"{best_group_mr[1]:>7.2%}, "
+                f"{best_group_mr[2]:>7.2%}]\n\n"
                 f"===> Last mean recall: {val_stat.mr:>6.2%} "
-                f"[{val_stat.group_mr[0]:>6.2%}, "
-                f"{val_stat.group_mr[1]:>6.2%}, "
-                f"{val_stat.group_mr[2]:>6.2%}]\n\n"
+                f"[{val_stat.group_mr[0]:>7.2%}, "
+                f"{val_stat.group_mr[1]:>7.2%}, "
+                f"{val_stat.group_mr[2]:>7.2%}]\n\n"
                 f"===> Final average mean recall of last 5 epochs: "
                 f"{final_mr:>6.2%} "
-                f"[{final_maj_mr:>6.2%}, "
-                f"{final_med_mr:>6.2%}, "
-                f"{final_min_mr:>6.2%}]\n\n"
+                f"[{final_maj_mr:>7.2%}, "
+                f"{final_med_mr:>7.2%}, "
+                f"{final_min_mr:>7.2%}]\n\n"
                 f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************\n")
 
     def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
-                    lr_scheduler, dataset):
-
+                    criterion2, dataset, **kwargs):
         model.train()
+        criterion2.train()
 
-        if self.local_rank <= 0:
+        if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                desc=f"Train Epoch[{cur_epoch:>2d}/{self.final_epoch-1}]")
+                desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
+        loss1_meter = AverageMeter()
+        loss2_meter = AverageMeter()
         train_stat = ExpStat(dataset)
 
-        for i, (batch_imgs, batch_labels) in enumerate(trainloader):
+        for i, (batch_imgs, batch_targets) in enumerate(trainloader):
+
             batch_imgs = batch_imgs.cuda(non_blocking=True)
-            batch_labels = batch_labels.cuda(non_blocking=True)
-            batch_probs = model(batch_imgs, out_type="fc")
-            batch_preds = torch.argmax(batch_probs, dim=1)
-            avg_loss = criterion(batch_probs, batch_labels)
+            batch_targets = batch_targets.cuda(non_blocking=True)
+            batch_vecs = model(batch_imgs, out_type='vec')
+            batch_probs = model.fc(batch_vecs)
+            loss1 = criterion(batch_probs, batch_targets)
+            loss2 = criterion2(batch_vecs, batch_targets)
+            avg_loss = loss1 + loss2 * self.lambda_weight
 
             optimizer.zero_grad()
             avg_loss.backward()
@@ -348,37 +319,48 @@ class FineTuner(BaseTrainer):
             if self.local_rank != -1:
                 dist.barrier()
                 avg_loss = self._reduce_tensor(avg_loss)
+                loss1 = self._reduce_tensor(loss1)
+                loss2 = self._reduce_tensor(loss2)
 
             train_loss_meter.update(avg_loss.item(), 1)
-            train_stat.update(batch_labels, batch_preds)
+            loss1_meter.update(loss1.item(), 1)
+            loss2_meter.update(loss2.item(), 1)
+
+            batch_preds = torch.argmax(batch_probs, dim=1)
+            train_stat.update(batch_targets, batch_preds)
 
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str(
-                    f"LR:{optimizer.param_groups[0]['lr']:.1e} "
-                    f"Loss:{train_loss_meter.avg:>4.2f}")
+                    f"LR:[{optimizer.param_groups[0]['lr']:.1e}, "
+                    f"Total Loss: {train_loss_meter.avg:4.2f} "
+                    f"[{loss1_meter.avg:>3.1f}, {loss2_meter.avg:>3.1f}] ")
 
         if self.local_rank != -1:
-            # all reduce the statistical confusion matrix
             dist.barrier()
             train_stat._cm = self._reduce_tensor(train_stat._cm, op='sum')
 
-        if self.local_rank <= 0:
+        if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(
-                f"LR:{optimizer.param_groups[0]['lr']:.1e} "
+                f"LR:[{optimizer.param_groups[0]['lr']:.1e}, "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
+                f"[{loss1_meter.avg:>3.1f}, {loss2_meter.avg:>3.1f}] "
                 f"MR:{train_stat.mr:>7.2%} "
-                f"[{train_stat.group_mr[0]:>7.2%}, "
-                f"{train_stat.group_mr[1]:>7.2%}, "
-                f"{train_stat.group_mr[2]:>7.2%}]")
-
+                f"[{train_stat.group_mr[0]:>3.0%}, "
+                f"{train_stat.group_mr[1]:>3.0%}, "
+                f"{train_stat.group_mr[2]:>3.0%}]")
             train_pbar.close()
 
-        return train_stat, train_loss_meter.avg
+        train_loss = {
+            'total': train_loss_meter.avg,
+            1: loss1_meter.avg,
+            2: loss2_meter.avg
+        }
+
+        return train_stat, train_loss
 
     def evaluate(self, cur_epoch, valloader, model, criterion, dataset,
                  **kwargs):
-
         model.eval()
 
         if self.local_rank in [-1, 0]:
@@ -386,14 +368,14 @@ class FineTuner(BaseTrainer):
             val_pbar = tqdm(total=len(valloader),
                             ncols=0,
                             desc=f"                 {desc}")
-
         val_loss_meter = AverageMeter()
         val_stat = ExpStat(dataset)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
-                batch_probs = model(batch_imgs)
+
+                batch_probs = model(batch_imgs, out_type='fc')
                 batch_preds = torch.argmax(batch_probs, dim=1)
                 avg_loss = criterion(batch_probs, batch_labels)
 
@@ -407,19 +389,18 @@ class FineTuner(BaseTrainer):
                 if self.local_rank <= 0:
                     val_pbar.update()
                     val_pbar.set_postfix_str(
-                        f"Loss:{val_loss_meter.avg:>4.2f}")
+                        f"Loss:{val_loss_meter.avg:>3.1f}")
 
         if self.local_rank != -1:
-            # all reduce the statistical confusion matrix
             dist.barrier()
             val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
 
-        if self.local_rank <= 0:
+        if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
-                                     f"MR:{val_stat.mr:>6.2%} "
-                                     f"[{val_stat.group_mr[0]:>6.2%}, "
-                                     f"{val_stat.group_mr[1]:>6.2%}, "
-                                     f"{val_stat.group_mr[2]:>6.2%}]")
+                                     f"MR:{val_stat.mr:>7.2%} "
+                                     f"[{val_stat.group_mr[0]:>3.0%}, "
+                                     f"{val_stat.group_mr[1]:>3.0%}, "
+                                     f"{val_stat.group_mr[2]:>3.0%}]")
             val_pbar.close()
 
         return val_stat, val_loss_meter.avg
@@ -454,24 +435,24 @@ def _set_random_seed(seed=0, cuda_deterministic=False):
     torch.cuda.manual_seed_all(seed)
 
     if cuda_deterministic:  # slower, but more reproducible
-        torch.backends.cudnn.enabled = False
         torch.backends.cudnn.deterministic = True  # 固定内部随机性
+        torch.backends.cudnn.enabled = False
         torch.backends.cudnn.benchmark = False
     else:
-        torch.backends.cudnn.enabled = True
         torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = True  # 输入尺寸一致，加速训练
 
 
 def main(args):
     warnings.filterwarnings("ignore")
-    _set_random_seed()
+    _set_random_seed(seed=args.seed)
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    finetuner = FineTuner(local_rank=args.local_rank,
-                          config=config,
-                          seed=args.seed)
-    finetuner.finetune()
+    trainer = Trainer(local_rank=args.local_rank,
+                      config=config,
+                      seed=args.seed)
+    trainer.train()
     logging.shutdown()
 
 
@@ -480,5 +461,4 @@ if __name__ == "__main__":
 
     if "LOCAL_RANK" in os.environ:
         args.local_rank = int(os.environ["LOCAL_RANK"])
-
     main(args)

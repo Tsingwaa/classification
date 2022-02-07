@@ -116,6 +116,24 @@ class ExpStat(object):
         return self._cm
 
     @property
+    def accuracy(self):
+        cm = self._cm.cpu().numpy()
+
+        return np.sum(np.diag(cm)) / cm.sum()
+
+    @property
+    def precisions(self):
+        cm = self._cm.cpu().numpy()
+        precisions = np.diag(cm) / np.sum(cm, axis=0)
+        precisions[np.isnan(precisions)] = 0
+
+        return precisions
+
+    @property
+    def mp(self):
+        return np.mean(self.precisions)
+
+    @property
     def recalls(self):
         cm = self._cm.cpu().numpy()
         recalls = np.diag(cm) / np.sum(cm, axis=1)
@@ -153,23 +171,37 @@ class ExpStat(object):
             np.around(minor_mr, decimals=4)
         ]
 
-    @property
-    def precisions(self):
-        cm = self._cm.cpu().numpy()
-        precisions = np.diag(cm) / np.sum(cm, axis=0)
-        precisions[np.isnan(precisions)] = 0
+    def get_group_index(self, num_samples_per_cls, group_mode="shot"):
+        """Class imbalance setup:
 
-        return precisions
+        "shot":
+            Majority > 100 images
+            20 <= Medium <= 100 images
+            Minority < 20 images
+        "class":
+            divided_num = self.num_classes // 3
+            [#divided_num] [#self.num_classes-2*divided_num] [#divided_num]
 
-    @property
-    def mp(self):
-        return np.mean(self.precisions)
+        return: the start and end index of Medium classes,
+            i.e. Med=classes[start:end]
+        """
+        start, end = 0, 0
 
-    @property
-    def accuracy(self):
-        cm = self._cm.cpu().numpy()
+        if group_mode == "shot":
+            last_num_samples = 0
 
-        return np.sum(np.diag(cm)) / cm.sum()
+            for cls, num_samples in enumerate(num_samples_per_cls):
+                if last_num_samples > 100 and num_samples <= 100:
+                    start = cls
+                elif last_num_samples >= 20 and num_samples < 20:
+                    end = cls
+                last_num_samples = num_samples
+        else:
+            start = self.num_classes // 3
+            end = self.num_classes - start
+            # [:start] [start:end] [end:]
+
+        return start, end
 
     def get_preds_by_eudist(self, querys, keys):
         """search which keys is nearest for each query.
@@ -235,38 +267,6 @@ class ExpStat(object):
         fig.tight_layout()
 
         return fig
-
-    def get_group_index(self, num_samples_per_cls, group_mode="shot"):
-        """Class imbalance setup:
-
-        "shot":
-            Majority > 100 images
-            20 <= Medium <= 100 images
-            Minority < 20 images
-        "class":
-            divided_num = self.num_classes // 3
-            [#divided_num] [#self.num_classes-2*divided_num] [#divided_num]
-
-        return: the start and end index of Medium classes,
-            i.e. Med=classes[start:end]
-        """
-        start, end = 0, 0
-
-        if group_mode == "shot":
-            last_num_samples = 0
-
-            for cls, num_samples in enumerate(num_samples_per_cls):
-                if last_num_samples > 100 and num_samples <= 100:
-                    start = cls
-                elif last_num_samples >= 20 and num_samples < 20:
-                    end = cls
-                last_num_samples = num_samples
-        else:
-            start = self.num_classes // 3
-            end = self.num_classes - start
-            # [:start] [start:end] [end:]
-
-        return start, end
 
 
 def count_model_params(net):

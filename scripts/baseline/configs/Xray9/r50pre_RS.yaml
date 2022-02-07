@@ -71,12 +71,12 @@ val_dataset:
 trainloader:
   sampler: BalanceSampler
   batch_size: 64
-  num_workers: 6
+  num_workers: 4
 
 valloader:
   sampler: ""
   batch_size: 64
-  num_workers: 6
+  num_workers: 4
 
 # testloader:
 #   sampler: 

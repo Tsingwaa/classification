@@ -175,7 +175,7 @@ class FineTuner(BaseTrainer):
                                      resume=True,
                                      checkpoint=self.checkpoint,
                                      num_classes=trainset.num_classes,
-                                     except_keys=["fc"],
+                                     except_keys=self.unfreeze_keys,
                                      **self.network_params)
         self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
 
@@ -265,7 +265,7 @@ class FineTuner(BaseTrainer):
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                     f"LR:{self.optimizer.param_groups[0]['lr']:.1e} "
                     f"Trainset Loss={train_loss:>4.1f} "
-                    f"MR={train_stat.mr:>6.2%}"
+                    f"MR={train_stat.mr:>7.2%}"
                     f"[{train_stat.group_mr[0]:>7.2%}, "
                     f"{train_stat.group_mr[1]:>7.2%}, "
                     f"{train_stat.group_mr[2]:>7.2%}]"
@@ -302,6 +302,7 @@ class FineTuner(BaseTrainer):
             final_maj_mr = np.around(np.mean(last_head_mrs), decimals=4)
             final_med_mr = np.around(np.mean(last_mid_mrs), decimals=4)
             final_min_mr = np.around(np.mean(last_tail_mrs), decimals=4)
+
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
                 f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>6.2%} "
@@ -329,6 +330,7 @@ class FineTuner(BaseTrainer):
         if self.local_rank <= 0:
             train_pbar = tqdm(
                 total=len(trainloader),
+                ncols=120,
                 desc=f"Train Epoch[{cur_epoch:>2d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -368,9 +370,9 @@ class FineTuner(BaseTrainer):
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
                 f"MR:{train_stat.mr:>7.2%} "
-                f"[{train_stat.group_mr[0]:>7.2%}, "
-                f"{train_stat.group_mr[1]:>7.2%}, "
-                f"{train_stat.group_mr[2]:>7.2%}]")
+                f"[{train_stat.group_mr[0]:>3.0%}, "
+                f"{train_stat.group_mr[1]:>3.0%}, "
+                f"{train_stat.group_mr[2]:>3.0%}]")
 
             train_pbar.close()
 
@@ -393,15 +395,17 @@ class FineTuner(BaseTrainer):
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
+
                 batch_probs = model(batch_imgs)
-                batch_preds = torch.argmax(batch_probs, dim=1)
+
                 avg_loss = criterion(batch_probs, batch_labels)
 
                 if self.local_rank != -1:
                     dist.barrier()
                     avg_loss = self._reduce_tensor(avg_loss)
-
                 val_loss_meter.update(avg_loss.item(), 1)
+
+                batch_preds = torch.argmax(batch_probs, dim=1)
                 val_stat.update(batch_labels, batch_preds)
 
                 if self.local_rank <= 0:
@@ -417,9 +421,9 @@ class FineTuner(BaseTrainer):
         if self.local_rank <= 0:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
                                      f"MR:{val_stat.mr:>6.2%} "
-                                     f"[{val_stat.group_mr[0]:>6.2%}, "
-                                     f"{val_stat.group_mr[1]:>6.2%}, "
-                                     f"{val_stat.group_mr[2]:>6.2%}]")
+                                     f"[{val_stat.group_mr[0]:>3.0%}, "
+                                     f"{val_stat.group_mr[1]:>3.0%}, "
+                                     f"{val_stat.group_mr[2]:>3.0%}]")
             val_pbar.close()
 
         return val_stat, val_loss_meter.avg
@@ -454,12 +458,12 @@ def _set_random_seed(seed=0, cuda_deterministic=False):
     torch.cuda.manual_seed_all(seed)
 
     if cuda_deterministic:  # slower, but more reproducible
-        torch.backends.cudnn.enabled = False
         torch.backends.cudnn.deterministic = True  # 固定内部随机性
+        torch.backends.cudnn.enabled = False
         torch.backends.cudnn.benchmark = False
     else:
-        torch.backends.cudnn.enabled = True
         torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = True  # 输入尺寸一致，加速训练
 
 
