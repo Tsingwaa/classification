@@ -15,7 +15,7 @@ finetune:
   trainloader:
     sampler: BalanceSampler
     retain_epoch_size: True
-    batch_size: 32
+    batch_size: 64
     num_workers: 4
   loss:
     name: CrossEntropyLoss

@@ -13,11 +13,9 @@ import yaml
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
-# from sklearn import metrics
 from torch import distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
-# from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from utils import AverageMeter, ExpStat
 

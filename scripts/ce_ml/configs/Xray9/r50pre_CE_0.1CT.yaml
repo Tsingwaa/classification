@@ -12,11 +12,11 @@ experiment:
 finetune:
   name: last_DRW
   total_epochs: 10
-  unfreeze_keys: [fc]
+  unfreeze_keys: ["fc"]
   trainloader:
     sampler: ""
-    batch_size: 32
-    num_workers: 4
+    batch_size: 64
+    num_workers: 6
   loss:
     name: CrossEntropyLoss
     param:
@@ -64,12 +64,12 @@ val_dataset:
 trainloader:
   sampler: ""
   batch_size: 64
-  num_workers: 6
+  num_workers: 4
 
 valloader:
   sampler: ""
   batch_size: 64
-  num_workers: 6
+  num_workers: 4
 
 network:
   name: ResNet50
