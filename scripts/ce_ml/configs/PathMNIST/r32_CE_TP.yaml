@@ -1,5 +1,5 @@
 experiment:
-  name: PathMNIST0.01_r32_CE_0.01CT
+  name: PathMNIST0.01_r32_CE_TP
   start_epoch: 1
   total_epochs: 200
   log_fname: train.log
@@ -45,7 +45,7 @@ val_transform:
   name: PathMNISTTransform
   param:
     phase: test
-    resize: [224, 224]
+    resize: [32, 32]
 
 train_dataset:
   name: ImbalancedPathMNIST
@@ -97,26 +97,23 @@ lr_scheduler:
     eta_min: 1.0e-6
 
 loss2:
-  name: CenterLoss
+  name: OnlineHardTripletLoss
   param:
+    lambda: 0.1
     weight_type: ""
-    num_classes: 9
-    feat_dim: 64
-    alpha: 0
-    lambda: 0.01
-    margin: -1
+    margin: 50
 
-optimizer2:
-  name: SGD
-  param:
-    lr: 0.05
-    weight_decay: 1.0e-5
-    momentum: 0.9
-    nesterov: True
+# optimizer2:
+#   name: SGD
+#   param:
+#     lr: 0.01
+#     weight_decay: 1.0e-5
+#     momentum: 0.9
+#     nesterov: True
 
-lr_scheduler2:
-  name: CosineAnnealingLR
-  param:
-    warmup_epochs: 5
-    T_max: 195  # keep a relative high learning rate
-    eta_min: 1.0e-6
+# lr_scheduler2:
+#   name: CosineAnnealingLR
+#   param:
+#     warmup_epochs: 5
+#     T_max: 195  # keep a relative high learning rate
+#     eta_min: 1.0e-6

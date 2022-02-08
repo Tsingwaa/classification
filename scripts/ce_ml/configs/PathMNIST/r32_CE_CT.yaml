@@ -1,5 +1,5 @@
 experiment:
-  name: PathMNIST0.01_r32_CE_0.1CT
+  name: PathMNIST0.01_r32_CE_CT
   start_epoch: 1
   total_epochs: 200
   log_fname: train.log
@@ -45,7 +45,7 @@ val_transform:
   name: PathMNISTTransform
   param:
     phase: test
-    resize: [224, 224]
+    resize: [32, 32]
 
 train_dataset:
   name: ImbalancedPathMNIST
@@ -99,17 +99,17 @@ lr_scheduler:
 loss2:
   name: CenterLoss
   param:
+    lambda: 0.01
     weight_type: ""
     num_classes: 9
     feat_dim: 64
     alpha: 0
-    lambda: 0.1
     margin: -1
 
 optimizer2:
   name: SGD
   param:
-    lr: 0.05
+    lr: 0.01
     weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True

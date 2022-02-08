@@ -416,7 +416,8 @@ def parse_args():
                         "if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--margin", type=int, default=100)
+    parser.add_argument("--margin", type=int, default=50)
+    parser.add_argument("--lambda_weight", type=float, default=1.)
     args = parser.parse_args()
 
     return args
@@ -452,9 +453,13 @@ def main(args):
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    # reset margin
-    config["experiment"]["name"] += f"_mrg{args.margin}"
-    config["loss2"]["param"].update({"margin": float(args.margin)})
+    # update config
+    config["experiment"]["name"] +=\
+        f"_lmd{args.lambda_weight}_mg{args.margin}"
+    config["loss2"]["param"].update({
+        "lambda": float(args.lambda_weight),
+        "margin": float(args.margin),
+    })
 
     trainer = Trainer(local_rank=args.local_rank,
                       config=config,
