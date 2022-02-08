@@ -24,7 +24,7 @@ finetune:
   optimizer:
     name: SGD
     param:
-      lr: 1.0e-2
+      lr: 0.01
       weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True

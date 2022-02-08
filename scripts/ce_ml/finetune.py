@@ -436,6 +436,8 @@ def parse_args():
                         "if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--lambda_weight", type=float, default=0.001)
+    parser.add_argument("--margin", type=int, default=50)
     args = parser.parse_args()
 
     return args
@@ -470,6 +472,16 @@ def main(args):
     _set_random_seed()
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
+
+    # config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+    # config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
+    config["experiment"]["name"] +=\
+        f"_lmd{args.lambda_weight}_mg{args.margin}"
+    config["loss2"]["param"].update({
+        "lambda": float(args.lambda_weight),
+        "margin": float(args.margin),
+    })
+
     finetuner = FineTuner(local_rank=args.local_rank,
                           config=config,
                           seed=args.seed)
