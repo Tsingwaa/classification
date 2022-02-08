@@ -1,5 +1,5 @@
 experiment:
-  name: Xray9_r50pre_CE_0.01CT
+  name: Xray9_r50pre_CE_TP
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -44,7 +44,7 @@ train_transform:
 val_transform:
   name: MedTransform
   param:
-    phase: val
+    phase: test
     resize: [224, 224]
 
 train_dataset:
@@ -85,7 +85,7 @@ optimizer:
   name: SGD
   param:
     lr: 0.001
-    weight_decay: 1.0e-4
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 
@@ -97,26 +97,27 @@ lr_scheduler:
     eta_min: 1.0e-6
 
 loss2:
-  name: CenterLoss
+  name: OnlineHardTripletLoss
   param:
-    weight_type: ""
-    num_classes: 9
-    feat_dim: 2048
-    alpha: 0
     lambda: 0.01
-    margin: -1
+    margin: 100
+    weight_type: ""
+    # num_classes: 7
+    # feat_dim: 2048
+    # alpha: 0
+    # margin: -1
 
-optimizer2:
-  name: SGD
-  param:
-    lr: 0.005
-    weight_decay: 1.0e-6
-    momentum: 0.9
-    nesterov: True
+# optimizer2:
+#   name: SGD
+#   param:
+#     lr: 0.005
+#     weight_decay: 1.0e-6
+#     momentum: 0.9
+#     nesterov: True
 
-lr_scheduler2:
-  name: CosineAnnealingLR
-  param:
-    warmup_epochs: 5
-    T_max: 95  # keep a relative high learning rate
-    eta_min: 1.0e-6
+# lr_scheduler2:
+#   name: CosineAnnealingLR
+#   param:
+#     warmup_epochs: 5
+#     T_max: 95  # keep a relative high learning rate
+#     eta_min: 1.0e-6
