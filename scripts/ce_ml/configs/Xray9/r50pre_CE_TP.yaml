@@ -16,7 +16,7 @@ finetune:
   trainloader:
     sampler: ""
     batch_size: 64
-    num_workers: 6
+    num_workers: 4
   loss:
     name: CrossEntropyLoss
     param:
