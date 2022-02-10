@@ -473,14 +473,14 @@ def main(args):
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    # config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
-    # config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
-    config["experiment"]["name"] +=\
-        f"_lmd{args.lambda_weight}_mg{args.margin}"
-    config["loss2"]["param"].update({
-        "lambda": float(args.lambda_weight),
-        "margin": float(args.margin),
-    })
+    config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+    config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
+    # config["experiment"]["name"] +=\
+    #     f"_lmd{args.lambda_weight}_mg{args.margin}"
+    # config["loss2"]["param"].update({
+    #     "lambda": float(args.lambda_weight),
+    #     "margin": float(args.margin),
+    # })
 
     finetuner = FineTuner(local_rank=args.local_rank,
                           config=config,
