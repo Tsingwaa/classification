@@ -519,6 +519,20 @@ class TransformFixMatch(object):
             return self.val_transform(x)
 
 
+@Transforms.register_module("SiameseTransform")
+class SiameseTransform:
+    """Take two random crops of one image as the query and key."""
+
+    def __init__(self, base_transform):
+        self.base_transform = base_transform
+
+    def __call__(self, x, mean=IN_MEAN, std=IN_STD):
+        x1 = self.base_transform(x, mean, std)
+        x2 = self.base_transform(x, mean, std)
+
+        return (x1, x2)
+
+
 def common_transform(phase='train',
                      resize=(224, 224),
                      mean=None,

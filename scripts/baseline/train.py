@@ -12,6 +12,7 @@ import yaml
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
 from torch import distributed as dist
+from torch.nn import SyncBatchNorm
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -91,9 +92,9 @@ class Trainer(BaseTrainer):
         #######################################################################
 
         if self.local_rank != -1:
+            self.model = SyncBatchNorm.convert_sync_batchnorm(self.model)
             self.model = DistributedDataParallel(self.model,
-                                                 device_ids=[self.local_rank],
-                                                 output_device=self.local_rank)
+                                                 device_ids=[self.local_rank])
 
         #######################################################################
         # Initialize Loss
@@ -396,7 +397,7 @@ def parse_args():
     return args
 
 
-def _set_random_seed(seed=0, cuda_deterministic=False):
+def _set_random_seed(seed=0, cuda_deterministic=True):
     """Set seed and control the balance between reproducity and efficiency
     Reproducity: cuda_deterministic = True
     Efficiency: cuda_deterministic = False
