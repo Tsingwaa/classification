@@ -424,7 +424,7 @@ def parse_args():
                         "if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--margin", type=int, default=50)
+    # parser.add_argument("--margin", type=int, default=50)
     parser.add_argument("--lambda_weight", type=float, default=1.)
     args = parser.parse_args()
 
@@ -463,11 +463,8 @@ def main(args):
 
     # update config
     config["experiment"]["name"] +=\
-        f"_lmd{args.lambda_weight}_mg{args.margin}"
-    config["loss2"]["param"].update({
-        "lambda": float(args.lambda_weight),
-        "margin": float(args.margin),
-    })
+        f"_lmd{args.lambda_weight}"
+    config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
 
     trainer = Trainer(local_rank=args.local_rank,
                       config=config,
