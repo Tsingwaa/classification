@@ -253,22 +253,31 @@ class ResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
-        self.projector = nn.Sequential(
-            nn.Linear(512 * block.expansion, 512 * block.expansion),
-            nn.BatchNorm1d(512 * block.expansion),
-            nn.ReLU(inplace=True),
-            # nn.Linear(512 * block.expansion, 512 * block.expansion),
-            # nn.BatchNorm1d(512 * block.expansion),
-            # nn.ReLU(inplace=True),
-            nn.Linear(512 * block.expansion, 512 * block.expansion),
-            nn.BatchNorm1d(512 * block.expansion),
-        )
-        self.predictor = nn.Sequential(
-            nn.Linear(512 * block.expansion, 512),
-            nn.BatchNorm1d(512),
-            nn.ReLU(inplace=True),
-            nn.Linear(512, 512 * block.expansion),
-        )
+
+        if kwargs.get("proj_head", False):  # BN前的linear层取消bias
+            self.projector = nn.Sequential(
+                nn.Linear(512 * block.expansion,
+                          512 * block.expansion,
+                          bias=False),
+                nn.BatchNorm1d(512 * block.expansion),
+                nn.ReLU(inplace=True),
+                nn.Linear(512 * block.expansion,
+                          512 * block.expansion,
+                          bias=False),
+                nn.BatchNorm1d(512 * block.expansion),
+                nn.ReLU(inplace=True),
+                nn.Linear(512 * block.expansion,
+                          512 * block.expansion,
+                          bias=False),
+                nn.BatchNorm1d(512 * block.expansion),
+            )
+        if kwargs.get("pred_head", False):
+            self.predictor = nn.Sequential(
+                nn.Linear(512 * block.expansion, 512, bias=False),
+                nn.BatchNorm1d(512),
+                nn.ReLU(inplace=True),
+                nn.Linear(512, 512 * block.expansion),
+            )
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -324,7 +333,59 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, out_type='fc'):
+    # def forward(self, x, out_type='fc'):
+    #     # See note [TorchScript super()]
+    #     x = self.conv1(x)
+    #     x = self.bn1(x)
+    #     x = self.relu(x)
+    #     x = self.maxpool(x)
+
+    #     x = self.layer1(x)
+    #     x = self.layer2(x)
+    #     x = self.layer3(x)
+    #     # x = self.layer4(x)
+    #     # x = self.avgpool(x)
+    #     # x = torch.flatten(x, 1)
+    #     # return self.fc(x)
+
+    #     feat_map = self.layer4[:-1](x)
+
+    #     if out_type == 'map':
+    #         return feat_map
+    #     else:
+    #         feat_map = self.layer4[-1](feat_map)
+    #         feat_vec = self.avgpool(feat_map)
+    #         feat_vec = torch.flatten(feat_vec, 1)
+
+    #         if out_type == 'vec':
+    #             return feat_vec
+    #         elif out_type == 'fc':
+    #             return self.fc(feat_vec)
+    #         else:
+    #             raise TypeError
+
+    def forward(self, x1, x2=None, out_type="simsiam"):
+        if 'simsiam' in out_type:
+            x1 = self.get_feature(x1)
+            x2 = self.get_feature(x2)
+
+            z1 = self.projector(x1)
+            z2 = self.projector(x2)
+
+            p1 = self.predictor(z1)
+            p2 = self.predictor(z2)
+
+            if out_type == "simsiam+fc":
+                fc1 = self.fc(x1)
+                fc2 = self.fc(x2)
+                return p1, p2, z1.detach(), z2.detach(), fc1, fc2
+            return p1, p2, z1.detach(), z2.detach()
+        elif out_type == 'fc':
+            return self.fc(self.get_feature(x1))
+        else:
+            raise TypeError
+
+    def get_feature(self, x):
         # See note [TorchScript super()]
         x = self.conv1(x)
         x = self.bn1(x)
@@ -334,37 +395,10 @@ class ResNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        # x = self.layer4(x)
-        # x = self.avgpool(x)
-        # x = torch.flatten(x, 1)
-        # return self.fc(x)
-
-        feat_map = self.layer4[:-1](x)
-
-        if out_type == 'map':
-            return feat_map
-        else:
-            feat_map = self.layer4[-1](feat_map)
-            feat_vec = self.avgpool(feat_map)
-            feat_vec = torch.flatten(feat_vec, 1)
-
-            if out_type == 'vec':
-                return feat_vec
-            elif out_type == 'fc':
-                return self.fc(feat_vec)
-            else:
-                raise TypeError
-
-    def get_simsiam(self, x1, x2):
-        x1 = self.forward(x1, out_type="vec")
-        z1 = self.projector(x1)
-        p1 = self.predictor(z1)
-
-        with torch.no_grad():
-            x2 = self.forward(x2, out_type="vec")
-            z2 = self.projector(x2)
-
-        return p1, z2
+        x = self.layer4(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        return x
 
 
 @Networks.register_module('ResNet18')
