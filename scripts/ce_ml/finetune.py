@@ -443,7 +443,7 @@ def parse_args():
     return args
 
 
-def _set_random_seed(seed=0, cuda_deterministic=False):
+def _set_random_seed(seed=0, cuda_deterministic=True):
     """Set seed and control the balance between reproducity and efficiency
 
     Reproducity: cuda_deterministic = True
@@ -473,7 +473,7 @@ def main(args):
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    if "CT" in config["experiment"]["name"]:
+    if any(s in config["experiment"]["name"] for s in ["CT", "simsiam"]):
         config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
         config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
     elif "TP" in config["experiment"]["name"]:

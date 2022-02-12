@@ -364,7 +364,7 @@ class ResNet(nn.Module):
     #         else:
     #             raise TypeError
 
-    def forward(self, x1, x2=None, out_type="simsiam"):
+    def forward(self, x1, x2=None, out_type="fc"):
         if 'simsiam' in out_type:
             x1 = self.get_feature(x1)
             x2 = self.get_feature(x2)
@@ -382,6 +382,8 @@ class ResNet(nn.Module):
             return p1, p2, z1.detach(), z2.detach()
         elif out_type == 'fc':
             return self.fc(self.get_feature(x1))
+        elif out_type == "vec":
+            return self.get_feature(x1)
         else:
             raise TypeError
 
