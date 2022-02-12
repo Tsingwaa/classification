@@ -9,9 +9,9 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRW
+  name: last_DRW_mlpfc
   total_epochs: 10
-  unfreeze_keys: [fc]
+  unfreeze_keys: ["mlp_fc"]
   trainloader:
     sampler: ""
     batch_size: 32
@@ -24,8 +24,8 @@ finetune:
   optimizer:
     name: SGD
     param:
-      lr: 1.0e-2
-      weight_decay: 1.0e-4
+      lr: 1.0e-1
+      weight_decay: 1.0e-5
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -87,6 +87,7 @@ network:
   param:
     proj_head: True
     pred_head: True
+    mlp_fc: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 

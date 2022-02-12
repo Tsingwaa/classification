@@ -305,19 +305,19 @@ class FineTuner(BaseTrainer):
 
             self.log(
                 f"\n===> Total Runtime: {dur_time}\n\n"
-                f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>7.2%} "
-                f"[{best_group_mr[0]:>7.2%}, "
-                f"{best_group_mr[1]:>7.2%}, "
-                f"{best_group_mr[2]:>7.2%}]\n\n"
-                f"===> Last mean recall: {val_stat.mr:>7.2%} "
-                f"[{val_stat.group_mr[0]:>7.2%}, "
-                f"{val_stat.group_mr[1]:>7.2%}, "
-                f"{val_stat.group_mr[2]:>7.2%}]\n\n"
+                f"===> Best mean recall:  (epoch{best_epoch}) {best_mr:>6.2%} "
+                f"[{best_group_mr[0]:>6.2%}, "
+                f"{best_group_mr[1]:>6.2%}, "
+                f"{best_group_mr[2]:>6.2%}]\n\n"
+                f"===> Last mean recall: {val_stat.mr:>6.2%} "
+                f"[{val_stat.group_mr[0]:>6.2%}, "
+                f"{val_stat.group_mr[1]:>6.2%}, "
+                f"{val_stat.group_mr[2]:>6.2%}]\n\n"
                 f"===> Final average mean recall of last 5 epochs: "
-                f"{final_mr:>7.2%} "
-                f"[{final_maj_mr:>7.2%}, "
-                f"{final_med_mr:>7.2%}, "
-                f"{final_min_mr:>7.2%}]\n\n"
+                f"{final_mr:>6.2%} "
+                f"[{final_maj_mr:>6.2%}, "
+                f"{final_med_mr:>6.2%}, "
+                f"{final_min_mr:>6.2%}]\n\n"
                 f"===> Save directory: '{self.exp_dir}'\n"
                 f"*********************************************************"
                 f"*********************************************************\n")
@@ -338,7 +338,7 @@ class FineTuner(BaseTrainer):
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
-            batch_probs = model(batch_imgs, out_type="fc")
+            batch_probs = model(batch_imgs, out_type="mlp_fc")
             batch_preds = torch.argmax(batch_probs, dim=1)
             avg_loss = criterion(batch_probs, batch_labels)
 
@@ -395,7 +395,7 @@ class FineTuner(BaseTrainer):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
 
-                batch_probs = model(batch_imgs)
+                batch_probs = model(batch_imgs, out_type="mlp_fc")
 
                 avg_loss = criterion(batch_probs, batch_labels)
 

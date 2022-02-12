@@ -279,6 +279,17 @@ class ResNet(nn.Module):
                 nn.Linear(512, 512 * block.expansion),
             )
 
+        if kwargs.get("mlp_fc", False):
+            self.mlp_fc = nn.Sequential(
+                nn.Linear(512 * block.expansion, 512, bias=False),
+                nn.BatchNorm1d(512),
+                nn.ReLU(inplace=True),
+                nn.Linear(512, 512, bias=False),
+                nn.BatchNorm1d(512),
+                nn.ReLU(inplace=True),
+                nn.Linear(512, num_classes),
+            )
+
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight,
@@ -366,8 +377,8 @@ class ResNet(nn.Module):
 
     def forward(self, x1, x2=None, out_type="fc"):
         if 'simsiam' in out_type:
-            x1 = self.get_feature(x1)
-            x2 = self.get_feature(x2)
+            x1 = self.extract(x1)
+            x2 = self.extract(x2)
 
             z1 = self.projector(x1)
             z2 = self.projector(x2)
@@ -381,13 +392,15 @@ class ResNet(nn.Module):
                 return p1, p2, z1.detach(), z2.detach(), fc1, fc2
             return p1, p2, z1.detach(), z2.detach()
         elif out_type == 'fc':
-            return self.fc(self.get_feature(x1))
+            return self.fc(self.extract(x1))
+        elif out_type == "mlp_fc":
+            return self.mlp_fc(self.extract(x1))
         elif out_type == "vec":
-            return self.get_feature(x1)
+            return self.extract(x1)
         else:
             raise TypeError
 
-    def get_feature(self, x):
+    def extract(self, x):
         # See note [TorchScript super()]
         x = self.conv1(x)
         x = self.bn1(x)
@@ -400,6 +413,7 @@ class ResNet(nn.Module):
         x = self.layer4(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
+
         return x
 
 

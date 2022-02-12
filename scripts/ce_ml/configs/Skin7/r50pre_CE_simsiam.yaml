@@ -70,7 +70,7 @@ val_dataset:
 trainloader:
   sampler: ""
   batch_size: 32
-  num_workers: 6
+  num_workers: 4
 
 valloader:
   sampler: ""
