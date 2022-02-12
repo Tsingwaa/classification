@@ -69,7 +69,7 @@ val_dataset:
 
 trainloader:
   sampler: ""
-  batch_size: 32
+  batch_size: 64
   num_workers: 4
 
 valloader:
@@ -100,8 +100,8 @@ loss:
 optimizer:
   name: SGD
   param:
-    lr: 0.001
-    weight_decay: 1.0e-4
+    lr: 0.01
+    weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True
 

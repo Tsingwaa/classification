@@ -166,7 +166,7 @@ class Trainer(BaseTrainer):
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                     f"LR:{self.optimizer.param_groups[0]['lr']:.1e} "
-                    f"Trainset Loss={train_loss:>4.1f} ",
+                    f"Trainset Loss={train_loss:>4.2f} ",
                     log_level="file")
                 # " || "
                 # f"Valset Loss={val_loss:>4.1f} ",
@@ -207,7 +207,9 @@ class Trainer(BaseTrainer):
             batch_imgs1 = batch_imgs[0].cuda(non_blocking=True)
             batch_imgs2 = batch_imgs[1].cuda(non_blocking=True)
             # batch_targets = batch_targets.cuda(non_blocking=True)
-            p1, p2, z1, z2 = model(batch_imgs1, batch_imgs2)
+            p1, p2, z1, z2 = model(batch_imgs1,
+                                   batch_imgs2,
+                                   out_type="simsiam")
             avg_loss = criterion(p1, p2, z1, z2)
 
             optimizer.zero_grad()
@@ -224,12 +226,12 @@ class Trainer(BaseTrainer):
                 train_pbar.update()
                 train_pbar.set_postfix_str(
                     f"LR:{optimizer.param_groups[0]['lr']:.1e} "
-                    f"Loss:{train_loss_meter.avg:>3.1f}")
+                    f"Loss:{train_loss_meter.avg:>5.3f}")
 
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
-                f"Loss:{train_loss_meter.avg:>4.2f}")
+                f"Loss:{train_loss_meter.avg:>5.3f}")
             train_pbar.close()
 
         return train_loss_meter.avg
