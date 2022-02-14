@@ -463,10 +463,19 @@ class BaseTrainer:
 
         return total_params
 
-    def update_state_dict(self, module, checkpoint_state_dict, except_keys=[]):
+    def update_state_dict(self,
+                          module,
+                          checkpoint_state_dict,
+                          module_name="model",
+                          except_keys=[]):
         """Only update state dict that the module needs and print those
         unupdated keys of the module"""
         module_state_dict = module.state_dict()
+
+        if module_name in checkpoint_state_dict.keys():
+            # the store checkpoint is not only model_state_dict, e.g. "mr"
+            checkpoint_state_dict = checkpoint_state_dict[module_name]
+
         items_to_update = {
             key: value
             for key, value in checkpoint_state_dict.items()
