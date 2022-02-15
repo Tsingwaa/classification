@@ -2,6 +2,7 @@ import torch
 # from pudb import set_trace
 from model.network.builder import Networks
 from torch import nn
+from torch.nn import functional as F
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-f37072fd.pth',
@@ -279,15 +280,22 @@ class ResNet(nn.Module):
                 nn.Linear(512, 512 * block.expansion),
             )
 
-        if kwargs.get("mlp_fc", False):
+        if kwargs.get("fc_3lp", False):
             self.mlp_fc = nn.Sequential(
                 nn.Linear(512 * block.expansion, 512, bias=False),
                 nn.BatchNorm1d(512),
                 nn.ReLU(inplace=True),
-                nn.Linear(512, 512, bias=False),
+                nn.Linear(512, 128, bias=False),
+                nn.BatchNorm1d(128),
+                nn.ReLU(inplace=True),
+                nn.Linear(128, num_classes),
+            )
+        if kwargs.get("vec_2lp", False):
+            self.mlp_vec = nn.Sequential(
+                nn.Linear(512 * block.expansion, 512, bias=False),
                 nn.BatchNorm1d(512),
                 nn.ReLU(inplace=True),
-                nn.Linear(512, num_classes),
+                nn.Linear(512, 128),
             )
 
         for m in self.modules():
@@ -376,27 +384,35 @@ class ResNet(nn.Module):
     #             raise TypeError
 
     def forward(self, x1, x2=None, out_type="fc"):
+        x1 = self.extract(x1)
         if 'simsiam' in out_type:
-            x1 = self.extract(x1)
             x2 = self.extract(x2)
-
             z1 = self.projector(x1)
             z2 = self.projector(x2)
 
             p1 = self.predictor(z1)
             p2 = self.predictor(z2)
-
             if out_type == "simsiam+fc":
                 fc1 = self.fc(x1)
                 fc2 = self.fc(x2)
                 return p1, p2, z1.detach(), z2.detach(), fc1, fc2
             return p1, p2, z1.detach(), z2.detach()
-        elif out_type == 'fc':
-            return self.fc(self.extract(x1))
-        elif out_type == "mlp_fc":
-            return self.mlp_fc(self.extract(x1))
-        elif out_type == "vec":
-            return self.extract(x1)
+
+        elif 'fc' in out_type:
+            if out_type == "norm_fc":
+                return F.normalize(self.fc(x1), dim=1)
+            if out_type == "mlp_fc":
+                return self.mlp_fc(x1)
+            return self.fc(x1)
+
+        elif "vec" in out_type:
+            if out_type == "norm_vec":
+                return F.normalize(x1, dim=1)
+            if out_type == "norm_vec_2lp":
+                x1 = self.vec_2lp(x1)
+                return F.normalize(x1, dim=1)
+            return x1
+
         else:
             raise TypeError
 
