@@ -1,5 +1,5 @@
 experiment:
-  name: Skin7_r50pre_RW_TP
+  name: Skin7_r50pre_CEDRW_CT
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -14,7 +14,7 @@ finetune:
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: ""
+    sampler: 
     batch_size: 32
     num_workers: 4
   loss:
@@ -51,23 +51,21 @@ train_dataset:
   name: Skin7
   param:
     phase: train
-    root: Skin7
     fold_i: 0
 
 val_dataset:
   name: Skin7
   param:
     phase: test
-    root: Skin7
     fold_i: 0
 
 trainloader:
-  sampler: ""
+  sampler: 
   batch_size: 32
   num_workers: 4
 
 valloader:
-  sampler: ""
+  sampler: 
   batch_size: 32
   num_workers: 4
 
@@ -80,7 +78,7 @@ network:
 loss:
   name: CrossEntropyLoss
   param:
-    weight_type: inverse
+    weight_type: ""
     label_smoothing: 0.
 
 optimizer:
@@ -95,19 +93,18 @@ lr_scheduler:
   name: CosineAnnealingLR
   param:
     warmup_epochs: 5
-    T_max: 95
+    T_max: 75
     eta_min: 1.0e-6
 
 loss2:
-  name: OnlineHardTripletLoss
+  name: CenterLoss
   param:
-    margin: 50
-    weight_type: ""
-    # num_classes: 7
-    # feat_dim: 2048
-    # alpha: 0
     lambda: 0.001
-    # margin: -1
+    weight_type: ""
+    num_classes: 7
+    feat_dim: 2048
+    alpha: 0
+    margin: -1
 
 optimizer2:
   name: SGD
@@ -122,4 +119,25 @@ lr_scheduler2:
   param:
     warmup_epochs: 5
     T_max: 95  # keep a relative high learning rate
+    eta_min: 1.0e-6
+
+loss3:
+  name: CrossEntropyLoss
+  param:
+    weight_type: inverse
+    label_smoothing: 0.
+
+optimizer3:
+  name: SGD
+  param:
+    lr: 0.001
+    weight_decay: 5.0e-4
+    momentum: 0.9
+    nesterov: True
+
+lr_scheduler3:
+  name: CosineAnnealingLR
+  param:
+    warmup_epochs: 0
+    T_max: 20  # keep a relative high learning rate
     eta_min: 1.0e-6
