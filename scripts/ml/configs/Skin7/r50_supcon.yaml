@@ -88,6 +88,7 @@ network:
     # proj_head: True
     # pred_head: True
     # mlp_fc: True
+    vec_2lp_128: True
     pretrained: False
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
