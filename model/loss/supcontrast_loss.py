@@ -17,7 +17,8 @@ class SupContrastLoss(nn.Module):
     def __init__(self,
                  temperature=0.07,
                  contrast_mode='all',
-                 base_temperature=0.07):
+                 base_temperature=0.07,
+                 **kwargs):
         super(SupContrastLoss, self).__init__()
         self.temperature = temperature
         self.contrast_mode = contrast_mode

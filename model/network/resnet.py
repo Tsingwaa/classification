@@ -254,6 +254,26 @@ class ResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
+        if kwargs.get("fc_3lp", False):
+            self.fc_3lp = nn.Sequential(
+                nn.Linear(512 * block.expansion, 512, bias=False),
+                nn.BatchNorm1d(512),
+                nn.ReLU(inplace=True),
+                nn.Linear(512, 128, bias=False),
+                nn.BatchNorm1d(128),
+                nn.ReLU(inplace=True),
+                nn.Linear(128, num_classes),
+            )
+
+        if kwargs.get("vec_2lp_128", False):
+            self.vec_2lp_128 = nn.Sequential(
+                nn.Linear(512 * block.expansion, 512, bias=False),
+                nn.BatchNorm1d(512),
+                nn.ReLU(inplace=True),
+                nn.Linear(512, 128),
+            )
+        if kwargs.get("fc_128", False):
+            self.fc = nn.Linear(128, num_classes)
 
         if kwargs.get("proj_head", False):  # BN前的linear层取消bias
             self.projector = nn.Sequential(
@@ -278,24 +298,6 @@ class ResNet(nn.Module):
                 nn.BatchNorm1d(512),
                 nn.ReLU(inplace=True),
                 nn.Linear(512, 512 * block.expansion),
-            )
-
-        if kwargs.get("fc_3lp", False):
-            self.mlp_fc = nn.Sequential(
-                nn.Linear(512 * block.expansion, 512, bias=False),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Linear(512, 128, bias=False),
-                nn.BatchNorm1d(128),
-                nn.ReLU(inplace=True),
-                nn.Linear(128, num_classes),
-            )
-        if kwargs.get("vec_2lp", False):
-            self.mlp_vec = nn.Sequential(
-                nn.Linear(512 * block.expansion, 512, bias=False),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Linear(512, 128),
             )
 
         for m in self.modules():
@@ -399,18 +401,18 @@ class ResNet(nn.Module):
             return p1, p2, z1.detach(), z2.detach()
 
         elif 'fc' in out_type:
-            if out_type == "norm_fc":
-                return F.normalize(self.fc(x1), dim=1)
-            if out_type == "mlp_fc":
-                return self.mlp_fc(x1)
+            if out_type == "fc_2lp":
+                return self.fc_2lp(x1)
+            if out_type == "fc_128":
+                norm_vec = F.normalize(self.vec_2lp_128(x1), dim=1)
+                return self.fc(norm_vec)
             return self.fc(x1)
 
         elif "vec" in out_type:
-            if out_type == "norm_vec":
+            if out_type == "vec_norm":
                 return F.normalize(x1, dim=1)
-            if out_type == "norm_vec_2lp":
-                x1 = self.vec_2lp(x1)
-                return F.normalize(x1, dim=1)
+            if out_type == "vec_2lp_norm":
+                return F.normalize(self.vec_2lp_128(x1), dim=1)
             return x1
 
         else:

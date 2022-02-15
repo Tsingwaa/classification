@@ -1,5 +1,5 @@
 experiment:
-  name: Skin7_r50pre_supcon
+  name: Skin7_r50pre_CE_supcon
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -9,9 +9,9 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRW_mlpfc
+  name: last_DRW
   total_epochs: 10
-  unfreeze_keys: ["mlp_fc"]
+  unfreeze_keys: [fc]
   trainloader:
     sampler: ""
     batch_size: 32
@@ -24,8 +24,8 @@ finetune:
   optimizer:
     name: SGD
     param:
-      lr: 1.0e-1
-      weight_decay: 1.0e-5
+      lr: 1.0e-2
+      weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -69,7 +69,7 @@ val_dataset:
 
 trainloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 valloader:
@@ -87,22 +87,28 @@ network:
   param:
     # proj_head: True
     # pred_head: True
-    # mlp_fc: True
     vec_2lp_128: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:
+  name: CrossEntropyLoss
+  param:
+    weight_type: ""
+    label_smoothing: 0.
+
+loss2:
   name: SupContrastLoss
   param:
+    lambda: 1.0
     weight_type: ""
     label_smoothing: 0.
 
 optimizer:
   name: SGD
   param:
-    lr: 0.01
-    weight_decay: 1.0e-5
+    lr: 0.001
+    weight_decay: 1.0e-4
     momentum: 0.9
     nesterov: True
 
