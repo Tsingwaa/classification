@@ -1,5 +1,5 @@
 experiment:
-  name: Skin7_r50pre_CEDRW_CT
+  name: Skin7_r50pre_CEDRW2_CT
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -124,9 +124,8 @@ lr_scheduler2:
 loss3:
   name: CrossEntropyLoss
   param:
-    weight_type: class-balanced
+    weight_type: inverse
     label_smoothing: 0.
-    beta: 0.9999
 
 optimizer3:
   name: SGD
