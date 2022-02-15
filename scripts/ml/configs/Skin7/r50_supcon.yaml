@@ -101,7 +101,7 @@ loss:
 optimizer:
   name: SGD
   param:
-    lr: 0.05
+    lr: 0.5
     weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True
@@ -111,4 +111,4 @@ lr_scheduler:
   param:
     warmup_epochs: 5
     T_max: 95
-    eta_min: 1.0e-6
+    eta_min: 1.0e-7
