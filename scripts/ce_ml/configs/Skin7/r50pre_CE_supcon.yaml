@@ -24,7 +24,7 @@ finetune:
   optimizer:
     name: SGD
     param:
-      lr: 1.0e-2
+      lr: 0.1
       weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
@@ -61,12 +61,6 @@ val_dataset:
     root: Skin7
     fold_i: 0
 
-# test_dataset:
-#   name: 
-#   param:
-#     phase: test
-#     root: 
-
 trainloader:
   sampler: ""
   batch_size: 32
@@ -76,11 +70,6 @@ valloader:
   sampler: ""
   batch_size: 64
   num_workers: 4
-
-# testloader:
-#   sampler: 
-#   batch_size: 128
-#   num_workers: 4
 
 network:
   name: ResNet50
@@ -103,12 +92,14 @@ loss2:
     lambda: 1.0
     weight_type: ""
     label_smoothing: 0.
+    temperature: 0.1
+    base_temperature: 0.1
 
 optimizer:
   name: SGD
   param:
     lr: 0.001
-    weight_decay: 1.0e-4
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 

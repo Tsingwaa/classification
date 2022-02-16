@@ -18,11 +18,13 @@ class SupContrastLoss(nn.Module):
                  temperature=0.07,
                  contrast_mode='all',
                  base_temperature=0.07,
+                 hard_mining=False,
                  **kwargs):
         super(SupContrastLoss, self).__init__()
         self.temperature = temperature
         self.contrast_mode = contrast_mode
         self.base_temperature = base_temperature
+        self.hard_mining = hard_mining
 
     def forward(self, features, labels=None, mask=None):
         """Compute loss for model. If both `labels` and `mask` are None,
