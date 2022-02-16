@@ -172,11 +172,14 @@ class Trainer(BaseTrainer):
                 self.criterion = self.init_loss(self.loss3_name,
                                                 weight=weight,
                                                 **self.loss3_params)
-                self.opt = self.init_optimizer(self.opt3_name,
-                                               self.model.parameters(),
-                                               **self.opt3_params)
+                self.optimizer = self.init_optimizer(self.opt3_name,
+                                                     self.model.parameters(),
+                                                     **self.opt3_params)
                 self.lr_scheduler = self.init_lr_scheduler(
-                    self.scheduler3_name, self.opt, **self.scheduler3_params)
+                    self.scheduler3_name,
+                    self.optimizer,
+                    **self.scheduler3_params,
+                )
 
             self.lr_scheduler.step()
 
