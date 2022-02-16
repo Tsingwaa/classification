@@ -386,8 +386,8 @@ class ResNet(nn.Module):
     #             raise TypeError
 
     def forward(self, x1, x2=None, out_type="fc"):
-        x1 = self.extract(x1)
         if 'simsiam' in out_type:
+            x1 = self.extract(x1)
             x2 = self.extract(x2)
             z1 = self.projector(x1)
             z2 = self.projector(x2)
@@ -400,23 +400,26 @@ class ResNet(nn.Module):
                 return p1, p2, z1.detach(), z2.detach(), fc1, fc2
             return p1, p2, z1.detach(), z2.detach()
 
-        elif 'fc' in out_type:
-            if out_type == "fc_2lp":
-                return self.fc_2lp(x1)
-            if out_type == "fc_128":
-                norm_vec = F.normalize(self.vec_2lp_128(x1), dim=1)
-                return self.fc_128(norm_vec)
-            return self.fc(x1)
-
-        elif "vec" in out_type:
-            if out_type == "vec_norm":
-                return F.normalize(x1, dim=1)
-            if out_type == "vec_2lp_norm":
-                return F.normalize(self.vec_2lp_128(x1), dim=1)
-            return x1
-
         else:
-            raise TypeError
+            if 'fc' in out_type:
+                x1 = self.extract(x1)
+                if out_type == "fc_128":
+                    norm_x1 = F.normalize(self.vec_2lp_128(x1), dim=1)
+                    return self.fc_128(norm_x1)
+                if out_type == "fc_norm":
+                    norm_x1 = F.normalize(x1, dim=1)
+                    return self.fc(norm_x1)
+                return self.fc(x1)
+
+            elif "vec" in out_type:
+                if out_type == "vec_norm":
+                    return F.normalize(x1, dim=1)
+                if out_type == "vec_2lp_norm":
+                    return F.normalize(self.vec_2lp_128(x1), dim=1)
+                return x1
+
+            else:
+                raise TypeError
 
     def extract(self, x):
         # See note [TorchScript super()]
