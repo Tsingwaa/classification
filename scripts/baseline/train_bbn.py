@@ -139,9 +139,10 @@ class Trainer(BaseTrainer):
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.lr_scheduler.step()
             if self.loss_drw_params:
-                if cur_epoch == int(self.final_epoch*0.8):
-                    weight = self.get_class_weight(trainset.num_samples_per_cls,
-                                       **self.loss_drw_params)  # 包含weight_type
+                if cur_epoch == int(self.final_epoch * 0.8):
+                    weight = self.get_class_weight(
+                        trainset.num_samples_per_cls,
+                        **self.loss_drw_params)  # 包含weight_type
                     self.criterion = self.init_loss(self.loss_name,
                                                     weight=weight,
                                                     **self.loss_drw_params)
@@ -306,10 +307,12 @@ class Trainer(BaseTrainer):
                 model(batch_imgs, feature_cb=True),
                 model(imgs_b, feature_rb=True),
             )
-            l = 1 - ((cur_epoch - 1) / self.final_epoch) ** 2
-            mixed_feature = 2 * torch.cat((l * feature_a, (1-l) * feature_b), dim=1)
+            l = 1 - ((cur_epoch - 1) / self.final_epoch)**2
+            mixed_feature = 2 * torch.cat(
+                (l * feature_a, (1 - l) * feature_b), dim=1)
             batch_probs = model(mixed_feature, classifier_flag=True)
-            avg_loss = l * criterion(batch_probs, batch_targets) + (1 - l) * criterion(batch_probs, targets_b)
+            avg_loss = l * criterion(batch_probs, batch_targets) + (
+                1 - l) * criterion(batch_probs, targets_b)
 
             # batch_probs = model(batch_imgs, out_type="fc")
             # avg_loss = criterion(batch_probs, batch_targets)
