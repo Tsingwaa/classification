@@ -153,7 +153,10 @@ class BaseTrainer:
         loss_config = config["loss"]
         self.loss_name = loss_config["name"]
         self.loss_params = loss_config["param"]
-
+        if loss_config.get('DRW', False):
+            self.loss_drw_params = loss_config['DRW_param']
+        else:
+            self.loss_drw_params = None
         #######################################################################
         # Optimizer setting
         #######################################################################

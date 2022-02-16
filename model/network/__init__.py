@@ -10,3 +10,5 @@ from .norm_resnet import *
 from .resnet_ssp import *
 from .mlp import *
 from .norm_resnet_cifar import *
+from .resnet_bbn import *
+from .resnet_cifar_bbn import *

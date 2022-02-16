@@ -138,7 +138,13 @@ class Trainer(BaseTrainer):
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
             self.lr_scheduler.step()
-
+            if self.loss_drw_params:
+                if cur_epoch == int(self.final_epoch*0.8):
+                    weight = self.get_class_weight(trainset.num_samples_per_cls,
+                                       **self.loss_drw_params)  # 包含weight_type
+                    self.criterion = self.init_loss(self.loss_name,
+                                                    weight=weight,
+                                                    **self.loss_drw_params)
             if self.local_rank != -1:
                 dist.barrier()
                 # barrier的作用是，阻塞进程
