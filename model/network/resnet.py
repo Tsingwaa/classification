@@ -403,17 +403,14 @@ class ResNet(nn.Module):
             x1 = self.extract(x1)
 
             if 'fc' in out_type:
-                if out_type == "fc_norm":
-                    norm_x1 = F.normalize(x1, dim=1)
-                    return self.fc(norm_x1)
-                if out_type == "fc_128":
-                    norm_x1 = F.normalize(self.vec_2lp_128(x1), dim=1)
-                    return self.fc_128(norm_x1)
+                # if out_type == "fc_norm":
+                #     norm_x1 = F.normalize(x1, dim=1)
+                #     return self.fc(norm_x1)
                 return self.fc(x1)
 
             elif "vec" in out_type:
-                if out_type == "vec_norm":
-                    return F.normalize(x1, dim=1)
+                # if out_type == "vec_norm":
+                #     return F.normalize(x1, dim=1)
                 if out_type == "vec_2lp_norm":
                     return F.normalize(self.vec_2lp_128(x1), dim=1)
                 return x1
