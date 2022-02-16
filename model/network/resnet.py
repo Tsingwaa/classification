@@ -273,7 +273,7 @@ class ResNet(nn.Module):
                 nn.Linear(512, 128),
             )
         if kwargs.get("fc_128", False):
-            self.fc = nn.Linear(128, num_classes)
+            self.fc_128 = nn.Linear(128, num_classes)
 
         if kwargs.get("proj_head", False):  # BN前的linear层取消bias
             self.projector = nn.Sequential(
@@ -405,7 +405,7 @@ class ResNet(nn.Module):
                 return self.fc_2lp(x1)
             if out_type == "fc_128":
                 norm_vec = F.normalize(self.vec_2lp_128(x1), dim=1)
-                return self.fc(norm_vec)
+                return self.fc_128(norm_vec)
             return self.fc(x1)
 
         elif "vec" in out_type:

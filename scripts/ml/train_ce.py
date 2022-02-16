@@ -292,7 +292,7 @@ class Trainer(BaseTrainer):
         for i, (batch_imgs, batch_targets) in enumerate(trainloader):
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_targets = batch_targets.cuda(non_blocking=True)
-            batch_probs = model(batch_imgs, out_type="fc")
+            batch_probs = model(batch_imgs, out_type="fc_128")
             avg_loss = criterion(batch_probs, batch_targets)
 
             optimizer.zero_grad()
