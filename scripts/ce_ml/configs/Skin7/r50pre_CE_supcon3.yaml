@@ -1,5 +1,5 @@
 experiment:
-  name: Skin7_r50pre_CE_supcon2
+  name: Skin7_r50pre_CE_supcon2_t0.1
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -92,7 +92,7 @@ loss2:
     lambda: 1.0
     weight_type: ""
     label_smoothing: 0.
-    # temperature: 0.1
+    temperature: 0.1
     # base_temperature: 0.1
 
 optimizer:

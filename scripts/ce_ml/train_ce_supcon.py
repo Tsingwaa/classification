@@ -8,6 +8,7 @@ from datetime import datetime
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 import yaml
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
@@ -315,17 +316,18 @@ class Trainer(BaseTrainer):
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_targets = batch_targets.cuda(non_blocking=True)
 
-            batch_feats = model(batch_imgs, out_type="vec_norm")
+            batch_feats = model(batch_imgs, out_type="vec")
 
             batch_2probs = model.fc(batch_feats)
             batch_2targets = batch_targets.repeat(2)
             loss1 = criterion(batch_2probs, batch_2targets)
 
-            batch_feats1, batch_feats2 = torch.chunk(batch_feats, 2, dim=0)
-            batch_feats = torch.cat(
-                [batch_feats1.unsqueeze(1),
-                 batch_feats2.unsqueeze(1)], dim=1)  # B * 2(views) * d
-            loss2 = criterion2(batch_feats, batch_targets)
+            batch_2z = F.normalize(model.sc_head(batch_feats), dim=1)
+            batch_z1, batch_z2 = torch.chunk(batch_2z, 2, dim=0)
+            batch_stack2z = torch.cat(
+                [batch_z1.unsqueeze(1),
+                 batch_z2.unsqueeze(1)], dim=1)  # B * 2(views) * d
+            loss2 = criterion2(batch_stack2z, batch_targets)
 
             avg_loss = loss1 + loss2 * self.lambda_weight
 
@@ -393,7 +395,7 @@ class Trainer(BaseTrainer):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
 
-                batch_probs = model(batch_imgs, out_type='fc_norm')
+                batch_probs = model(batch_imgs, out_type='fc')
                 batch_preds = torch.argmax(batch_probs, dim=1)
                 avg_loss = criterion(batch_probs, batch_labels)
 
@@ -472,8 +474,8 @@ def main(args):
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # update config
-    config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
-    config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
+    # config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+    # config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
 
     trainer = Trainer(
         local_rank=args.local_rank,
