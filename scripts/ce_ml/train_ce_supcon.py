@@ -28,7 +28,7 @@ class DataLoaderX(DataLoader):
 
 class Trainer(BaseTrainer):
 
-    def __init__(self, local_rank, config, seed, out_type):
+    def __init__(self, local_rank, config, seed):
         super(Trainer, self).__init__(local_rank, config, seed)
 
         loss2_config = config['loss2']
@@ -36,7 +36,7 @@ class Trainer(BaseTrainer):
         self.loss2_params = loss2_config['param']
         self.lambda_weight = self.loss2_params.get('lambda', 1.)
 
-        self.out_type = out_type
+        # self.out_type = out_type
 
     def train(self):
         #######################################################################
@@ -302,7 +302,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                ncols=140,
+                ncols=130,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -315,7 +315,7 @@ class Trainer(BaseTrainer):
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_targets = batch_targets.cuda(non_blocking=True)
 
-            batch_feats = model(batch_imgs, out_type=self.out_type)
+            batch_feats = model(batch_imgs, out_type="vec_norm")
 
             batch_2probs = model.fc(batch_feats)
             batch_2targets = batch_targets.repeat(2)
@@ -327,7 +327,7 @@ class Trainer(BaseTrainer):
                  batch_feats2.unsqueeze(1)], dim=1)  # B * 2(views) * d
             loss2 = criterion2(batch_feats, batch_targets)
 
-            avg_loss = loss1 * 0.5 + loss2 * self.lambda_weight
+            avg_loss = loss1 + loss2 * self.lambda_weight
 
             optimizer.zero_grad()
             avg_loss.backward()
@@ -343,7 +343,7 @@ class Trainer(BaseTrainer):
             loss1_meter.update(loss1.item(), 1)
             loss2_meter.update(loss2.item(), 1)
 
-            batch_probs, _ = torch.chunk(batch_2probs, 2, dim=0)
+            batch_probs = torch.chunk(batch_2probs, 2, dim=0)[0]
             batch_preds = torch.argmax(batch_probs, dim=1)
             train_stat.update(batch_targets, batch_preds)
 
@@ -435,7 +435,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=0)
     # parser.add_argument("--margin", type=int, default=50)
     parser.add_argument("--lambda_weight", type=float, default=1.)
-    parser.add_argument("--out_type", type=str, default="vec_norm")
+    # parser.add_argument("--out_type", type=str, default="vec_norm")
     args = parser.parse_args()
 
     return args
@@ -475,10 +475,12 @@ def main(args):
     config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
     config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
 
-    trainer = Trainer(local_rank=args.local_rank,
-                      config=config,
-                      seed=args.seed,
-                      out_type=args.out_type)
+    trainer = Trainer(
+        local_rank=args.local_rank,
+        config=config,
+        seed=args.seed,
+        # out_type=args.out_type,
+    )
     trainer.train()
     logging.shutdown()
 

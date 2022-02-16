@@ -11,7 +11,7 @@ experiment:
 finetune:
   name: last_DRW
   total_epochs: 10
-  unfreeze_keys: [fc]
+  unfreeze_keys: ["fc"]
   trainloader:
     sampler: ""
     batch_size: 32
@@ -87,7 +87,7 @@ network:
   param:
     # proj_head: True
     # pred_head: True
-    vec_2lp_128: True
+    # vec_2lp_128: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
