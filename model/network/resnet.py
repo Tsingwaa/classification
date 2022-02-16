@@ -254,6 +254,7 @@ class ResNet(nn.Module):
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
+
         if kwargs.get("fc_3lp", False):
             self.fc_3lp = nn.Sequential(
                 nn.Linear(512 * block.expansion, 512, bias=False),
@@ -265,15 +266,13 @@ class ResNet(nn.Module):
                 nn.Linear(128, num_classes),
             )
 
-        if kwargs.get("vec_2lp_128", False):
-            self.vec_2lp_128 = nn.Sequential(
+        if kwargs.get("sc_head", False):
+            self.sc_head = nn.Sequential(
                 nn.Linear(512 * block.expansion, 512, bias=False),
                 nn.BatchNorm1d(512),
                 nn.ReLU(inplace=True),
                 nn.Linear(512, 128),
             )
-        if kwargs.get("fc_128", False):
-            self.fc_128 = nn.Linear(128, num_classes)
 
         if kwargs.get("proj_head", False):  # BN前的linear层取消bias
             self.projector = nn.Sequential(
@@ -402,6 +401,7 @@ class ResNet(nn.Module):
 
         else:
             x1 = self.extract(x1)
+
             if 'fc' in out_type:
                 if out_type == "fc_norm":
                     norm_x1 = F.normalize(x1, dim=1)
