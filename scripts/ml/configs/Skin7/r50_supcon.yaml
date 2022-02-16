@@ -1,10 +1,10 @@
 experiment:
-  name: Skin7_r50_supcon
+  name: Skin7_r50_supcon_vec_2lp_norm2ce
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
-  resume: False
-  resume_fpath: last.pth.tar
+  resume: True
+  resume_fpath: /home/19/chenghua/Experiments/Skin7_r50_supcon_vec_2lp_norm/seed0_last.pth.tar
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -69,12 +69,12 @@ val_dataset:
 
 trainloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 # testloader:
@@ -93,7 +93,8 @@ network:
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:
-  name: SupContrastLoss
+  # name: SupContrastLoss
+  name: CrossEntropyLoss
   param:
     weight_type: ""
     label_smoothing: 0.
@@ -101,8 +102,8 @@ loss:
 optimizer:
   name: SGD
   param:
-    lr: 0.5
-    weight_decay: 1.0e-5
+    lr: 0.001
+    weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
 
@@ -111,4 +112,4 @@ lr_scheduler:
   param:
     warmup_epochs: 5
     T_max: 95
-    eta_min: 1.0e-7
+    eta_min: 1.0e-6
