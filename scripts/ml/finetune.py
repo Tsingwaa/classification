@@ -338,7 +338,7 @@ class FineTuner(BaseTrainer):
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
-            batch_probs = model(batch_imgs, out_type="mlp_fc")
+            batch_probs = model(batch_imgs, out_type="fc_128")
             batch_preds = torch.argmax(batch_probs, dim=1)
             avg_loss = criterion(batch_probs, batch_labels)
 
@@ -395,7 +395,7 @@ class FineTuner(BaseTrainer):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
 
-                batch_probs = model(batch_imgs, out_type="mlp_fc")
+                batch_probs = model(batch_imgs, out_type="fc_128")
 
                 avg_loss = criterion(batch_probs, batch_labels)
 

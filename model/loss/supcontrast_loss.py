@@ -77,7 +77,7 @@ class SupContrastLoss(nn.Module):
             anchor_count = 1
         elif self.contrast_mode == 'all':  # Supervised. class-level contrast
             anchor_feature = contrast_feature
-            anchor_count = contrast_count
+            anchor_count = contrast_count  # n_views=2
         else:
             raise ValueError('Unknown mode: {}'.format(self.contrast_mode))
 
@@ -90,10 +90,10 @@ class SupContrastLoss(nn.Module):
 
         # for numerical stability: minus maximum of each column
         logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
-        logits = anchor_dot_contrast - logits_max.detach()
+        logits = anchor_dot_contrast - logits_max.detach()  # [2B, 2B]
 
         # tile mask
-        mask = mask.repeat(anchor_count, contrast_count)  # [B*B, 2B*B]
+        mask = mask.repeat(anchor_count, contrast_count)  # [2B, 2B]
         # mask-out self-contrast cases
         logits_mask = torch.scatter(
             torch.ones_like(mask),  # B * B, 2 * B * B

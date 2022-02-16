@@ -4,14 +4,14 @@ experiment:
   total_epochs: 100
   log_fname: train.log
   resume: True
-  resume_fpath: /home/chenghua/Experiments/Skin7_r50pre_supcon_vec_norm/seed0_last.pth.tar
+  resume_fpath: last.pth.tar
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRW_mlpfc
+  name: last_cRW
   total_epochs: 10
-  unfreeze_keys: ["mlp_fc"]
+  unfreeze_keys: ["fc"]
   trainloader:
     sampler: ""
     batch_size: 32
