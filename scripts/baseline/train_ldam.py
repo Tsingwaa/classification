@@ -141,6 +141,7 @@ class Trainer(BaseTrainer):
             self.lr_scheduler.step()
             if self.loss_drw_params:
                 if cur_epoch == int(self.final_epoch*0.8):
+                # if 1:
                     weight = self.get_class_weight(trainset.num_samples_per_cls,
                                        **self.loss_drw_params)  # 包含weight_type
                     self.criterion = self.init_loss(self.loss_name,
