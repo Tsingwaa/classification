@@ -37,8 +37,6 @@ class Trainer(BaseTrainer):
         self.loss2_params = loss2_config['param']
         self.lambda_weight = self.loss2_params.get('lambda', 1.)
 
-        # self.out_type = out_type
-
     def train(self):
         #######################################################################
         # Initialize Dataset and Dataloader
@@ -435,9 +433,8 @@ def parse_args():
                         "if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
-    # parser.add_argument("--margin", type=int, default=50)
     parser.add_argument("--lambda_weight", type=float, default=1.)
-    # parser.add_argument("--out_type", type=str, default="vec_norm")
+    parser.add_argument("--t", type=float, default=0.07)
     args = parser.parse_args()
 
     return args
@@ -474,15 +471,16 @@ def main(args):
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # update config
-    # config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
-    # config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
+    config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+    config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
 
-    trainer = Trainer(
-        local_rank=args.local_rank,
-        config=config,
-        seed=args.seed,
-        # out_type=args.out_type,
-    )
+    if args.t != 0.07:
+        config["experiment"]["name"] += f"_t{args.t}"
+        config["loss2"]["param"]["temperature"] = float(args.t)
+
+    trainer = Trainer(local_rank=args.local_rank,
+                      config=config,
+                      seed=args.seed)
     trainer.train()
     logging.shutdown()
 
