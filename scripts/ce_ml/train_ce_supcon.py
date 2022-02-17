@@ -371,11 +371,11 @@ class Trainer(BaseTrainer):
             train_pbar.set_postfix_str(
                 f"LR:[{optimizer.param_groups[0]['lr']:.1e}, "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
-                f"[{loss1_meter.avg:>3.1f}, {loss2_meter.avg:>3.1f}] "
+                f"[{loss1_meter.avg:>4.2f}, {loss2_meter.avg:>4.2f}] "
                 f"MR:{train_stat.mr:>7.2%} "
-                f"[{train_stat.group_mr[0]:>3.0%}, "
-                f"{train_stat.group_mr[1]:>3.0%}, "
-                f"{train_stat.group_mr[2]:>3.0%}]")
+                f"[{train_stat.group_mr[0]:>4.0%}, "
+                f"{train_stat.group_mr[1]:>4.0%}, "
+                f"{train_stat.group_mr[2]:>4.0%}]")
             train_pbar.close()
 
         train_loss = {
