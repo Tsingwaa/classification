@@ -8,7 +8,7 @@ from datetime import datetime
 
 import numpy as np
 import torch
-import torch.nn.functional as F
+# import torch.nn.functional as F
 import yaml
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
@@ -83,11 +83,15 @@ class Trainer(BaseTrainer):
 
             if not self.val_sampler_name:
                 self.val_sampler_name = "DistributedSampler"
-
-            self.log(f"world_size={self.world_size}, "
-                     f"local_rank={self.local_rank}, "
-                     f"train_sampler='{self.train_sampler_name}', "
-                     f"val_sampler='{self.val_sampler_name}'")
+            ddp_str = f"world_size={self.world_size}, " \
+                f"local_rank={self.local_rank}, " \
+                f"train_sampler='{self.train_sampler_name}', " \
+                f"val_sampler='{self.val_sampler_name}'"
+            if self.local_rank == 0:
+                self.log(ddp_str)
+            else:
+                print(ddp_str)
+            dist.barrier()
 
         #######################################################################
         # Initialize Network
@@ -102,10 +106,12 @@ class Trainer(BaseTrainer):
 
         if self.local_rank != -1:
             self.model = SyncBatchNorm.convert_sync_batchnorm(self.model)
-            self.model = DistributedDataParallel(self.model,
-                                                 device_ids=[self.local_rank],
-                                                 output_device=self.local_rank,
-                                                 find_unused_parameters=True)
+            self.model = DistributedDataParallel(
+                self.model,
+                device_ids=[self.local_rank],
+                output_device=self.local_rank,
+                # find_unused_parameters=True,
+            )
 
         #######################################################################
         # Initialize Loss
@@ -190,14 +196,14 @@ class Trainer(BaseTrainer):
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                     f"LR:{self.optimizer.param_groups[0]['lr']:.1e} "
-                    f"Trainset Loss={train_loss['total']:>4.1f} "
-                    f"[{train_loss[1]:>4.1f},{train_loss[2]:>4.1f}] "
+                    f"Trainset Loss={train_loss['total']:>4.2f} "
+                    f"[{train_loss[1]:>4.2f},{train_loss[2]:>4.2f}] "
                     f"MR={train_stat.mr:>7.2%}"
                     f"[{train_stat.group_mr[0]:>7.2%}, "
                     f"{train_stat.group_mr[1]:>7.2%}, "
                     f"{train_stat.group_mr[2]:>7.2%}]"
                     f" || "
-                    f"Valset Loss={val_loss:>4.1f} "
+                    f"Valset Loss={val_loss:>4.2f} "
                     f"MR={val_stat.mr:>6.2%} "
                     f"[{val_stat.group_mr[0]:>6.2%}, "
                     f"{val_stat.group_mr[1]:>6.2%}, "
@@ -301,7 +307,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                ncols=130,
+                ncols=140,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -314,17 +320,18 @@ class Trainer(BaseTrainer):
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_targets = batch_targets.cuda(non_blocking=True)
 
-            batch_feats = model(batch_imgs, out_type="vec")
+            # batch_feats = model(batch_imgs, out_type="vec")
+            # batch_2probs = model.fc(batch_feats)
+            # batch_2z = F.normalize(model.sc_head(batch_feats), dim=1)
+            batch_2probs, batch_2z = model(batch_imgs, out_type="supcon")
 
-            batch_2probs = model.fc(batch_feats)
-            batch_2targets = batch_targets.repeat(2)
-            loss1 = criterion(batch_2probs, batch_2targets)
-
-            batch_2z = F.normalize(model.sc_head(batch_feats), dim=1)
             batch_z1, batch_z2 = torch.chunk(batch_2z, 2, dim=0)
             batch_stack2z = torch.cat(
                 [batch_z1.unsqueeze(1),
                  batch_z2.unsqueeze(1)], dim=1)  # B * 2(views) * d
+
+            batch_2targets = batch_targets.repeat(2)
+            loss1 = criterion(batch_2probs, batch_2targets)
             loss2 = criterion2(batch_stack2z, batch_targets)
 
             avg_loss = loss1 + loss2 * self.lambda_weight
@@ -350,9 +357,9 @@ class Trainer(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str(
-                    f"LR:[{optimizer.param_groups[0]['lr']:.1e}, "
-                    f"Total Loss: {train_loss_meter.avg:4.2f} "
-                    f"[{loss1_meter.avg:>3.1f}, {loss2_meter.avg:>3.1f}] ")
+                    f"LR:[{optimizer.param_groups[0]['lr']:.2e}, "
+                    f"Total Loss: {train_loss_meter.avg:>5.3f} "
+                    f"[{loss1_meter.avg:>4.2f}, {loss2_meter.avg:>4.2f}] ")
 
         if self.local_rank != -1:
             dist.barrier()
@@ -415,7 +422,7 @@ class Trainer(BaseTrainer):
 
         if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
-                                     f"MR:{val_stat.mr:>7.2%} "
+                                     f"MR:{val_stat.mr:>6.2%} "
                                      f"[{val_stat.group_mr[0]:>3.0%}, "
                                      f"{val_stat.group_mr[1]:>3.0%}, "
                                      f"{val_stat.group_mr[2]:>3.0%}]")

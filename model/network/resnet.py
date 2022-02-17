@@ -353,37 +353,6 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    # def forward(self, x, out_type='fc'):
-    #     # See note [TorchScript super()]
-    #     x = self.conv1(x)
-    #     x = self.bn1(x)
-    #     x = self.relu(x)
-    #     x = self.maxpool(x)
-
-    #     x = self.layer1(x)
-    #     x = self.layer2(x)
-    #     x = self.layer3(x)
-    #     # x = self.layer4(x)
-    #     # x = self.avgpool(x)
-    #     # x = torch.flatten(x, 1)
-    #     # return self.fc(x)
-
-    #     feat_map = self.layer4[:-1](x)
-
-    #     if out_type == 'map':
-    #         return feat_map
-    #     else:
-    #         feat_map = self.layer4[-1](feat_map)
-    #         feat_vec = self.avgpool(feat_map)
-    #         feat_vec = torch.flatten(feat_vec, 1)
-
-    #         if out_type == 'vec':
-    #             return feat_vec
-    #         elif out_type == 'fc':
-    #             return self.fc(feat_vec)
-    #         else:
-    #             raise TypeError
-
     def forward(self, x1, x2=None, out_type="fc"):
         if 'simsiam' in out_type:
             x1 = self.extract(x1)
@@ -399,22 +368,18 @@ class ResNet(nn.Module):
                 return p1, p2, z1.detach(), z2.detach(), fc1, fc2
             return p1, p2, z1.detach(), z2.detach()
 
+        elif out_type in ["supcon", "simclr"]:
+            x1 = self.extract(x1)
+            logits = self.fc(x1)
+            norm_vec = F.normalize(self.sc_head(x1), dim=1)
+            return logits, norm_vec
+
         else:
             x1 = self.extract(x1)
-
             if 'fc' in out_type:
-                # if out_type == "fc_norm":
-                #     norm_x1 = F.normalize(x1, dim=1)
-                #     return self.fc(norm_x1)
                 return self.fc(x1)
-
             elif "vec" in out_type:
-                # if out_type == "vec_norm":
-                #     return F.normalize(x1, dim=1)
-                if out_type == "vec_2lp_norm":
-                    return F.normalize(self.vec_2lp_128(x1), dim=1)
                 return x1
-
             else:
                 raise TypeError
 

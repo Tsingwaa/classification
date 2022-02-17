@@ -157,6 +157,33 @@ class ResNet_CIFAR(nn.Module):
                                            sigma=kwargs.get('sigma', 10),
                                            feat_dim=64,
                                            init_weight=True)
+
+        if kwargs.get("sc_head", False):
+            self.sc_head = nn.Sequential(
+                nn.Linear(64, 64, bias=False),
+                nn.BatchNorm1d(64),
+                nn.ReLU(inplace=True),
+                nn.Linear(64, 64),
+            )
+        if kwargs.get("proj_head", False):  # BN前的linear层取消bias
+            self.projector = nn.Sequential(
+                nn.Linear(64, 64, bias=False),
+                nn.BatchNorm1d(64),
+                nn.ReLU(inplace=True),
+                nn.Linear(64, 64, bias=False),
+                nn.BatchNorm1d(64),
+                nn.ReLU(inplace=True),
+                nn.Linear(64, 64, bias=False),
+                nn.BatchNorm1d(64),
+            )
+        if kwargs.get("pred_head", False):
+            self.predictor = nn.Sequential(
+                nn.Linear(64, 32, bias=False),
+                nn.BatchNorm1d(32),
+                nn.ReLU(inplace=True),
+                nn.Linear(32, 64),
+            )
+
         self.apply(_weights_init)
 
     def _make_layer(self, block, planes, num_blocks, stride):
@@ -169,7 +196,37 @@ class ResNet_CIFAR(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, out_type='logits'):
+    def forward(self, x1, x2=None, out_type="fc"):
+        if 'simsiam' in out_type:
+            x1 = self.extract(x1)
+            x2 = self.extract(x2)
+            z1 = self.projector(x1)
+            z2 = self.projector(x2)
+
+            p1 = self.predictor(z1)
+            p2 = self.predictor(z2)
+            if out_type == "simsiam+fc":
+                fc1 = self.fc(x1)
+                fc2 = self.fc(x2)
+                return p1, p2, z1.detach(), z2.detach(), fc1, fc2
+            return p1, p2, z1.detach(), z2.detach()
+
+        elif out_type in ["supcon", "simclr"]:
+            x1 = self.extract(x1)
+            logits = self.fc(x1)
+            norm_vec = F.normalize(self.sc_head(x1), dim=1)
+            return logits, norm_vec
+
+        else:
+            x1 = self.extract(x1)
+            if 'fc' in out_type:
+                return self.fc(x1)
+            elif "vec" in out_type:
+                return x1
+            else:
+                raise TypeError
+
+    def extract(self, x):
         x = F.relu(self.bn1(self.conv1(x)))
         x = self.layer1(x)
         x = self.layer2(x)
@@ -177,21 +234,7 @@ class ResNet_CIFAR(nn.Module):
         x = self.avgpool(x)
         feat_vec = torch.flatten(x, 1)  # (N, 64)
 
-        if out_type == 'vec':
-            return feat_vec
-        elif '2' in out_type:
-            feat_2d = F.relu(self.fc_2(feat_vec))  # (N, 2)
-
-            if out_type == 'feat_2d':
-                return feat_2d
-            else:  # output logits through D->2->N MLP
-                return self.fc_N(feat_2d)  # (N, C)
-        elif out_type == 'affinity':
-            # feat = self.bn_a(feat)
-
-            return self.affinity(feat_vec)  # (N, C+1)
-        else:  # Default output logits
-            return self.fc(feat_vec)  # (N, C)
+        return feat_vec
 
 
 class ResNet_CIFAR2(nn.Module):

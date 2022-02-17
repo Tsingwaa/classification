@@ -1,16 +1,15 @@
 experiment:
-  name: PathMNIST0.01_r32_CE_TP
+  name: PathMNIST0.01_r32_CE_simclr
   start_epoch: 1
   total_epochs: 200
   log_fname: train.log
   resume: False
   resume_fpath: last.pth.tar
-  extract_phase: train
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRW
+  name: last_cRW
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
@@ -25,8 +24,8 @@ finetune:
   optimizer:
     name: SGD
     param:
-      lr: 0.01
-      weight_decay: 1.0e-5
+      lr: 0.1
+      weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -34,6 +33,7 @@ finetune:
     param:
       warmup_epochs: 0
       T_max: 10
+      eta_min: 1.0e-6
 
 train_transform:
   name: PathMNISTTransform
@@ -66,14 +66,17 @@ trainloader:
 
 valloader:
   sampler: ""
-  batch_size: 128
+  batch_size: 256
   num_workers: 4
 
 network:
   name: ResNet32_CIFAR
   param:
+    # proj_head: True
+    # pred_head: True
+    sc_head: True
     pretrained: False
-    # pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+    pretrained_fpath: ""
 
 loss:
   name: CrossEntropyLoss
@@ -82,11 +85,14 @@ loss:
     label_smoothing: 0.
 
 loss2:
-  name: OnlineHardTripletLoss
+  name: SupContrastLoss
   param:
-    lambda: 0.1
+    lambda: 1.0
     weight_type: ""
-    margin: 50
+    label_smoothing: 0.
+    contrast_mode: one
+    # temperature: 0.1
+    # base_temperature: 0.1
 
 optimizer:
   name: SGD
@@ -102,19 +108,3 @@ lr_scheduler:
     warmup_epochs: 5
     T_max: 195
     eta_min: 1.0e-6
-
-
-# optimizer2:
-#   name: SGD
-#   param:
-#     lr: 0.01
-#     weight_decay: 1.0e-5
-#     momentum: 0.9
-#     nesterov: True
-
-# lr_scheduler2:
-#   name: CosineAnnealingLR
-#   param:
-#     warmup_epochs: 5
-#     T_max: 195  # keep a relative high learning rate
-#     eta_min: 1.0e-6

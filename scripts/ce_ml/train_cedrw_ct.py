@@ -178,8 +178,7 @@ class Trainer(BaseTrainer):
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
 
-            if (self.trainset_name in ["Skin7", "Xray9"] and cur_epoch == 81) or\
-               (self.trainset_name == 'ImbalancedPathMNIST' and cur_epoch == 161):
+            if cur_epoch > self.total_epochs * 0.8:
                 self.log("\n===> Start deferred reweighting training...")
                 weight = self.get_class_weight(trainset.num_samples_per_cls,
                                                **self.loss3_params)
