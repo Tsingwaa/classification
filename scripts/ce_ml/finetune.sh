@@ -10,7 +10,7 @@ export PYTHONPATH=$HOME/Projects/classification
 
 ##################################################################### SKin7 #####################################################################
 # SupContrast
-# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_supcon.yaml"  --lambda_weight 1.0
+CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_supcon.yaml"  --lambda_weight 1.0
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_supcon.yaml"  --lambda_weight 1.0 --t 0.5
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_supcon.yaml"  --lambda_weight 1.0 --t 0.05
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_supcon.yaml"  --lambda_weight 0.5
