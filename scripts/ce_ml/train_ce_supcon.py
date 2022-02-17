@@ -83,6 +83,8 @@ class Trainer(BaseTrainer):
 
             if not self.val_sampler_name:
                 self.val_sampler_name = "DistributedSampler"
+
+            dist.barrier()
             ddp_str = f"world_size={self.world_size}, " \
                 f"local_rank={self.local_rank}, " \
                 f"train_sampler='{self.train_sampler_name}', " \
