@@ -438,6 +438,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lambda_weight", type=float, default=0.001)
     parser.add_argument("--margin", type=int, default=50)
+    parser.add_argument("--t", type=float, default=0.07)
     args = parser.parse_args()
 
     return args
@@ -475,7 +476,8 @@ def main(args):
 
     if any(s in config["experiment"]["name"] for s in ["CT", "simsiam"]):
         config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
-        config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
+        config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
+
     elif "TP" in config["experiment"]["name"]:
         config["experiment"]["name"] +=\
             f"_lmd{args.lambda_weight}_mg{args.margin}"
@@ -483,6 +485,13 @@ def main(args):
             "lambda": float(args.lambda_weight),
             "margin": float(args.margin),
         })
+    elif any(s in config['experiment']['name'] for s in ["simclr", "supcon"]):
+        config["experiment"]["name"] += f"_lmb{args.lambda_weight}"
+        config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
+
+        if args.t != 0.07:
+            config["experiment"]["name"] += f"_t{args.t}"
+            config["loss2"]["param"]["temperature"] = float(args.t)
 
     finetuner = FineTuner(local_rank=args.local_rank,
                           config=config,
