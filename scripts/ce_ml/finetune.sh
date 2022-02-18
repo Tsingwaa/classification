@@ -29,9 +29,9 @@ export PYTHONPATH=$HOME/Projects/classification
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_simclr.yaml"  --lambda_weight 0.5
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_simclr.yaml"  --lambda_weight 0.1
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_simclr.yaml"  --lambda_weight 0.05
-# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_simclr.yaml"  --lambda_weight 0.01
-# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_simclr.yaml"  --lambda_weight 0.005
-# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_simclr.yaml"  --lambda_weight 0.001
+CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_simclr.yaml"  --lambda_weight 0.01
+CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_simclr.yaml"  --lambda_weight 0.005
+CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_simclr.yaml"  --lambda_weight 0.001
 
 ##################################################################### PathMNIST #####################################################################
 # SupContrast
@@ -61,12 +61,12 @@ export PYTHONPATH=$HOME/Projects/classification
 
 ##################################################################### Xray9 #####################################################################
 # SupContrast
-CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 1.0
-CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 1.0
-CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.5
-CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.1
-CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.05
-CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.01
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 1.0
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 1.0
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.5
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.1
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.05
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.01
 
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 0.5
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Xray9/r50pre_CE_supcon.yaml" --lambda_weight 0.1
