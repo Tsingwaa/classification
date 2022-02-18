@@ -259,7 +259,7 @@ def parse_args():
     return args
 
 
-def _set_random_seed(seed=0, cuda_deterministic=True):
+def _set_random_seed(seed=0, cuda_deterministic=False):
     """Set seed and control the balance between reproducity and efficiency
     Reproducity: cuda_deterministic = True
     Efficiency: cuda_deterministic = False
