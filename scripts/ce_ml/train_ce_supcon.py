@@ -32,10 +32,24 @@ class Trainer(BaseTrainer):
     def __init__(self, local_rank, config, seed):
         super(Trainer, self).__init__(local_rank, config, seed)
 
+        self.drw = config["experiment"]["drw"]
+
         loss2_config = config['loss2']
         self.loss2_name = loss2_config['name']
         self.loss2_params = loss2_config['param']
         self.lambda_weight = self.loss2_params.get('lambda', 1.)
+
+        loss3_config = config['loss3']
+        self.loss3_name = loss3_config['name']
+        self.loss3_params = loss3_config['param']
+
+        opt3_config = config["optimizer3"]
+        self.opt3_name = opt3_config["name"]
+        self.opt3_params = opt3_config["param"]
+
+        scheduler3_config = config["lr_scheduler3"]
+        self.scheduler3_name = scheduler3_config["name"]
+        self.scheduler3_params = scheduler3_config["param"]
 
     def train(self):
         #######################################################################
@@ -162,6 +176,21 @@ class Trainer(BaseTrainer):
         self.final_epoch = self.start_epoch + self.total_epochs
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
+
+            if self.drw and cur_epoch > 0.8 * self.total_epochs:
+                self.log("===> Start deferred re-weighting training...")
+                weight = self.get_class_weight(trainset.num_samples_per_cls,
+                                               weight_type="inverse")
+                self.criterion = self.init_loss(self.loss3_name,
+                                                weight=weight,
+                                                **self.loss3_params)
+                self.optimizer = self.init_optimizer(self.opt3_name,
+                                                     self.model.parameters(),
+                                                     **self.opt3_params)
+                self.lr_scheduler = self.init_lr_scheduler(
+                    self.scheduler3_name, self.optimizer,
+                    **self.scheduler3_params)
+
             self.lr_scheduler.step()
 
             if self.local_rank != -1:
@@ -444,6 +473,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lambda_weight", type=float, default=1.)
     parser.add_argument("--t", type=float, default=0.07)
+    parser.add_argument("--drw", action='store_true')  # default: False
     args = parser.parse_args()
 
     return args
@@ -480,13 +510,13 @@ def main(args):
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # update config
-    config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
-    config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
+    # config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+    # config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
+    # if args.t != 0.07:
+    #     config["experiment"]["name"] += f"_t{args.t}"
+    #     config["loss2"]["param"]["temperature"] = float(args.t)
 
-    if args.t != 0.07:
-        config["experiment"]["name"] += f"_t{args.t}"
-        config["loss2"]["param"]["temperature"] = float(args.t)
-
+    config["experiment"]["drw"] = args.drw  # Default: False
     trainer = Trainer(local_rank=args.local_rank,
                       config=config,
                       seed=args.seed)
