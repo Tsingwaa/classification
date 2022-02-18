@@ -1,9 +1,9 @@
 experiment:
-  name: Skin7_r50pre_supcon_vec_2lp_norm2ce
+  name: Skin7_r50pre_simclr
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
-  resume: True
+  resume: False
   resume_fpath: last.pth.tar
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
@@ -69,12 +69,12 @@ val_dataset:
 
 trainloader:
   sampler: ""
-  batch_size: 32
+  batch_size: 100
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 32
+  batch_size: 100
   num_workers: 4
 
 # testloader:
@@ -86,23 +86,21 @@ network:
   name: ResNet50
   param:
     # proj_head: True
-    # pred_head: True
-    # mlp_fc: True
-    vec_2lp_128: True
-    fc_128: True
+    pred_head: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:
-  name: CrossEntropyLoss
+  name: SupContrastLoss
   param:
     weight_type: ""
     label_smoothing: 0.
+    contrast_mode: one
 
 optimizer:
   name: SGD
   param:
-    lr: 0.001
+    lr: 0.00
     weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
