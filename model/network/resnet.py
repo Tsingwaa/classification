@@ -267,7 +267,7 @@ class ResNet(nn.Module):
             )
 
         if kwargs.get("proj_head", False):  # BN前的linear层取消bias
-            self.projector = nn.Sequential(
+            self.proj_head = nn.Sequential(
                 nn.Linear(512 * block.expansion,
                           512 * block.expansion,
                           bias=False),
@@ -284,7 +284,7 @@ class ResNet(nn.Module):
                 nn.BatchNorm1d(512 * block.expansion),
             )
         if kwargs.get("pred_head", False):
-            self.predictor = nn.Sequential(
+            self.pred_head = nn.Sequential(
                 nn.Linear(512 * block.expansion, 512, bias=False),
                 nn.BatchNorm1d(512),
                 nn.ReLU(inplace=True),
@@ -349,11 +349,11 @@ class ResNet(nn.Module):
         if 'simsiam' in out_type:
             x1 = self.extract(x1)
             x2 = self.extract(x2)
-            z1 = self.projector(x1)
-            z2 = self.projector(x2)
+            z1 = self.proj_head(x1)
+            z2 = self.proj_head(x2)
 
-            p1 = self.predictor(z1)
-            p2 = self.predictor(z2)
+            p1 = self.pred_head(z1)
+            p2 = self.pred_head(z2)
             if out_type == "simsiam+fc":
                 fc1 = self.fc(x1)
                 fc2 = self.fc(x2)

@@ -50,7 +50,8 @@ class Trainer(BaseTrainer):
                                        num_workers=self.train_workers,
                                        pin_memory=True,
                                        drop_last=True,
-                                       sampler=train_sampler)
+                                       sampler=train_sampler,
+                                       persistent_workers=True)
 
         if self.local_rank != -1:
             dist.barrier()
@@ -163,7 +164,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                ncols=120,
+                ncols=0,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -295,7 +296,7 @@ def main(args):
     #     "weight_decay": float(args.wd),
     # })
     # vec norm
-    config["experiment"]["name"] += f"_{args.out_type}"
+    # config["experiment"]["name"] += f"_{args.out_type}"
 
     trainer = Trainer(
         local_rank=args.local_rank,

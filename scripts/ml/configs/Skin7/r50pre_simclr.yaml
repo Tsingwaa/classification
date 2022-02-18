@@ -86,9 +86,7 @@ network:
   name: ResNet50
   param:
     # proj_head: True
-    # pred_head: True
-    # mlp_fc: True
-    sc_head: True
+    pred_head: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
@@ -102,7 +100,7 @@ loss:
 optimizer:
   name: SGD
   param:
-    lr: 0.01
+    lr: 0.00
     weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
