@@ -1,5 +1,5 @@
 experiment:
-  name: Skin7_r50pre_supcon
+  name: Xray9_r50pre_supcon
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -14,7 +14,7 @@ finetune:
   unfreeze_keys: ["fc"]
   trainloader:
     sampler: ""
-    batch_size: 32
+    batch_size: 64
     num_workers: 4
   loss:
     name: CrossEntropyLoss
@@ -24,8 +24,8 @@ finetune:
   optimizer:
     name: SGD
     param:
-      lr: 1.0e-1
-      weight_decay: 1.0e-5
+      lr: 0.1
+      weight_decay: 5.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -48,24 +48,16 @@ val_transform:
     resize: [224, 224]
 
 train_dataset:
-  name: Skin7
+  name: Xray9
   param:
     phase: train
-    root: Skin7
     fold_i: 0
 
 val_dataset:
-  name: Skin7
+  name: Xray9
   param:
     phase: test
-    root: Skin7
     fold_i: 0
-
-# test_dataset:
-#   name: 
-#   param:
-#     phase: test
-#     root: 
 
 trainloader:
   sampler: ""
@@ -77,18 +69,11 @@ valloader:
   batch_size: 100
   num_workers: 4
 
-# testloader:
-#   sampler: 
-#   batch_size: 128
-#   num_workers: 4
-
 network:
   name: ResNet50
   param:
     # proj_head: True
-    # pred_head: True
-    # mlp_fc: True
-    sc_head: True
+    pred_head: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
@@ -98,6 +83,7 @@ loss:
     weight_type: ""
     label_smoothing: 0.
     temperature: 0.05
+    # base_temperature: 0.1
 
 optimizer:
   name: SGD

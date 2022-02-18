@@ -27,9 +27,8 @@ class DataLoaderX(DataLoader):
 
 class Trainer(BaseTrainer):
 
-    def __init__(self, local_rank, config, seed, out_type):
+    def __init__(self, local_rank, config, seed):
         super(Trainer, self).__init__(local_rank, config, seed)
-        self.out_type = out_type
 
     def train(self):
         #######################################################################
@@ -74,10 +73,12 @@ class Trainer(BaseTrainer):
         #######################################################################
         if self.local_rank != -1:
             self.model = SyncBatchNorm.convert_sync_batchnorm(self.model)
-            self.model = DistributedDataParallel(self.model,
-                                                 device_ids=[self.local_rank],
-                                                 output_device=self.local_rank,
-                                                 find_unused_parameters=True)
+            self.model = DistributedDataParallel(
+                self.model,
+                device_ids=[self.local_rank],
+                output_device=self.local_rank,
+                find_unused_parameters=True,
+            )
 
         #######################################################################
         # Initialize Loss
@@ -172,7 +173,7 @@ class Trainer(BaseTrainer):
             batch_imgs = batch_imgs.cuda(non_blocking=True)  # 2B imgs
             batch_targets = batch_targets.cuda(non_blocking=True)
 
-            batch_feats = model(batch_imgs, out_type=self.out_type)  # 2B * d
+            batch_feats = model(batch_imgs, out_type="pred_head")  # 2B * d
             batch_feats1, batch_feats2 = torch.chunk(batch_feats, 2, dim=0)
             batch_feats = torch.cat(
                 [batch_feats1.unsqueeze(1),
@@ -249,7 +250,7 @@ def parse_args():
                         "if single-GPU, default set to -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--out_type", type=str, default="vec_norm")
+    # parser.add_argument("--out_type", type=str, default="vec_norm")
     # parser.add_argument("--lr", default=0.5, type=float, help="learning rate")
     # parser.add_argument("--wd", default=1e-4, type=float, help="weight decay")
     args = parser.parse_args()
@@ -296,10 +297,12 @@ def main(args):
     # vec norm
     config["experiment"]["name"] += f"_{args.out_type}"
 
-    trainer = Trainer(local_rank=args.local_rank,
-                      config=config,
-                      seed=args.seed,
-                      out_type=args.out_type)
+    trainer = Trainer(
+        local_rank=args.local_rank,
+        config=config,
+        seed=args.seed,
+        # out_type=args.out_type,
+    )
     trainer.train()
 
 

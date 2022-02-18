@@ -266,14 +266,6 @@ class ResNet(nn.Module):
                 nn.Linear(128, num_classes),
             )
 
-        if kwargs.get("sc_head", False):
-            self.sc_head = nn.Sequential(
-                nn.Linear(512 * block.expansion, 512, bias=False),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Linear(512, 128),
-            )
-
         if kwargs.get("proj_head", False):  # BN前的linear层取消bias
             self.projector = nn.Sequential(
                 nn.Linear(512 * block.expansion,
@@ -296,7 +288,7 @@ class ResNet(nn.Module):
                 nn.Linear(512 * block.expansion, 512, bias=False),
                 nn.BatchNorm1d(512),
                 nn.ReLU(inplace=True),
-                nn.Linear(512, 512 * block.expansion),
+                nn.Linear(512, 128),
             )
 
         for m in self.modules():
@@ -371,8 +363,13 @@ class ResNet(nn.Module):
         elif out_type in ["supcon", "simclr"]:
             x1 = self.extract(x1)
             logits = self.fc(x1)
-            norm_vec = F.normalize(self.sc_head(x1), dim=1)
+            norm_vec = F.normalize(self.pred_head(x1), dim=1)
             return logits, norm_vec
+
+        elif out_type == "pred_head":
+            x = self.extract(x1)
+            x = self.pred_head(x)
+            return F.normalize(x, dim=1)
 
         else:
             x1 = self.extract(x1)

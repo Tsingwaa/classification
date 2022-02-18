@@ -1,5 +1,5 @@
 experiment:
-  name: Skin7_r50pre_supcon
+  name: Skin7_r50pre_simclr
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -97,12 +97,12 @@ loss:
   param:
     weight_type: ""
     label_smoothing: 0.
-    temperature: 0.05
+    contrast_mode: one
 
 optimizer:
   name: SGD
   param:
-    lr: 0.001
+    lr: 0.01
     weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True

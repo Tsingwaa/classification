@@ -1,9 +1,9 @@
 experiment:
-  name: Skin7_r50pre_supcon_vec_2lp_norm2ce
+  name: PathMNIST0.01_r32_simclr
   start_epoch: 1
-  total_epochs: 100
+  total_epochs: 200
   log_fname: train.log
-  resume: True
+  resume: False
   resume_fpath: last.pth.tar
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
@@ -14,7 +14,7 @@ finetune:
   unfreeze_keys: ["fc"]
   trainloader:
     sampler: ""
-    batch_size: 32
+    batch_size: 128
     num_workers: 4
   loss:
     name: CrossEntropyLoss
@@ -24,8 +24,8 @@ finetune:
   optimizer:
     name: SGD
     param:
-      lr: 1.0e-1
-      weight_decay: 1.0e-5
+      lr: 0.1
+      weight_decay: 5.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -36,73 +36,60 @@ finetune:
       eta_min: 1.0e-6
 
 train_transform:
-  name: MedTransform
+  name: PathMNISTTransform
   param:
     phase: train
-    resize: [224, 224]
+    resize: [32, 32]
 
 val_transform:
-  name: MedTransform
-  param:
-    phase: val
-    resize: [224, 224]
-
-train_dataset:
-  name: Skin7
-  param:
-    phase: train
-    root: Skin7
-    fold_i: 0
-
-val_dataset:
-  name: Skin7
+  name: PathMNISTTransform
   param:
     phase: test
-    root: Skin7
-    fold_i: 0
+    resize: [32, 32]
 
-# test_dataset:
-#   name: 
-#   param:
-#     phase: test
-#     root: 
+train_dataset:
+  name: ImbalancedPathMNIST
+  param:
+    phase: train
+    imb_type: exp
+    imb_factor: 0.01
+
+val_dataset:
+  name: ImbalancedPathMNIST
+  param:
+    phase: test
 
 trainloader:
   sampler: ""
-  batch_size: 32
+  batch_size: 256
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 32
+  batch_size: 256
   num_workers: 4
 
-# testloader:
-#   sampler: 
-#   batch_size: 128
-#   num_workers: 4
-
 network:
-  name: ResNet50
+  name: ResNet32_CIFAR
   param:
     # proj_head: True
-    # pred_head: True
-    # mlp_fc: True
-    vec_2lp_128: True
-    fc_128: True
-    pretrained: True
-    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+    pred_head: True
+    pretrained: False
+    pretrained_fpath: ""
 
 loss:
-  name: CrossEntropyLoss
+  name: SupContrastLoss
   param:
     weight_type: ""
     label_smoothing: 0.
+    temperature: 0.5
+    contrast_mode: one
+    # base_temperature: 0.1
 
 optimizer:
   name: SGD
   param:
-    lr: 0.001
+    lr: 0.5
     weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
@@ -111,5 +98,5 @@ lr_scheduler:
   name: CosineAnnealingLR
   param:
     warmup_epochs: 5
-    T_max: 95
-    eta_min: 1.0e-6
+    T_max: 195
+    eta_min: 1.0e-7
