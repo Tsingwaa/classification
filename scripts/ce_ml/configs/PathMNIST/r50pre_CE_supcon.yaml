@@ -1,5 +1,5 @@
 experiment:
-  name: PathMNIST0.01_r32_CE_supcon
+  name: PathMNIST0.01_r50pre_CE_supcon
   start_epoch: 1
   total_epochs: 200
   log_fname: train.log
@@ -36,16 +36,16 @@ finetune:
       eta_min: 1.0e-6
 
 train_transform:
-  name: PathMNISTTransform
+  name: MedTransform
   param:
     phase: train
-    resize: [32, 32]
+    resize: [224, 224]
 
 val_transform:
-  name: PathMNISTTransform
+  name: MedTransform
   param:
     phase: test
-    resize: [32, 32]
+    resize: [224, 224]
 
 train_dataset:
   name: ImbalancedPathMNIST
@@ -70,12 +70,12 @@ valloader:
   num_workers: 4
 
 network:
-  name: ResNet32_CIFAR
+  name: ResNet50
   param:
     # proj_head: True
     pred_head: True
-    pretrained: False
-    pretrained_fpath: ""
+    pretrained: True
+    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:
   name: CrossEntropyLoss
@@ -95,7 +95,7 @@ loss2:
 optimizer:
   name: SGD
   param:
-    lr: 0.05
+    lr: 0.001
     weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
@@ -104,5 +104,5 @@ lr_scheduler:
   name: CosineAnnealingLR
   param:
     warmup_epochs: 5
-    T_max: 195
+    T_max: 95
     eta_min: 1.0e-6

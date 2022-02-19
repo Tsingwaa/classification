@@ -73,8 +73,7 @@ network:
   name: ResNet50
   param:
     # proj_head: True
-    # pred_head: True
-    sc_head: True
+    pred_head: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 

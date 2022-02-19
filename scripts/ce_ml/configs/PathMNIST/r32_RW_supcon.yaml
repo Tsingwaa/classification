@@ -1,5 +1,5 @@
 experiment:
-  name: PathMNIST0.01_r32_CE_supcon
+  name: PathMNIST0.01_r32_RW_supcon
   start_epoch: 1
   total_epochs: 200
   log_fname: train.log
@@ -80,7 +80,7 @@ network:
 loss:
   name: CrossEntropyLoss
   param:
-    weight_type: ""
+    weight_type: inverse
     label_smoothing: 0.
 
 loss2:

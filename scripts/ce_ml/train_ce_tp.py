@@ -31,24 +31,24 @@ class Trainer(BaseTrainer):
     def __init__(self, local_rank, config, seed):
         super(Trainer, self).__init__(local_rank, config, seed)
 
-        self.drw = config["experiment"]["drw"]
-
         loss2_config = config['loss2']
         self.loss2_name = loss2_config['name']
         self.loss2_params = loss2_config['param']
         self.lambda_weight = self.loss2_params.get('lambda', 1.)
 
-        loss3_config = config['loss3']
-        self.loss3_name = loss3_config['name']
-        self.loss3_params = loss3_config['param']
+        self.drw = config["experiment"]["drw"]
+        if self.drw:
+            loss3_config = config['loss3']
+            self.loss3_name = loss3_config['name']
+            self.loss3_params = loss3_config['param']
 
-        opt3_config = config["optimizer3"]
-        self.opt3_name = opt3_config["name"]
-        self.opt3_params = opt3_config["param"]
+            opt3_config = config["optimizer3"]
+            self.opt3_name = opt3_config["name"]
+            self.opt3_params = opt3_config["param"]
 
-        scheduler3_config = config["lr_scheduler3"]
-        self.scheduler3_name = scheduler3_config["name"]
-        self.scheduler3_params = scheduler3_config["param"]
+            scheduler3_config = config["lr_scheduler3"]
+            self.scheduler3_name = scheduler3_config["name"]
+            self.scheduler3_params = scheduler3_config["param"]
 
     def train(self):
         #######################################################################
