@@ -1,7 +1,7 @@
 experiment:
-  name: PathMNIST0.01_r50_CE
+  name: PathMNIST0.01_r50pre_RW
   start_epoch: 1
-  total_epochs: 100
+  total_epochs: 200
   log_fname: train.log
   resume: False
   resume_fpath: last.pth.tar
@@ -9,17 +9,17 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRS
+  name: last_DRW
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: BalanceSampler
+    sampler: ""
     batch_size: 128
     num_workers: 4
   loss:
     name: CrossEntropyLoss
     param:
-      weight_type: ""
+      weight_type: inverse
       label_smoothing: 0.
   optimizer:
     name: SGD
@@ -53,11 +53,13 @@ train_dataset:
     phase: train
     imb_type: exp
     imb_factor: 0.01
+    # fold_i: 0
 
 val_dataset:
   name: ImbalancedPathMNIST
   param:
     phase: test
+    # fold_i: 0
 
 # test_dataset:
 #   name: 
@@ -81,7 +83,6 @@ valloader:
 #   num_workers: 4
 
 network:
-  # name: ResNet32_CIFAR
   name: ResNet50
   param:
     pretrained: True
@@ -90,13 +91,13 @@ network:
 loss:
   name: CrossEntropyLoss
   param:
-    weight_type: ""
+    weight_type: inverse
     label_smoothing: 0.
 
 optimizer:
   name: SGD
   param:
-    lr: 0.05
+    lr: 0.001
     weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
@@ -105,20 +106,5 @@ lr_scheduler:
   name: CosineAnnealingLR
   param:
     warmup_epochs: 5
-    T_max: 195
+    T_max: 95
     eta_min: 1.0e-6
-
-# optimizer:
-#   name: SGD
-#   param:
-#     lr: 0.001
-#     weight_decay: 5.0e-4
-#     momentum: 0.9
-#     nesterov: True
-
-# lr_scheduler:
-#   name: CosineAnnealingLR
-#   param:
-#     warmup_epochs: 5
-#     T_max: 95
-#     eta_min: 1.0e-6

@@ -1,5 +1,5 @@
 experiment:
-  name: PathMNIST0.01_r50_CE_DRW
+  name: PathMNIST0.01_r50pre_CE_DRW
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
