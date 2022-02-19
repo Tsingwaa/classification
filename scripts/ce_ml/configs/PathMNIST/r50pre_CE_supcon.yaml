@@ -1,7 +1,7 @@
 experiment:
   name: PathMNIST0.01_r50pre_CE_supcon
   start_epoch: 1
-  total_epochs: 200
+  total_epochs: 100
   log_fname: train.log
   resume: False
   resume_fpath: last.pth.tar
