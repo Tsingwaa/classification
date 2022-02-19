@@ -67,19 +67,21 @@ export PYTHONPATH=$HOME/Projects/classification
 
 # RW+SupContrast
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/PathMNIST/r32_RW_supcon.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/PathMNIST/r32_CEDRW_supcon.yaml"
+CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/PathMNIST/r32_RS_supcon.yaml"
 
 # resize224 ==> ResNet50 pretrained ==> CE+SupContrast
-OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
-    torchrun --nproc_per_node="$2"  --master_port 55000 train_ce_supcon.py \
-    --config_path "configs/PathMNIST/r50pre_CE_supcon.yaml"
+# OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
+#     torchrun --nproc_per_node="$2"  --master_port 55000 train_ce_supcon.py \
+#     --config_path "configs/PathMNIST/r50pre_CE_supcon.yaml"
 
-OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
-    torchrun --nproc_per_node="$2"  --master_port 55000 train_ce_supcon.py \
-    --config_path "configs/PathMNIST/r50pre_RW_supcon.yaml"
+# OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
+#     torchrun --nproc_per_node="$2"  --master_port 55000 train_ce_supcon.py \
+#     --config_path "configs/PathMNIST/r50pre_RW_supcon.yaml"
 
-OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
-    torchrun --nproc_per_node="$2"  --master_port 55000 train_ce_supcon.py \
-    --config_path "configs/PathMNIST/r50pre_CEDRW_supcon.yaml"
+# OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
+#     torchrun --nproc_per_node="$2"  --master_port 55000 train_ce_supcon.py \
+#     --config_path "configs/PathMNIST/r50pre_CEDRW_supcon.yaml"
 
 ##################################################################### Xray9 #####################################################################
 # SupContrast
@@ -164,3 +166,12 @@ OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
 # OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
 #     torchrun --nproc_per_node="$2"  --master_port 60000 train_ce_supcon.py \
 #     --config_path "configs/Xray9/r50pre_RW_supcon.yaml"
+
+# RS + SupContrast
+OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
+    torchrun --nproc_per_node="$2"  --master_port 50000 train_ce_supcon.py \
+    --config_path "configs/Xray9/r50pre_RS_supcon.yaml"
+
+OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
+    torchrun --nproc_per_node="$2"  --master_port 50000 train_ce_supcon.py \
+    --config_path "configs/Xray9/r50pre_CEDRW_supcon.yaml"
