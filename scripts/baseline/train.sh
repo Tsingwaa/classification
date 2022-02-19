@@ -8,3 +8,7 @@ export PYTHONPATH=$HOME/Projects/classification
 CUDA_VISIBLE_DEVICES="$2" python3 train.py --config_path "$1" # --lr "$3" --wd "$4"
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r32_RS.yaml
 # CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r32_RW.yaml
+CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r50_CE.yaml
+CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r50_CE_DRW.yaml
+CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r50_RS.yaml
+CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r50_RW.yaml
