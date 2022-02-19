@@ -37,19 +37,7 @@ class Trainer(BaseTrainer):
         self.loss2_params = loss2_config['param']
         self.lambda_weight = self.loss2_params.get('lambda', 1.)
 
-        self.drw = config["experiment"]["drw"]
-        if self.drw:
-            loss3_config = config['loss3']
-            self.loss3_name = loss3_config['name']
-            self.loss3_params = loss3_config['param']
-
-            opt3_config = config["optimizer3"]
-            self.opt3_name = opt3_config["name"]
-            self.opt3_params = opt3_config["param"]
-
-            scheduler3_config = config["lr_scheduler3"]
-            self.scheduler3_name = scheduler3_config["name"]
-            self.scheduler3_params = scheduler3_config["param"]
+        self.drw = self.loss_params.get("drw", False)
 
     def train(self):
         #######################################################################
@@ -177,19 +165,18 @@ class Trainer(BaseTrainer):
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
 
+            # if 1:
             if self.drw and cur_epoch == 0.8 * self.total_epochs + 1:
                 self.log("===> Start deferred re-weighting training...")
+                self.loss_params.update({
+                    "weight_type": "class-balanced",
+                    "beta": 0.9999,
+                })
                 weight = self.get_class_weight(trainset.num_samples_per_cls,
-                                               weight_type="inverse")
-                self.criterion = self.init_loss(self.loss3_name,
+                                               **self.loss_params)
+                self.criterion = self.init_loss(self.loss_name,
                                                 weight=weight,
-                                                **self.loss3_params)
-                self.optimizer = self.init_optimizer(self.opt3_name,
-                                                     self.model.parameters(),
-                                                     **self.opt3_params)
-                self.lr_scheduler = self.init_lr_scheduler(
-                    self.scheduler3_name, self.optimizer,
-                    **self.scheduler3_params)
+                                                **self.loss_params)
 
             self.lr_scheduler.step()
 

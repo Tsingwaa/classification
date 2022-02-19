@@ -1,5 +1,5 @@
 experiment:
-  name: Xray9_r50pre_CEDRW_supcon
+  name: PathMNIST0.01_r50pre_CE_DRW
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -9,23 +9,23 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_cRW
+  name: last_DRS
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: ""
-    batch_size: 64
+    sampler: BalanceSampler
+    batch_size: 32
     num_workers: 4
   loss:
     name: CrossEntropyLoss
     param:
-      weight_type: inverse
+      weight_type: ""
       label_smoothing: 0.
   optimizer:
     name: SGD
     param:
-      lr: 0.1
-      weight_decay: 5.0e-4
+      lr: 0.01
+      weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -44,24 +44,30 @@ train_transform:
 val_transform:
   name: MedTransform
   param:
-    phase: val
+    phase: test
     resize: [224, 224]
 
 train_dataset:
-  name: Xray9
+  name: ImbalancedPathMNIST
   param:
     phase: train
-    fold_i: 0
+    imb_type: exp
+    imb_factor: 0.01
 
 val_dataset:
-  name: Xray9
+  name: ImbalancedPathMNIST
   param:
     phase: test
-    fold_i: 0
+
+# test_dataset:
+#   name: 
+#   param:
+#     phase: test
+#     root: 
 
 trainloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 128
   num_workers: 4
 
 valloader:
@@ -69,11 +75,15 @@ valloader:
   batch_size: 128
   num_workers: 4
 
+# testloader:
+#   sampler: 
+#   batch_size: 128
+#   num_workers: 4
+
 network:
+  # name: ResNet32_CIFAR
   name: ResNet50
   param:
-    # proj_head: True
-    pred_head: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
@@ -82,16 +92,25 @@ loss:
   param:
     weight_type: ""
     label_smoothing: 0.
-    drw: True
-
-loss2:
-  name: SupContrastLoss
-  param:
-    lambda: 1.0
-    weight_type: ""
+  DRW: True
+  DRW_param:
+    weight_type: "class-balanced"
     label_smoothing: 0.
-    # temperature: 0.1
-    # base_temperature: 0.1
+    beta: 0.9999
+# optimizer:
+#   name: SGD
+#   param:
+#     lr: 0.05
+#     weight_decay: 5.0e-4
+#     momentum: 0.9
+#     nesterov: True
+
+# lr_scheduler:
+#   name: CosineAnnealingLR
+#   param:
+#     warmup_epochs: 5
+#     T_max: 195
+#     eta_min: 1.0e-6
 
 optimizer:
   name: SGD

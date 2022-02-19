@@ -82,6 +82,7 @@ loss:
   param:
     weight_type: ""
     label_smoothing: 0.
+    drw: True
 
 loss2:
   name: SupContrastLoss
@@ -104,26 +105,5 @@ lr_scheduler:
   name: CosineAnnealingLR
   param:
     warmup_epochs: 5
-    T_max: 155
-    eta_min: 1.0e-6
-
-loss3:
-  name: CrossEntropyLoss
-  param:
-    weight_type: inverse
-    label_smoothing: 0.
-
-optimizer3:
-  name: SGD
-  param:
-    lr: 0.05
-    weight_decay: 5.0e-4
-    momentum: 0.9
-    nesterov: True
-
-lr_scheduler3:
-  name: CosineAnnealingLR
-  param:
-    warmup_epochs: 0
-    T_max: 40  # keep a relative high learning rate
+    T_max: 195
     eta_min: 1.0e-6
