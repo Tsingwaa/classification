@@ -1,5 +1,5 @@
 experiment:
-  name: Xray9_r50pre_supcon
+  name: Xray9_r50pre_simclr
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -83,6 +83,7 @@ loss:
     weight_type: ""
     label_smoothing: 0.
     temperature: 0.05
+    contrast_mode: one
     # base_temperature: 0.1
 
 optimizer:

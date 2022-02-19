@@ -95,12 +95,13 @@ loss:
   param:
     weight_type: ""
     label_smoothing: 0.
+    temperature: 0.05
     contrast_mode: one
 
 optimizer:
   name: SGD
   param:
-    lr: 0.00
+    lr: 0.001
     weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
