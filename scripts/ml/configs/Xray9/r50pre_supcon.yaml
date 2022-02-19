@@ -2,8 +2,8 @@ experiment:
   name: Xray9_r50pre_supcon
   start_epoch: 1
   total_epochs: 100
-  log_fname: train.log
-  resume: False
+  log_fname: train_ce.log
+  resume: True
   resume_fpath: last.pth.tar
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
@@ -61,29 +61,34 @@ val_dataset:
 
 trainloader:
   sampler: ""
-  batch_size: 100
+  batch_size: 64
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 100
+  batch_size: 64
   num_workers: 4
 
 network:
   name: ResNet50
   param:
     # proj_head: True
-    pred_head: True
+    # pred_head: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:
-  name: SupContrastLoss
+  name: CrossEntropyLoss
   param:
     weight_type: ""
     label_smoothing: 0.
-    temperature: 0.05
-    # base_temperature: 0.1
+
+# loss:
+#   name: SupContrastLoss
+#   param:
+#     weight_type: ""
+#     label_smoothing: 0.
+#     temperature: 0.05
 
 optimizer:
   name: SGD

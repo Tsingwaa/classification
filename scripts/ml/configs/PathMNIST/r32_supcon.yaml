@@ -2,8 +2,8 @@ experiment:
   name: PathMNIST0.01_r32_supcon
   start_epoch: 1
   total_epochs: 200
-  log_fname: train.log
-  resume: False
+  log_fname: train_ce.log
+  resume: True
   resume_fpath: last.pth.tar
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
@@ -61,34 +61,39 @@ val_dataset:
 
 trainloader:
   sampler: ""
-  batch_size: 256
+  batch_size: 128
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 256
+  batch_size: 128
   num_workers: 4
 
 network:
   name: ResNet32_CIFAR
   param:
     # proj_head: True
-    pred_head: True
+    # pred_head: True
     pretrained: False
     pretrained_fpath: ""
 
 loss:
-  name: SupContrastLoss
+  name: CrossEntropyLoss
   param:
     weight_type: ""
     label_smoothing: 0.
-    temperature: 0.5
-    # base_temperature: 0.1
+
+# loss:
+#   name: SupContrastLoss
+#   param:
+#     weight_type: ""
+#     label_smoothing: 0.
+#     temperature: 0.5
 
 optimizer:
   name: SGD
   param:
-    lr: 0.5
+    lr: 0.001
     weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
