@@ -1,5 +1,5 @@
 experiment:
-  name: PathMNIST0.01_r50pre_CE
+  name: PathMNIST0.01_r50_CE_DRW
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -9,13 +9,12 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_cRS
+  name: last_DRS
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
     sampler: BalanceSampler
-    #sampler: ""
-    batch_size: 128
+    batch_size: 32
     num_workers: 4
   loss:
     name: CrossEntropyLoss
@@ -25,8 +24,8 @@ finetune:
   optimizer:
     name: SGD
     param:
-      lr: 0.1
-      weight_decay: 5.0e-4
+      lr: 0.01
+      weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -85,15 +84,19 @@ network:
   # name: ResNet32_CIFAR
   name: ResNet50
   param:
-    pretrained: True
-    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+    pretrained: False
+    #    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:
   name: CrossEntropyLoss
   param:
     weight_type: ""
     label_smoothing: 0.
-
+  DRW: True
+  DRW_param:
+    weight_type: "class-balanced"
+    label_smoothing: 0.
+    beta: 0.9999
 # optimizer:
 #   name: SGD
 #   param:

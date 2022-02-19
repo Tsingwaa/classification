@@ -1,7 +1,7 @@
 experiment:
-  name: PathMNIST0.01_r50pre_CE
+  name: CUB200_r50_CE
   start_epoch: 1
-  total_epochs: 100
+  total_epochs: 200
   log_fname: train.log
   resume: False
   resume_fpath: last.pth.tar
@@ -9,13 +9,12 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_cRS
+  name: last_DRS
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
     sampler: BalanceSampler
-    #sampler: ""
-    batch_size: 128
+    batch_size: 32
     num_workers: 4
   loss:
     name: CrossEntropyLoss
@@ -25,8 +24,8 @@ finetune:
   optimizer:
     name: SGD
     param:
-      lr: 0.1
-      weight_decay: 5.0e-4
+      lr: 1.0e-2
+      weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -45,18 +44,16 @@ train_transform:
 val_transform:
   name: MedTransform
   param:
-    phase: test
+    phase: val
     resize: [224, 224]
 
 train_dataset:
-  name: ImbalancedPathMNIST
+  name: CUB200
   param:
     phase: train
-    imb_type: exp
-    imb_factor: 0.01
 
 val_dataset:
-  name: ImbalancedPathMNIST
+  name: CUB200
   param:
     phase: test
 
@@ -68,12 +65,12 @@ val_dataset:
 
 trainloader:
   sampler: ""
-  batch_size: 128
+  batch_size: 64
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 128
+  batch_size: 64
   num_workers: 4
 
 # testloader:
@@ -82,11 +79,10 @@ valloader:
 #   num_workers: 4
 
 network:
-  # name: ResNet32_CIFAR
   name: ResNet50
   param:
-    pretrained: True
-    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+    pretrained: False
+    # pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:
   name: CrossEntropyLoss
@@ -94,25 +90,10 @@ loss:
     weight_type: ""
     label_smoothing: 0.
 
-# optimizer:
-#   name: SGD
-#   param:
-#     lr: 0.05
-#     weight_decay: 5.0e-4
-#     momentum: 0.9
-#     nesterov: True
-
-# lr_scheduler:
-#   name: CosineAnnealingLR
-#   param:
-#     warmup_epochs: 5
-#     T_max: 195
-#     eta_min: 1.0e-6
-
 optimizer:
   name: SGD
   param:
-    lr: 0.001
+    lr: 0.05
     weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
@@ -121,5 +102,5 @@ lr_scheduler:
   name: CosineAnnealingLR
   param:
     warmup_epochs: 5
-    T_max: 95
+    T_max: 195
     eta_min: 1.0e-6

@@ -5,13 +5,13 @@ export PYTHONPATH=$HOME/Projects/classification
 #  torchrun --nproc_per_node=$2 --master_port 30000 train.py \
 #  --config_path $3
 
-OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$1 \
- torchrun --nproc_per_node=$2 --master_port 30000 train.py \
- --config_path configs/PathMNIST/r50pre_CE.yaml
+#OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$1 \
+# torchrun --nproc_per_node=$2 --master_port 30000 train.py \
+# --config_path configs/PathMNIST/r50pre_CE.yaml
 
-OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$1 \
- torchrun --nproc_per_node=$2 --master_port 30000 train.py \
- --config_path configs/PathMNIST/r50pre_CE_DRW.yaml
+#OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$1 \
+# torchrun --nproc_per_node=$2 --master_port 30000 train.py \
+# --config_path configs/PathMNIST/r50pre_CE_DRW.yaml
 
 OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$1 \
  torchrun --nproc_per_node=$2 --master_port 30000 train.py \
