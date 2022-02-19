@@ -330,6 +330,7 @@ class FineTuner(BaseTrainer):
         if self.local_rank <= 0:
             train_pbar = tqdm(
                 total=len(trainloader),
+                ncols=0,
                 desc=f"Train Epoch[{cur_epoch:>2d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -367,11 +368,11 @@ class FineTuner(BaseTrainer):
         if self.local_rank <= 0:
             train_pbar.set_postfix_str(
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
-                f"Loss:{train_loss_meter.avg:>4.2f} "
+                f"Loss:{train_loss_meter.avg:>5.3f} "
                 f"MR:{train_stat.mr:>7.2%} "
-                f"[{train_stat.group_mr[0]:>3.0%}, "
-                f"{train_stat.group_mr[1]:>3.0%}, "
-                f"{train_stat.group_mr[2]:>3.0%}]")
+                f"[{train_stat.group_mr[0]:>4.0%}, "
+                f"{train_stat.group_mr[1]:>4.0%}, "
+                f"{train_stat.group_mr[2]:>4.0%}]")
 
             train_pbar.close()
 
@@ -418,8 +419,8 @@ class FineTuner(BaseTrainer):
             val_stat._cm = self._reduce_tensor(val_stat._cm, op='sum')
 
         if self.local_rank <= 0:
-            val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
-                                     f"MR:{val_stat.mr:>7.2%} "
+            val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>5.3f} "
+                                     f"MR:{val_stat.mr:>6.2%} "
                                      f"[{val_stat.group_mr[0]:>3.0%}, "
                                      f"{val_stat.group_mr[1]:>3.0%}, "
                                      f"{val_stat.group_mr[2]:>3.0%}]")

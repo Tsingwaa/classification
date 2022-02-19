@@ -4,7 +4,7 @@ experiment:
   total_epochs: 100
   log_fname: train_ce.log
   resume: True
-  resume_fpath: last.pth.tar
+  resume_fpath: ce_last.pth.tar
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
@@ -25,7 +25,7 @@ finetune:
     name: SGD
     param:
       lr: 1.0e-1
-      weight_decay: 1.0e-5
+      weight_decay: 5.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
