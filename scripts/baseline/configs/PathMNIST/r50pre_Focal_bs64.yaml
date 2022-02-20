@@ -1,0 +1,114 @@
+experiment:
+  name: PathMNIST0.01_r50pre_Focal_bs64
+  start_epoch: 1
+  total_epochs: 100
+  log_fname: train.log
+  resume: False
+  resume_fpath: last.pth.tar
+  save_period: 10
+  eval_period: 1  # if 0, remove validate process when training.
+
+finetune:
+  name: last_DRW_2
+  total_epochs: 10
+  unfreeze_keys: ["fc"]
+  trainloader:
+    # sampler: BalanceSampler
+    sampler: ""
+    batch_size: 64
+    num_workers: 4
+  loss:
+    name: CrossEntropyLoss
+    param:
+      # weight_type: ""
+      # label_smoothing: 0.
+      # weight_type: "class-balanced"
+      weight_type: "inverse"
+      label_smoothing: 0.
+      beta: 0.9999
+  optimizer:
+    name: SGD
+    param:
+      lr: 0.01
+      weight_decay: 1.0e-4
+      momentum: 0.9
+      nesterov: True
+  lr_scheduler:
+    name: CosineAnnealingLR
+    param:
+      warmup_epochs: 0
+      T_max: 10
+      eta_min: 1.0e-6
+
+train_transform:
+  name: MedTransform
+  param:
+    phase: train
+    resize: [224, 224]
+
+val_transform:
+  name: MedTransform
+  param:
+    phase: test
+    resize: [224, 224]
+
+train_dataset:
+  name: ImbalancedPathMNIST
+  param:
+    phase: train
+    imb_type: exp
+    imb_factor: 0.01
+
+val_dataset:
+  name: ImbalancedPathMNIST
+  param:
+    phase: test
+
+# test_dataset:
+#   name: 
+#   param:
+#     phase: test
+#     root: 
+
+trainloader:
+  sampler: ""
+  batch_size: 64
+  num_workers: 4
+
+valloader:
+  sampler: ""
+  batch_size: 64
+  num_workers: 4
+
+# testloader:
+#   sampler: 
+#   batch_size: 64
+#   num_workers: 4
+
+network:
+  name: ResNet50
+  param:
+    pretrained: True
+    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+
+loss:
+  name: FocalLoss
+  param:
+    weight_type: ""
+    label_smoothing: 0.
+
+optimizer:
+  name: SGD
+  param:
+    lr: 0.001
+    weight_decay: 5.0e-4
+    momentum: 0.9
+    nesterov: True
+
+lr_scheduler:
+  name: CosineAnnealingLR
+  param:
+    warmup_epochs: 5
+    T_max: 95
+    eta_min: 1.0e-6
+
