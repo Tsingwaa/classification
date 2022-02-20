@@ -480,12 +480,14 @@ def main(args):
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # update config
-    # config["experiment"]["name"] +=\
-    #     f"_lmd{args.lambda_weight}_mg{args.margin}"
-    # config["loss2"]["param"].update({
-    #     "lambda": float(args.lambda_weight),
-    #     "margin": float(args.margin),
-    # })
+    config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+    if args.margin != 50:
+        config["experiment"]["name"] += f"_mg{args.margin}"
+
+    config["loss2"]["param"].update({
+        "lambda": float(args.lambda_weight),
+        "margin": float(args.margin),
+    })
 
     config["experiment"]["drw"] = args.drw  # Default: False
     trainer = Trainer(local_rank=args.local_rank,

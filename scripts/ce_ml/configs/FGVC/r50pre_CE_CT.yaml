@@ -98,7 +98,7 @@ loss2:
   name: CenterLoss
   param:
     weight_type: ""
-    num_classes: 9
+    num_classes: 30
     feat_dim: 2048
     alpha: 0
     lambda: 0.001

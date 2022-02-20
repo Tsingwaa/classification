@@ -492,8 +492,8 @@ def main(args):
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # update config
-    # config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
-    # config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
+    config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+    config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
 
     config["experiment"]["drw"] = args.drw  # Default: False
     trainer = Trainer(local_rank=args.local_rank,
