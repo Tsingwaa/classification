@@ -12,3 +12,4 @@ from .sd198 import *
 from .skin import *
 from .xray import *
 from .cub200 import *
+from .fgvc import *
