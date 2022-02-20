@@ -5,9 +5,9 @@ export PYTHONPATH=$HOME/Projects/classification
 #  torchrun --nproc_per_node=$2 --master_port 30000 train.py \
 #  --config_path $3
 
-# OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$1 \
-#  torchrun --nproc_per_node=$2 --master_port 30000 train_bbn.py \
-#  --config_path configs/PathMNIST/r50pre_BBN_bs64.yaml
+OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$1 \
+ torchrun --nproc_per_node=$2 --master_port 30000 train_bbn.py \
+ --config_path configs/PathMNIST/r50pre_BBN_bs64.yaml
 
 #OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES=$1 \
 # torchrun --nproc_per_node=$2 --master_port 30000 train.py \
@@ -33,6 +33,6 @@ export PYTHONPATH=$HOME/Projects/classification
 # CUDA_VISIBLE_DEVICES="$1" python3 train.py --config_path configs/PathMNIST/r50pre_CB-Focal_bs64.yaml
 
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ldam.py --config_path configs/PathMNIST/r50pre_LDAM_bs64.yaml
-CUDA_VISIBLE_DEVICES="$1" python3 train_ldam.py --config_path configs/PathMNIST/r50pre_LDAM_DRW_bs64.yaml
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ldam.py --config_path configs/PathMNIST/r50pre_LDAM_DRW_bs64.yaml
 
 # CUDA_VISIBLE_DEVICES="$1" python3 train.py --config_path configs/PathMNIST/r50pre_BBN_bs64.yaml
