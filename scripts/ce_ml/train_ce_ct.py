@@ -45,18 +45,6 @@ class Trainer(BaseTrainer):
         self.scheduler2_params = scheduler2_config['param']
 
         self.drw = config["experiment"]["drw"]
-        if self.drw:
-            loss3_config = config['loss3']
-            self.loss3_name = loss3_config['name']
-            self.loss3_params = loss3_config['param']
-
-            opt3_config = config["optimizer3"]
-            self.opt3_name = opt3_config["name"]
-            self.opt3_params = opt3_config["param"]
-
-            scheduler3_config = config["lr_scheduler3"]
-            self.scheduler3_name = scheduler3_config["name"]
-            self.scheduler3_params = scheduler3_config["param"]
 
     def train(self):
         #######################################################################
@@ -180,19 +168,13 @@ class Trainer(BaseTrainer):
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
 
-            if self.drw and cur_epoch > 0.8 * self.total_epochs:
+            if self.drw and cur_epoch == 0.8 * self.total_epochs + 1:
                 self.log("===> Start deferred re-weighting training...")
                 weight = self.get_class_weight(trainset.num_samples_per_cls,
-                                               weight_type="inverse")
+                                               weight_type="class-balanced")
                 self.criterion = self.init_loss(self.loss3_name,
                                                 weight=weight,
                                                 **self.loss3_params)
-                self.optimizer = self.init_optimizer(self.opt3_name,
-                                                     self.model.parameters(),
-                                                     **self.opt3_params)
-                self.lr_scheduler = self.init_lr_scheduler(
-                    self.scheduler3_name, self.optimizer,
-                    **self.scheduler3_params)
 
             self.lr_scheduler.step()
             self.lr_scheduler2.step()
@@ -344,7 +326,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                ncols=140,
+                ncols=0,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -474,6 +456,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lambda_weight", type=float, default=0.001)
     parser.add_argument("--drw", action='store_true')  # default: False
+    args = parser.parse_args()
 
     return args
 

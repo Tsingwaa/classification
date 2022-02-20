@@ -1,5 +1,5 @@
 experiment:
-  name: PathMNIST0.01_r50pre_CE_supcon_bs64
+  name: PathMNIST0.01_r50pre_RS_supcon_bs64
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -60,7 +60,7 @@ val_dataset:
     phase: test
 
 trainloader:
-  sampler: ""
+  sampler: BalanceSampler
   batch_size: 64
   num_workers: 4
 
@@ -73,7 +73,7 @@ network:
   name: ResNet50
   param:
     # proj_head: True
-    # pred_head: True
+    pred_head: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 

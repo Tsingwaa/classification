@@ -165,19 +165,13 @@ class Trainer(BaseTrainer):
         self.final_epoch = self.start_epoch + self.total_epochs
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
-            if self.drw and cur_epoch > 0.8 * self.total_epochs:
+            if self.drw and cur_epoch == 0.8 * self.total_epochs + 1:
                 self.log("===> Start deferred re-weighting training...")
                 weight = self.get_class_weight(trainset.num_samples_per_cls,
-                                               weight_type="inverse")
-                self.criterion = self.init_loss(self.loss3_name,
+                                               weight_type="class-balanced")
+                self.criterion = self.init_loss(self.loss_name,
                                                 weight=weight,
-                                                **self.loss3_params)
-                self.optimizer = self.init_optimizer(self.opt3_name,
-                                                     self.model.parameters(),
-                                                     **self.opt3_params)
-                self.lr_scheduler = self.init_lr_scheduler(
-                    self.scheduler3_name, self.optimizer,
-                    **self.scheduler3_params)
+                                                **self.loss_params)
 
             self.lr_scheduler.step()
 
@@ -326,7 +320,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                ncols=140,
+                ncols=0,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()

@@ -270,7 +270,7 @@ class BaseTrainer:
             # weight = 1 / weight
             weight /= torch.sum(weight)
         elif weight_type == "class-balanced":
-            beta = kwargs["beta"]
+            beta = kwargs.get("beta", 0.9999)
             weight = (1.0 - beta) / \
                 (1.0 - torch.pow(beta, num_samples_per_cls))
             weight /= torch.sum(weight)

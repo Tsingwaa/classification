@@ -90,7 +90,7 @@ loss2:
     lambda: 1.0
     weight_type: ""
     label_smoothing: 0.
-    # temperature: 0.1
+    temperature: 0.05
     # base_temperature: 0.1
 
 optimizer:
