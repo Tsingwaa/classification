@@ -66,7 +66,7 @@ trainloader:
 
 valloader:
   sampler: ""
-  batch_size: 128
+  batch_size: 64
   num_workers: 4
 
 network:
@@ -89,7 +89,8 @@ loss2:
     lambda: 1.0
     weight_type: ""
     label_smoothing: 0.
-    # temperature: 0.1
+    temperature: 0.05
+    contrast_mode: one
     # base_temperature: 0.1
 
 optimizer:

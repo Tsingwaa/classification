@@ -49,7 +49,9 @@ export PYTHONPATH=$HOME/Projects/classification
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/PathMNIST/r32_CE_supcon.yaml"  --lambda_weight 0.01
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/PathMNIST/r32_CE_supcon.yaml"  --lambda_weight 0.001
 
-CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/PathMNIST/r50pre_CE_supcon.yaml"
+CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/PathMNIST/r50pre_CE_supcon_bs64.yaml"
+CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/PathMNIST/r50pre_CE_CT_bs64.yaml"
+CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/PathMNIST/r50pre_CE_TP_bs64.yaml"
 
 # SimCLR
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/PathMNIST/r32_CE_simclr.yaml"  --lambda_weight 1.0
