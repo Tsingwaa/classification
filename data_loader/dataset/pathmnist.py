@@ -319,7 +319,7 @@ class ImbalancedPathMNIST_BBN(PathMNIST):
 
             sample_img, sample_label = self.data[sample_index], self.targets[sample_index]
             sample_img = Image.fromarray(sample_img)
-            sample_img = self.transform(sample_img)
+            sample_img = self.transform(sample_img, mean=self.mean, std=self.std)
 
             meta['sample_image'] = sample_img
             meta['sample_label'] = sample_label
