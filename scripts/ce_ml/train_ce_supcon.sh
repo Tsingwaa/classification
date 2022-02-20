@@ -9,18 +9,18 @@ export PYTHONPATH=$HOME/Projects/classification
 
 
 # OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
-#     torchrun --nproc_per_node="$2"  --master_port 60000 train_ce_supcon.py \
-#     --config_path "configs/FGVC/r50pre_CE_supcon.yaml"
+#     torchrun --nproc_per_node="$2"  --master_port 60000 train_ce_ct.py \
+#     --config_path "configs/FGVC/r50pre_CE_CT.yaml"
 
-# OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
-#     torchrun --nproc_per_node="$2"  --master_port 60000 train_ce_supcon.py \
-#     --config_path "configs/FGVC/r50pre_CE_supcon.yaml"
-# OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
-#     torchrun --nproc_per_node="$2"  --master_port 60000 train_ce_supcon.py \
-#     --config_path "configs/FGVC/r50pre_CE_simclr.yaml"
-# OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
-#     torchrun --nproc_per_node="$2"  --master_port 60000 train_ce_supcon.py \
-#     --config_path "configs/FGVC/r50pre_RW_supcon.yaml"
-# OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
-#     torchrun --nproc_per_node="$2"  --master_port 60000 train_ce_supcon.py \
-#     --config_path "configs/FGVC/r50pre_CEDRW_supcon.yaml"
+OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
+    torchrun --nproc_per_node="$2"  --master_port 60000 train_ce_supcon.py \
+    --config_path "configs/FGVC/r50pre_CE_supcon.yaml"
+OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
+    torchrun --nproc_per_node="$2"  --master_port 60000 train_ce_supcon.py \
+    --config_path "configs/FGVC/r50pre_CE_simclr.yaml"
+OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
+    torchrun --nproc_per_node="$2"  --master_port 60000 train_ce_supcon.py \
+    --config_path "configs/FGVC/r50pre_RW_supcon.yaml"
+OMP_NUM_THREADS=1 CUDA_VISIBLE_DEVICES="$1" \
+    torchrun --nproc_per_node="$2"  --master_port 60000 train_ce_supcon.py \
+    --config_path "configs/FGVC/r50pre_CEDRW_supcon.yaml"
