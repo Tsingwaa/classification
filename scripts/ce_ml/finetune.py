@@ -385,7 +385,7 @@ class FineTuner(BaseTrainer):
             desc = kwargs.pop("desc", "Val")
             val_pbar = tqdm(total=len(valloader),
                             ncols=0,
-                            desc=f"                 {desc}")
+                            desc=f"          {desc}")
 
         val_loss_meter = AverageMeter()
         val_stat = ExpStat(dataset)
