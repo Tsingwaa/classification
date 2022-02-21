@@ -62,7 +62,7 @@ export PYTHONPATH=$HOME/Projects/classification
 #     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 1
 
 
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
-    --config_path "configs/FGVC/r50pre_CE_CT.yaml"
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
-    --config_path "configs/FGVC/r50pre_CE_TP.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/FGVC/r50pre_CE_CT.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
+#     --config_path "configs/FGVC/r50pre_CE_TP.yaml"
