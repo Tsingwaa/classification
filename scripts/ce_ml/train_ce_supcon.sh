@@ -7,8 +7,7 @@ export PYTHONPATH=$HOME/Projects/classification
 # Single-GPU Training
 # CUDA_VISIBLE_DEVICES="$2" python3 train_ce_supcon.py --config_path "$1"  #  --lambda_weight "$3"
 
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
-    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.005
+
 CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.006
 CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
@@ -20,25 +19,43 @@ CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
 CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.01
 CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.015
+CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.02
 CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.025
+CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.03
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
-    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.04
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
-    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.05
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
-    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.06
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
-    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.07
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
-    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.08
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
-    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.09
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
-    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.1
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
-    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.15
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.035
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.04
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.045
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.05
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.055
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.06
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.065
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.07
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.075
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.08
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.085
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.09
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.095
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.1
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.15
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
 #     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.2
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
