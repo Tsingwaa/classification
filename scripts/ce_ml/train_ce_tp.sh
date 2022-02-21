@@ -11,6 +11,9 @@ export PYTHONPATH=$HOME/Projects/classification
 
 # sh train_ce_ct.sh "$1"
 
+CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
+    --config_path "configs/FGVC/r50pre_CE_TP.yaml"
+
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
 #     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.0001
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
@@ -52,20 +55,20 @@ export PYTHONPATH=$HOME/Projects/classification
 
 
 
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
-    --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 5
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
-    --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 10
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
-    --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 15
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
-    --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 20
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
-    --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 25
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
-    --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 30
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
-    --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 35
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 5
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 10
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 15
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 20
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 25
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 30
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 35
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
 #     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.001 --margin 40
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_tp.py \
