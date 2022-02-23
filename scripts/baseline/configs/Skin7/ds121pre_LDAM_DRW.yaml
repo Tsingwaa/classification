@@ -1,5 +1,5 @@
 experiment:
-  name: Skin7_r50pre_LDAM_DRW
+  name: Skin7_ds121pre_LDAM_DRW
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -81,10 +81,10 @@ valloader:
 #   num_workers: 4
 
 network:
-  name: ResNet50_NormLayer
+  name: DenseNet121
   param:
-    pretrained: False
-    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+    pretrained: True
+    norm: True
 
 loss:
   name: LDAM_Loss

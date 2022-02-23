@@ -1,5 +1,5 @@
 experiment:
-  name: Skin7_r50pre_LDAM_DRW
+  name: Skin7_mbv2pre_CE
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -81,21 +81,16 @@ valloader:
 #   num_workers: 4
 
 network:
-  name: ResNet50_NormLayer
+  name: MobileNet_v2
   param:
-    pretrained: False
-    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+    pretrained: True
+    # pretrained_fpath: ~/.cache/torch/hub/checkpoints/mobilenet_v2-b0353104.pth
 
 loss:
-  name: LDAM_Loss
+  name: CrossEntropyLoss
   param:
     weight_type: ""
     label_smoothing: 0.
-  DRW: True
-  DRW_param:
-    weight_type: "class-balanced"
-    label_smoothing: 0.
-    beta: 0.9999
 
 optimizer:
   name: SGD

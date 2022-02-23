@@ -13,3 +13,5 @@ from .skin import *
 from .xray import *
 from .cub200 import *
 from .fgvc import *
+from .flowers import *
+from .stanford_dogs import *

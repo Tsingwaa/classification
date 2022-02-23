@@ -14,9 +14,7 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 #     test.py --config_path "configs/ImageNet_LT/rx50_adapt2_remix_v2_8_0.6.yaml"
 
 # Single-GPU Training
-CUDA_VISIBLE_DEVICES=1 python3 train.py --local_rank -1 --config_path 'configs/Xray9/r50pre_cutmix.yaml' --seed 0
-CUDA_VISIBLE_DEVICES=1 python3 train.py --local_rank -1 --config_path 'configs/Skin7/r50pre_cutmix.yaml' --seed 0
-CUDA_VISIBLE_DEVICES=1 python3 train.py --local_rank -1 --config_path 'configs/PathMNIST/r32_cutmix.yaml' --seed 0
+CUDA_VISIBLE_DEVICES=1 python3 train.py --local_rank -1 --config_path 'configs/Flowers/r50_cutmix.yaml' --seed 0
 
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path 'configs/CIFAR10_0.01/r32.yaml'
 # CUDA_VISIBLE_DEVICES=$1 python3 train.py --local_rank -1 --config_path 'configs/CIFAR10_0.01/r32_RS.yaml'

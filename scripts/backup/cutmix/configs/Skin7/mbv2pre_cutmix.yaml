@@ -1,5 +1,5 @@
 experiment:
-  name: Skin7_r50pre_LDAM_DRW
+  name: Skin7_mbv2pre_Cutmix
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -9,18 +9,23 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRS
+  name: last_DRW_2
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: BalanceSampler
+    # sampler: BalanceSampler
+    sampler: ""
     batch_size: 32
     num_workers: 4
   loss:
     name: CrossEntropyLoss
     param:
-      weight_type: ""
+      # weight_type: ""
+      # label_smoothing: 0.
+      # weight_type: "class-balanced"
+      weight_type: "inverse"
       label_smoothing: 0.
+      beta: 0.9999
   optimizer:
     name: SGD
     param:
@@ -59,6 +64,11 @@ val_dataset:
     phase: test
     fold_i: 0
 
+cutmix:
+  beta: 1.
+  prob: 1.
+  remix: False
+
 # test_dataset:
 #   name: 
 #   param:
@@ -81,21 +91,16 @@ valloader:
 #   num_workers: 4
 
 network:
-  name: ResNet50_NormLayer
+  name: MobileNet_v2
   param:
-    pretrained: False
-    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+    pretrained: True
 
 loss:
-  name: LDAM_Loss
+  name: CrossEntropyLoss
   param:
     weight_type: ""
     label_smoothing: 0.
-  DRW: True
-  DRW_param:
-    weight_type: "class-balanced"
-    label_smoothing: 0.
-    beta: 0.9999
+  DRW: False
 
 optimizer:
   name: SGD

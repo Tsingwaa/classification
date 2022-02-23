@@ -1,7 +1,7 @@
 experiment:
-  name: Skin7_r50pre_LDAM_DRW
+  name: Flowers_r50_LDAM
   start_epoch: 1
-  total_epochs: 100
+  total_epochs: 200
   log_fname: train.log
   resume: False
   resume_fpath: last.pth.tar
@@ -9,17 +9,18 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRS
+  name: last_cRW
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    sampler: BalanceSampler
+    # sampler: BalanceSampler
+    sampler: ""
     batch_size: 32
     num_workers: 4
   loss:
     name: CrossEntropyLoss
     param:
-      weight_type: ""
+      weight_type: inverse
       label_smoothing: 0.
   optimizer:
     name: SGD
@@ -48,16 +49,17 @@ val_transform:
     resize: [224, 224]
 
 train_dataset:
-  name: Skin7
+  name: Flowers
   param:
     phase: train
-    fold_i: 0
+    imb_type: 'exp'
+    imb_factor: 0.1
+    seed: 0
 
 val_dataset:
-  name: Skin7
+  name: Flowers
   param:
     phase: test
-    fold_i: 0
 
 # test_dataset:
 #   name: 
@@ -84,23 +86,17 @@ network:
   name: ResNet50_NormLayer
   param:
     pretrained: False
-    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:
   name: LDAM_Loss
   param:
     weight_type: ""
     label_smoothing: 0.
-  DRW: True
-  DRW_param:
-    weight_type: "class-balanced"
-    label_smoothing: 0.
-    beta: 0.9999
 
 optimizer:
   name: SGD
   param:
-    lr: 0.001
+    lr: 0.01
     weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
@@ -109,5 +105,5 @@ lr_scheduler:
   name: CosineAnnealingLR
   param:
     warmup_epochs: 5
-    T_max: 95
+    T_max: 195
     eta_min: 1.0e-6

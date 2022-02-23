@@ -12,3 +12,5 @@ from .mlp import *
 from .norm_resnet_cifar import *
 from .resnet_bbn import *
 from .resnet_cifar_bbn import *
+from .mobilenet import *
+from .densenet import *
