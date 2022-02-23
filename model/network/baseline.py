@@ -61,6 +61,7 @@ def weights_init(m):
 
 
 class WSDAN_AP(nn.Module):
+
     def __init__(self):
         super(WSDAN_AP, self).__init__()
 
@@ -87,6 +88,7 @@ class WSDAN_AP(nn.Module):
 
 # Bilinear Attention Pooling
 class BAP(nn.Module):
+
     def __init__(self):
         super(BAP, self).__init__()
 
@@ -114,6 +116,7 @@ class BAP(nn.Module):
 
 @Networks.register_module("baseline")
 class BASELINE(nn.Module):
+
     def __init__(self, config=None, **kwargs):
         super(BASELINE, self).__init__()
         try:

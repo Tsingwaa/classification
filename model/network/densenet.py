@@ -5,16 +5,16 @@ from model.network.builder import Networks
 from torchvision import models
 
 
-@Networks.register_module("ResNet50")
-class ResNet50(nn.Module):
+@Networks.register_module("DenseNet121")
+class DenseNet121(nn.Module):
 
     def __init__(self, num_classes, pretrained, **kwargs):
-        super(ResNet50, self).__init__()
+        super(DenseNet121, self).__init__()
         self.num_classes = num_classes
 
-        backbone = models.resnet50(pretrained=pretrained)
+        backbone = models.densenet121(pretrained=pretrained)
         self.features = nn.Sequential(*list(backbone.children())[:-1])
-        self.fc_in = 2048
+        self.fc_in = 1024
 
         self.fc = nn.Linear(self.fc_in, num_classes)
 
@@ -28,6 +28,8 @@ class ResNet50(nn.Module):
 
     def extract(self, x):
         feat_map = self.features(x)
+        feat_map = F.relu(feat_map, inplace=True)
+        feat_map = F.adaptive_avg_pool2d(feat_map, (1, 1))
         feat_vec = torch.flatten(feat_map, 1)
         return feat_vec
 
@@ -39,9 +41,9 @@ class ResNet50(nn.Module):
             return logits, norm_vec
 
         elif out_type == "pred_head":
-            feat_vec = self.extract(x1)
-            de_feat_vec = self.pred_head(feat_vec)
-            return F.normalize(de_feat_vec, dim=1)
+            x = self.extract(x1)
+            x = self.pred_head(x)
+            return F.normalize(x, dim=1)
 
         else:
             x1 = self.extract(x1)
