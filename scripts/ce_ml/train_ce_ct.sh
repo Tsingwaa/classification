@@ -6,21 +6,7 @@ export PYTHONPATH=$HOME/Projects/classification
 
 # Single-GPU Training
 
-# weight=0.0005
-
-# while ($weight < 0.05)
-# do CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight $weight
-# weight=$weight+0.0005
-# done
-
-# weight=0.05
-
-# while ($weight<1.05)
-# do CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight $weight
-
-# weight=$weight+0.05
-
-# done
+CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py --config_path "configs/Flowers/r50_CE_CT.yaml"
 
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py --config_path "configs/Skin7/mbv2pre_CE_CT.yaml"
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py --config_path "configs/Skin7/ds121pre_CE_CT.yaml"

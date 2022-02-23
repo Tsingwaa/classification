@@ -7,6 +7,9 @@ export PYTHONPATH=$HOME/Projects/classification
 # Single-GPU Training
 # CUDA_VISIBLE_DEVICES="$2" python3 train_ce_supcon.py --config_path "$1"  #  --lambda_weight "$3"
 
+
+CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/Flowers/r50_CE_supcon.yaml"
+
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/Skin7/mbv2pre_CE_supcon.yaml"
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/Skin7/ds121pre_CE_supcon.yaml"
 

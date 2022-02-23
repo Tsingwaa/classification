@@ -1,0 +1,120 @@
+experiment:
+  name: Flowers_r50_CE_CT
+  start_epoch: 1
+  total_epochs: 200
+  log_fname: train.log
+  resume: False
+  resume_fpath: last.pth.tar
+  extract_phase: train
+  save_period: 10
+  eval_period: 1  # if 0, remove validate process when training.
+
+finetune:
+  name: last_cRW
+  total_epochs: 10
+  unfreeze_keys: ["fc"]
+  trainloader:
+    sampler: 
+    batch_size: 32
+    num_workers: 4
+  loss:
+    name: CrossEntropyLoss
+    param:
+      weight_type: inverse
+      label_smoothing: 0.
+  optimizer:
+    name: SGD
+    param:
+      lr: 0.01
+      weight_decay: 1.0e-4
+      momentum: 0.9
+      nesterov: True
+  lr_scheduler:
+    name: CosineAnnealingLR
+    param:
+      warmup_epochs: 0
+      T_max: 10
+
+train_transform:
+  name: MedTransform
+  param:
+    phase: train
+    resize: [224, 224]
+
+val_transform:
+  name: MedTransform
+  param:
+    phase: test
+    resize: [224, 224]
+
+train_dataset:
+  name: Flowers
+  param:
+    phase: train
+
+val_dataset:
+  name: Flowers
+  param:
+    phase: test
+
+trainloader:
+  sampler: ""
+  batch_size: 32
+  num_workers: 4
+
+valloader:
+  sampler: ""
+  batch_size: 32
+  num_workers: 4
+
+network:
+  name: ResNet50
+  param:
+    pretrained: False
+    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+
+loss:
+  name: CrossEntropyLoss
+  param:
+    weight_type: ""
+    label_smoothing: 0.
+
+optimizer:
+  name: SGD
+  param:
+    lr: 0.001
+    weight_decay: 5.0e-4
+    momentum: 0.9
+    nesterov: True
+
+lr_scheduler:
+  name: CosineAnnealingLR
+  param:
+    warmup_epochs: 5
+    T_max: 195
+    eta_min: 1.0e-6
+
+loss2:
+  name: CenterLoss
+  param:
+    lambda: 0.001
+    weight_type: ""
+    num_classes: 102
+    feat_dim: 2048
+    alpha: 0
+    margin: -1
+
+optimizer2:
+  name: SGD
+  param:
+    lr: 0.005
+    weight_decay: 1.0e-5
+    momentum: 0.9
+    nesterov: True
+
+lr_scheduler2:
+  name: CosineAnnealingLR
+  param:
+    warmup_epochs: 5
+    T_max: 195  # keep a relative high learning rate
+    eta_min: 1.0e-6
