@@ -57,10 +57,38 @@ export PYTHONPATH=$HOME/Projects/classification
 #     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.04
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
 #     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.05
+
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.06
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.07
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.08
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.09
+
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
 #     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.1
+
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.2
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.3
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.4
+
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
 #     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.5
+
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.6
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.7
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.8
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.9
+
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
 #     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 1
 

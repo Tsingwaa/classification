@@ -99,7 +99,7 @@ lr_scheduler:
 loss2:
   name: CenterLoss
   param:
-    lambda: 0.01
+    lambda: 0.001
     weight_type: ""
     num_classes: 7
     feat_dim: 2048

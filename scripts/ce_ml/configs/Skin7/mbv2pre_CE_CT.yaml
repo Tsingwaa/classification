@@ -12,9 +12,9 @@ experiment:
 finetune:
   name: last_cRW
   total_epochs: 10
-  unfreeze_keys: [fc]
+  unfreeze_keys: ["fc"]
   trainloader:
-    sampler: 
+    sampler: ""
     batch_size: 32
     num_workers: 4
   loss:
@@ -26,7 +26,7 @@ finetune:
     name: SGD
     param:
       lr: 0.01
-      weight_decay: 1.0e-5
+      weight_decay: 5.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:

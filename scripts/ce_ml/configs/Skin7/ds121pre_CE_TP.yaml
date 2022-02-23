@@ -5,12 +5,11 @@ experiment:
   log_fname: train.log
   resume: False
   resume_fpath: last.pth.tar
-  extract_phase: train
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRW
+  name: last_cRW
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
@@ -26,7 +25,7 @@ finetune:
     name: SGD
     param:
       lr: 0.01
-      weight_decay: 1.0e-5
+      weight_decay: 5.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:

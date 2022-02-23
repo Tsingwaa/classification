@@ -438,7 +438,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lambda_weight", type=float, default=0.001)
     parser.add_argument("--margin", type=int, default=50)
-    parser.add_argument("--t", type=float, default=0.07)
+    parser.add_argument("--t", type=float, default=0.05)
     args = parser.parse_args()
 
     return args
@@ -482,7 +482,7 @@ def main(args):
         config["experiment"]["name"] += f"_mg{args.margin}"
         config["loss2"]["param"]["margin"] = float(args.margin)
 
-    if args.t != 0.07:
+    if args.t != 0.05:
         config["experiment"]["name"] += f"_t{args.t}"
         config["loss2"]["param"]["temperature"] = float(args.t)
 

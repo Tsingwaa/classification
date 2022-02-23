@@ -7,6 +7,13 @@ export PYTHONPATH=$HOME/Projects/classification
 # Single-GPU Training
 # CUDA_VISIBLE_DEVICES="$2" python3 finetune.py --config_path "$1" --lambda_weight "$3"  # --margin "$4"
 
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/mbv2pre_CE_CT.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/ds121pre_CE_CT.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/mbv2pre_CE_supcon.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/ds121pre_CE_supcon.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/ds121pre_CE_TP.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/mbv2pre_CE_TP.yaml"
+
 ##################################################################### FGVC #####################################################################
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/FGVC/r50pre_CE_TP.yaml"
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/FGVC/r50pre_CE_CT.yaml"
