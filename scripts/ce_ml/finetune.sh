@@ -7,6 +7,11 @@ export PYTHONPATH=$HOME/Projects/classification
 # Single-GPU Training
 # CUDA_VISIBLE_DEVICES="$2" python3 finetune.py --config_path "$1" --lambda_weight "$3"  # --margin "$4"
 
+
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Flowers/r50_CE_TP.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Flowers/r50_CE_CT.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Flowers/r50_CE_supcon.yaml"
+
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/mbv2pre_CE_CT.yaml"
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/ds121pre_CE_CT.yaml"
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/mbv2pre_CE_supcon.yaml"
@@ -50,10 +55,38 @@ export PYTHONPATH=$HOME/Projects/classification
 #     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.04
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
 #     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.05
+
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.06
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.07
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.08
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.09
+
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
 #     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.1
+
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.2
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.3
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.4
+
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
 #     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.5
+
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.6
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.7
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.8
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.9
+
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
 #     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 1
 
@@ -90,10 +123,39 @@ export PYTHONPATH=$HOME/Projects/classification
 #     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.04
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
 #     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.05
+
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.06
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.07
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.08
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.09
+
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
 #     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.1
+
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.2
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.3
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.4
+
+
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
 #     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.5
+
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.6
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.7
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.8
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 0.9
+
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
 #     --config_path "configs/Skin7/r50pre_CE_TP.yaml"  --lambda_weight 1
 
