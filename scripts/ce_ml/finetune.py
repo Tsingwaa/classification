@@ -337,7 +337,7 @@ class FineTuner(BaseTrainer):
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_labels = batch_labels.cuda(non_blocking=True)
-            batch_probs = model(batch_imgs, out_type="fc12")
+            batch_probs = model(batch_imgs, out_type="fc")
             batch_preds = torch.argmax(batch_probs, dim=1)
             avg_loss = criterion(batch_probs, batch_labels)
 
@@ -394,7 +394,7 @@ class FineTuner(BaseTrainer):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
 
-                batch_probs = model(batch_imgs, out_type="fc12")
+                batch_probs = model(batch_imgs, out_type="fc")
 
                 avg_loss = criterion(batch_probs, batch_labels)
 
@@ -474,13 +474,13 @@ def main(args):
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    if any(s in config["experiment"]["name"] for s in ["CT", "TP", "supcon"]):
-        config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
-        config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
+    # if any(s in config["experiment"]["name"] for s in ["CT", "TP", "supcon"]):
+    #     config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+    #     config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
 
-    if args.margin != 50:
-        config["experiment"]["name"] += f"_mg{args.margin}"
-        config["loss2"]["param"]["margin"] = float(args.margin)
+    # if args.margin != 50:
+    #     config["experiment"]["name"] += f"_mg{args.margin}"
+    #     config["loss2"]["param"]["margin"] = float(args.margin)
 
     # if args.t != 0.05:
     #     config["experiment"]["name"] += f"_t{args.t}"

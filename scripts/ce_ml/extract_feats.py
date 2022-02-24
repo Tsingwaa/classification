@@ -1,11 +1,12 @@
 """TRAINING """
 import argparse
 import os
+import pickle
 # import shutil
 import warnings
 from os.path import expanduser, join
 
-import h5py
+# import h5py
 import torch
 # import torch.nn.functional as F
 import yaml
@@ -60,8 +61,9 @@ class Extractor(BaseTrainer):
             os.makedirs(self.exp_dir, exist_ok=True)
 
             # Set logger to save .log file and output to screen.
-            self.log_fpath = join(self.exp_dir,
-                                  f"seed{self.seed}_{self.finetune_name}.log")
+            self.log_fpath = join(
+                self.exp_dir,
+                f"seed{self.seed}_{self.finetune_name}_extract.log")
             self.logger = self.init_logger(self.log_fpath)
             exp_init_log = f"\n****************************************"\
                 f"****************************************************"\
@@ -137,7 +139,7 @@ class Extractor(BaseTrainer):
                                      num_classes=trainset.num_classes,
                                      except_keys=[],
                                      **self.network_params)
-        self.freeze_model(self.model)
+        self.freeze_model(self.model, unfreeze_keys=[])
 
         #######################################################################
         # Start evaluating
@@ -178,7 +180,7 @@ class Extractor(BaseTrainer):
 
         # set_trace()
         # all_imgs = torch.vstack(all_imgs)
-        all_feats = torch.vstack(all_feats)
+        all_feats = torch.vstack(all_feats).numpy()
         all_labels = torch.hstack(all_labels).numpy()
         # all_preds = torch.hstack(all_preds).numpy()
 
@@ -198,18 +200,22 @@ class Extractor(BaseTrainer):
         # )
         # self.writer.close()
 
-        feat_fpath = join(self.exp_root, self.exp_name,
-                          f'{self.finetune_name}_{phase}_features-labels.h5')
+        feats_labels_fpath = join(
+            self.exp_root, self.exp_name,
+            f'{self.finetune_name}_{phase}_features_labels.pickle')
         # save feature and labels
 
-        if os.path.exists(feat_fpath):  # h5不能重新写入
-            os.remove(feat_fpath)
+        if os.path.exists(feats_labels_fpath):
+            os.remove(feats_labels_fpath)
 
-        with h5py.File(feat_fpath, 'w') as f:
-            f['features'] = all_feats
-            f['labels'] = all_labels
+        feats_labels = {
+            "features": all_feats,
+            "labels": all_labels,
+        }
+        with open(feats_labels_fpath, "wb") as f:  # dump <--> load
+            pickle.dump(feats_labels, f)
 
-        print(f'Features-labels file is saved at "{feat_fpath}"\n')
+        print(f'Features-labels file is saved at "{feats_labels_fpath}"\n')
 
 
 def parse_args():
@@ -221,6 +227,8 @@ def parse_args():
                         distributed training. if single-GPU, default: -1')
     parser.add_argument("--config_path", type=str)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--lambda_weight", type=float, default=0.001)
+    parser.add_argument("--margin", type=int, default=50)
     args = parser.parse_args()
 
     return args
@@ -230,6 +238,15 @@ def main(args):
     warnings.filterwarnings('ignore')
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
+
+    if any(s in config["experiment"]["name"] for s in ["CT", "TP", "supcon"]):
+        config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+        config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
+
+    if args.margin != 50:
+        config["experiment"]["name"] += f"_mg{args.margin}"
+        config["loss2"]["param"]["margin"] = float(args.margin)
+
     extractor = Extractor(local_rank=args.local_rank,
                           config=config,
                           seed=args.seed)
