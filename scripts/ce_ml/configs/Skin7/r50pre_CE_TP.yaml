@@ -10,7 +10,7 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRW
+  name: last_visual
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
@@ -74,6 +74,7 @@ valloader:
 network:
   name: ResNet50
   param:
+    fc12: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 

@@ -8,10 +8,31 @@ export PYTHONPATH=$HOME/Projects/classification
 # CUDA_VISIBLE_DEVICES="$2" python3 train_ce_supcon.py --config_path "$1"  #  --lambda_weight "$3"
 
 
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/Flowers/r50_CE_supcon.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/Flowers/r50_CE_supcon.yaml"
 
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/Skin7/mbv2pre_CE_supcon.yaml"
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/Skin7/ds121pre_CE_supcon.yaml"
+
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.1
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.2
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.3
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.4
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.5
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.6
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.7
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.8
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.9
+CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 2.0
 
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
 #     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.006

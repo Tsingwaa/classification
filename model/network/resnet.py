@@ -308,16 +308,9 @@ class ResNet(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
-        if kwargs.get("fc_3lp", False):
-            self.fc_3lp = nn.Sequential(
-                nn.Linear(512 * block.expansion, 512, bias=False),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Linear(512, 128, bias=False),
-                nn.BatchNorm1d(128),
-                nn.ReLU(inplace=True),
-                nn.Linear(128, num_classes),
-            )
+        if kwargs.get("fc12", False):
+            self.fc1 = nn.Linear(512 * block.expansion, 2)
+            self.fc2 = nn.Linear(2, num_classes)
 
         if kwargs.get("proj_head", False):  # BN前的linear层取消bias
             self.proj_head = nn.Sequential(
@@ -425,11 +418,18 @@ class ResNet(nn.Module):
             return F.normalize(x, dim=1)
 
         else:
-            x1 = self.extract(x1)
+            x = self.extract(x1)
             if "fc" in out_type:
-                return self.fc(x1)
+                if "1" in out_type:
+                    x = self.fc1(x)
+                    # x = F.normalize(x, dim=1)
+                    if "2" in out_type:
+                        x = self.fc2(x)
+                        return x
+                    return x
+                return x
             elif "vec" in out_type:
-                return x1
+                return x
             else:
                 raise TypeError
 
