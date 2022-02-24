@@ -9,7 +9,7 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRW
+  name: last_cRW
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
@@ -101,4 +101,4 @@ loss2:
     # num_classes: 7
     # feat_dim: 2048
     # alpha: 0
-    lambda: 0.005
+    lambda: 0.001

@@ -31,8 +31,8 @@ export PYTHONPATH=$HOME/Projects/classification
 #     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.8
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
 #     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.9
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
-    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 2.0
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 2.0
 
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py \
 #     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0 --t 0.006

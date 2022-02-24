@@ -5,11 +5,12 @@ experiment:
   log_fname: train.log
   resume: False
   resume_fpath: last.pth.tar
+  extract_phase: train
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_visual
+  name: last_norm_visual
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
@@ -19,13 +20,13 @@ finetune:
   loss:
     name: CrossEntropyLoss
     param:
-      weight_type: inverse
+      weight_type: ""
       label_smoothing: 0.
   optimizer:
     name: SGD
     param:
       lr: 0.01
-      weight_decay: 1.0e-5
+      weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -68,7 +69,7 @@ trainloader:
 
 valloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 network:

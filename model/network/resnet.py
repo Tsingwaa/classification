@@ -422,12 +422,11 @@ class ResNet(nn.Module):
             if "fc" in out_type:
                 if "1" in out_type:
                     x = self.fc1(x)
-                    # x = F.normalize(x, dim=1)
+                    x = F.normalize(x, dim=1)
                     if "2" in out_type:
-                        x = self.fc2(x)
-                        return x
+                        return self.fc2(x)
                     return x
-                return x
+                return self.fc(x)
             elif "vec" in out_type:
                 return x
             else:

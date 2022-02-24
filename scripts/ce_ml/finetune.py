@@ -482,9 +482,9 @@ def main(args):
         config["experiment"]["name"] += f"_mg{args.margin}"
         config["loss2"]["param"]["margin"] = float(args.margin)
 
-    if args.t != 0.05:
-        config["experiment"]["name"] += f"_t{args.t}"
-        config["loss2"]["param"]["temperature"] = float(args.t)
+    # if args.t != 0.05:
+    #     config["experiment"]["name"] += f"_t{args.t}"
+    #     config["loss2"]["param"]["temperature"] = float(args.t)
 
     finetuner = FineTuner(local_rank=args.local_rank,
                           config=config,
