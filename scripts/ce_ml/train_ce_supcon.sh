@@ -8,6 +8,7 @@ export PYTHONPATH=$HOME/Projects/classification
 # CUDA_VISIBLE_DEVICES="$2" python3 train_ce_supcon.py --config_path "$1"  #  --lambda_weight "$3"
 
 
+CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/Dogs/r50_CE_supcon.yaml"
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/Flowers/r50_CE_supcon.yaml"
 
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_supcon.py --config_path "configs/Skin7/mbv2pre_CE_supcon.yaml"

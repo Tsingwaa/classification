@@ -11,7 +11,12 @@ export PYTHONPATH=$HOME/Projects/classification
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.07
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0
 
-CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Flowers/r50_CE_TP.yaml"
+
+CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Dogs/r50_CE_TP.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Dogs/r50_CE_CT.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Dogs/r50_CE_supcon.yaml"
+
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Flowers/r50_CE_TP.yaml"
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Flowers/r50_CE_CT.yaml"
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Flowers/r50_CE_supcon.yaml"
 
