@@ -4,13 +4,13 @@ experiment:
   total_epochs: 100
   log_fname: train.log
   resume: False
-  resume_fpath: best.pth.tar
+  resume_fpath: last.pth.tar
   extract_phase: train
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_visual
+  name: last_cRW
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
@@ -20,7 +20,7 @@ finetune:
   loss:
     name: CrossEntropyLoss
     param:
-      weight_type: ""
+      weight_type: inverse
       label_smoothing: 0.
   optimizer:
     name: SGD
