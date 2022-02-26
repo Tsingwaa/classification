@@ -474,9 +474,9 @@ def main(args):
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    # if any(s in config["experiment"]["name"] for s in ["CT", "TP", "supcon"]):
-    #     config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
-    #     config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
+    if any(s in config["experiment"]["name"] for s in ["CT", "TP", "supcon"]):
+        config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+        config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
 
     # if args.margin != 50:
     #     config["experiment"]["name"] += f"_mg{args.margin}"

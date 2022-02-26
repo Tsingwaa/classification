@@ -497,9 +497,9 @@ def main(args):
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # update config
-    # if args.lambda_weight != 1.0:
-    #     config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
-    #     config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
+    if args.lambda_weight != 1.0:
+        config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+        config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
     # if args.t != 0.07:
     #     config["experiment"]["name"] += f"_t{args.t}"
     #     config["loss2"]["param"]["temperature"] = float(args.t)

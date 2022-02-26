@@ -13,7 +13,7 @@ export PYTHONPATH=$HOME/Projects/classification
 
 
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Dogs/r50_CE_TP.yaml"
-CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Dogs/r50_CE_CT.yaml" --seed 50
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Dogs/r50_CE_CT.yaml"
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Dogs/r50_CE_supcon.yaml"
 
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Flowers/r50_CE_TP.yaml"
@@ -335,3 +335,25 @@ CUDA_VISIBLE_DEVICES="$1" python3 finetune.py --config_path "configs/Dogs/r50_CE
 #     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 0.9
 # CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
 #     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.0
+
+CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.1
+CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.2
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.3
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.4
+CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.5
+CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+    --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.6
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.7
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.8
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 1.9
+# CUDA_VISIBLE_DEVICES="$1" python3 finetune.py \
+#     --config_path "configs/Skin7/r50pre_CE_supcon.yaml" --lambda_weight 2.0
+
