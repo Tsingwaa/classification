@@ -1,9 +1,9 @@
 import torch
+import torch.nn.functional as F
 # from pudb import set_trace
 from model.network.builder import Networks
 from torch import nn
 from torch.nn import Parameter
-import torch.nn.functional as F
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-f37072fd.pth',
@@ -281,17 +281,9 @@ class ResNet(nn.Module):
                 nn.Linear(512, 512 * block.expansion),
             )
 
-        if kwargs.get("mlp_fc", False):
-            self.mlp_fc = nn.Sequential(
-                nn.Linear(512 * block.expansion, 512, bias=False),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Linear(512, 512, bias=False),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Linear(512, num_classes),
-            )
-
+        if kwargs.get("visualize", False):
+            self.fc1 = nn.Linear(512 * block.expansion, 2)
+            self.fc2 = nn.Linear(2, num_classes)
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight,
@@ -393,10 +385,18 @@ class ResNet(nn.Module):
                 fc2 = self.fc(x2)
                 return p1, p2, z1.detach(), z2.detach(), fc1, fc2
             return p1, p2, z1.detach(), z2.detach()
-        elif out_type == 'fc':
-            return self.fc(self.extract(x1))
-        elif out_type == "mlp_fc":
-            return self.mlp_fc(self.extract(x1))
+        elif "fc" in out_type:
+            x = self.extract(x1)
+            if "1" in out_type:
+                x = self.fc1(x)
+                # x = F.normalize(x, dim=1)
+                if "2" in out_type:
+
+                    x = self.fc2(x)
+                    return x
+                return x
+            return self.fc(x)
+
         elif out_type == "vec":
             return self.extract(x1)
         else:
@@ -480,6 +480,7 @@ class ResNeXt50(ResNet):
                                         width_per_group=4,
                                         **kwargs)
 
+
 class NormedLinear(nn.Module):
 
     def __init__(self, in_features, out_features):
@@ -490,6 +491,7 @@ class NormedLinear(nn.Module):
     def forward(self, x):
         out = F.normalize(x, dim=1).mm(F.normalize(self.weight, dim=0))
         return out
+
 
 class ResNet_NormLayer(nn.Module):
 
@@ -603,9 +605,9 @@ class ResNet_NormLayer(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x1, x2=None, out_type="fc"):
-        
+
         return self.fc(self.extract(x1))
-        
+
     def extract(self, x):
         # See note [TorchScript super()]
         x = self.conv1(x)
@@ -622,11 +624,12 @@ class ResNet_NormLayer(nn.Module):
 
         return x
 
+
 @Networks.register_module('ResNet50_NormLayer')
 class ResNet50_NormLayer(ResNet_NormLayer):
 
     def __init__(self, num_classes, **kwargs):
         super(ResNet50_NormLayer, self).__init__(block=Bottleneck,
-                                       layers=[3, 4, 6, 3],
-                                       num_classes=num_classes,
-                                       **kwargs)
+                                                 layers=[3, 4, 6, 3],
+                                                 num_classes=num_classes,
+                                                 **kwargs)

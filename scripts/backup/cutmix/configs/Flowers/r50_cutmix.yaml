@@ -14,7 +14,7 @@ finetune:
   unfreeze_keys: ["fc"]
   trainloader:
     sampler: ""
-    batch_size: 64
+    batch_size: 32
     num_workers: 4
   loss:
     name: CrossEntropyLoss

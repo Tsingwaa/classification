@@ -35,7 +35,7 @@ class Skin7(torch.utils.data.Dataset):
         self.phase = phase
         self.fold_i = fold_i
         self.transform = transform
-
+        self.mean, self.std = self.splitfold_mean_std[self.fold_i]
         data_dir = join(root, 'ISIC2018_Task3_Training_Input')
         self.img_names, self.targets = self.get_data(fold_i, root, phase)
 
