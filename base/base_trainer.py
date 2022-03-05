@@ -153,7 +153,10 @@ class BaseTrainer:
         loss_config = config["loss"]
         self.loss_name = loss_config["name"]
         self.loss_params = loss_config["param"]
-
+        if loss_config.get('DRW', False):
+            self.loss_drw_params = loss_config['DRW_param']
+        else:
+            self.loss_drw_params = None
         #######################################################################
         # Optimizer setting
         #######################################################################
@@ -240,13 +243,13 @@ class BaseTrainer:
                                            state_dict,
                                            except_keys=except_keys)
             _prefix = "Resumed checkpoint model_params to"
-        elif kwargs.get("pretrained", False):
-            pretrained_path = expanduser(kwargs["pretrained_fpath"])
-            state_dict = torch.load(pretrained_path, map_location="cpu")
-            model = self.update_state_dict(model,
-                                           state_dict,
-                                           except_keys=["fc"])
-            _prefix = "Resumed pretrained model_params to"
+        # elif kwargs.get("pretrained", False):
+        #     pretrained_path = expanduser(kwargs["pretrained_fpath"])
+        #     state_dict = torch.load(pretrained_path, map_location="cpu")
+        #     model = self.update_state_dict(model,
+        #                                    state_dict,
+        #                                    except_keys=["fc"])
+        #     _prefix = "Resumed pretrained model_params to"
 
         kwargs.pop("checkpoint", None)
         model_init_log = f"===> {_prefix} {network_name}(total_params"\

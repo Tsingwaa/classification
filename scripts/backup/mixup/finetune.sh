@@ -6,4 +6,7 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 #     train.py --config_path "configs/miniIN20_0.05/r18_h.yaml"
 
 # Single-GPU Training
-CUDA_VISIBLE_DEVICES=$1 python3 finetune.py --local_rank -1 --config_path $2
+# CUDA_VISIBLE_DEVICES=$1 python3 finetune.py --local_rank -1 --config_path $2
+CUDA_VISIBLE_DEVICES=2 python3 finetune.py --local_rank -1 --config_path 'configs/PathMNIST/r50pre_mixup_bs64.yaml'
+# CUDA_VISIBLE_DEVICES=2 python3 finetune.py --local_rank -1 --config_path 'configs/Skin7/r50pre_mixup.yaml'
+# CUDA_VISIBLE_DEVICES=2 python3 finetune.py --local_rank -1 --config_path 'configs/PathMNIST/r32_mixup.yaml'

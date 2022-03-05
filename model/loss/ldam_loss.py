@@ -2,13 +2,19 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # from pudb import set_trace
 from .builder import Losses
 
 
 @Losses.register_module('LDAM_Loss')
 class LDAMLoss(nn.Module):
-    def __init__(self, num_samples_per_cls, max_m=0.5, weight=None, s=30,
+
+    def __init__(self,
+                 num_samples_per_cls,
+                 max_m=0.5,
+                 weight=None,
+                 s=30,
                  **kwargs):
         """ Init LDAM loss
 
@@ -52,7 +58,8 @@ class LDAMLoss(nn.Module):
 
         # replace probs with x_m by index
         output = torch.where(index, x_m, probs)
-
+        if self.weight is not None:
+            self.weight = self.weight.cuda()
         return F.cross_entropy(self.s * output, target, weight=self.weight)
 
 

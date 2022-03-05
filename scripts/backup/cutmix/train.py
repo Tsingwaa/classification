@@ -96,7 +96,9 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Network
         #######################################################################
-        self.model = self.init_model(self.network_name, **self.network_params)
+        self.model = self.init_model(self.network_name, 
+                                        num_classes=trainset.num_classes,
+                                    **self.network_params)
 
         #######################################################################
         # Initialize Loss
@@ -165,20 +167,20 @@ class Trainer(BaseTrainer):
                 model=self.model,
                 criterion=self.criterion,
                 optimizer=self.optimizer,
-                num_samples_per_cls=trainset.num_samples_per_cls)
+                dataset=trainset)
             train_stat, train_loss = self.evaluate(
                 cur_epoch=cur_epoch,
                 valloader=self.eval_trainloader,
                 model=self.model,
                 criterion=self.criterion,
-                num_samples_per_cls=trainset.num_samples_per_cls,
+                dataset=trainset,
             )
             val_stat, val_loss = self.evaluate(
                 cur_epoch=cur_epoch,
                 valloader=self.valloader,
                 model=self.model,
                 criterion=self.criterion,
-                num_samples_per_cls=trainset.num_samples_per_cls)
+                dataset=trainset)
 
             if self.local_rank <= 0:
 
@@ -236,15 +238,23 @@ class Trainer(BaseTrainer):
                     best_group_mr = val_stat.group_mr
 
                 if (not cur_epoch % self.save_period) or is_best:
+                    # self.save_checkpoint(epoch=cur_epoch,
+                    #                      model=self.model,
+                    #                      optimizer=self.optimizer,
+                    #                      is_best=is_best,
+                    #                      mr=val_stat.mr,
+                    #                      group_mr=val_stat.group_mr,
+                    #                      prefix=f"seed{self.seed}",
+                    #                      save_dir=self.exp_dir,
+                    #                      criterion=self.criterion)
                     self.save_checkpoint(epoch=cur_epoch,
-                                         model=self.model,
-                                         optimizer=self.optimizer,
-                                         is_best=is_best,
-                                         mr=val_stat.mr,
-                                         group_mr=val_stat.group_mr,
-                                         prefix=f"seed{self.seed}",
-                                         save_dir=self.exp_dir,
-                                         criterion=self.criterion)
+                                        model=self.model,
+                                        optimizer=self.optimizer,
+                                        is_best=is_best,
+                                        stat=val_stat,
+                                        prefix=f"seed{self.seed}",
+                                        save_dir=self.exp_dir,
+                                    )
 
         if self.local_rank in [-1, 0]:
             end_time = datetime.now()
@@ -269,7 +279,7 @@ class Trainer(BaseTrainer):
                 f"*********************************************************\n")
 
     def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
-                    num_samples_per_cls, **kwargs):
+                    dataset, **kwargs):
         model.train()
 
         if self.local_rank in [-1, 0]:
@@ -278,7 +288,7 @@ class Trainer(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_samples_per_cls)
+        train_stat = ExpStat(dataset)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             optimizer.zero_grad()
@@ -330,7 +340,7 @@ class Trainer(BaseTrainer):
         return train_stat, train_loss_meter.avg
 
     def evaluate(self, cur_epoch, valloader, model, criterion,
-                 num_samples_per_cls, **kwargs):
+                 dataset, **kwargs):
         model.eval()
 
         if self.local_rank in [-1, 0]:
@@ -339,7 +349,7 @@ class Trainer(BaseTrainer):
                             ncols=0,
                             desc=f"                 {desc}")
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_samples_per_cls)
+        val_stat = ExpStat(dataset)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)

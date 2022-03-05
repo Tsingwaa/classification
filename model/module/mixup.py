@@ -24,6 +24,7 @@ class MixUp(Dataset):
             prob(float): probability of using cutmix
         """
         self.dataset = dataset
+        self.phase = self.dataset.phase
         self.num_classes = dataset.num_classes
         self.num_samples_per_cls = dataset.num_samples_per_cls
         self.num_mix = num_mix

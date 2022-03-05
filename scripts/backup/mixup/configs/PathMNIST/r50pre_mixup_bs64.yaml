@@ -15,7 +15,11 @@ finetune:
   trainloader:
     # sampler: BalanceSampler
     sampler: ""
+<<<<<<< HEAD
     batch_size: 128
+=======
+    batch_size: 64
+>>>>>>> dev
     num_workers: 4
   loss:
     name: CrossEntropyLoss

@@ -54,9 +54,8 @@ class StanfordDogs(torch.utils.data.Dataset):
 
     def __getitem__(self, item):
         # image
-        image = Image.open(join(self.root,
-                                'Images', self.img_paths[item])).convert(
-                                    'RGB')  # (C, H, W)
+        img_path = join(self.root, 'Images', self.img_paths[item])
+        image = Image.open(img_path).convert('RGB')  # (C, H, W)
         if self.transform is not None:
             image = self.transform(image)
 
@@ -121,7 +120,6 @@ class Imbalance_StanfordDogs(torch.utils.data.Dataset):
             self.num_samples_per_cls = [
                 self.targets.count(i) for i in range(self.num_classes)
             ]
-
         self.group_mode = "class"
 
     def get_img_num_per_cls(self):
@@ -179,9 +177,8 @@ class Imbalance_StanfordDogs(torch.utils.data.Dataset):
 
     def __getitem__(self, item):
         # image
-        image = Image.open(join(self.root,
-                                'Images', self.img_paths[item])).convert(
-                                    'RGB')  # (C, H, W)
+        img_path = join(self.root, 'Images', self.img_paths[item])
+        image = Image.open(img_path).convert('RGB')  # (C, H, W)
         if self.transform is not None:
             image = self.transform(image)
 

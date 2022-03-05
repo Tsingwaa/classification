@@ -1,4 +1,4 @@
-export PYTHONPATH=$PYTHONPATH:$HOME/project/classification
+export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 
 # Distributed Training
 # CUDA_VISIBLE_DEVICES=2,4 python3 -W ignore -m torch.distributed.launch\
@@ -10,4 +10,6 @@ export PYTHONPATH=$PYTHONPATH:$HOME/project/classification
 #     finetune.py --config_path "configs/ImageNet_LT/rx50_adapt2_remix_v2_4_0.6.yaml"
 
 # Single-GPU Training
-CUDA_VISIBLE_DEVICES=$1 python3 finetune.py --local_rank -1 --config_path $2
+# CUDA_VISIBLE_DEVICES=0 python3 finetune.py --local_rank -1 --config_path 'configs/Flowers/r50_cutmix.yaml' --seed 0
+CUDA_VISIBLE_DEVICES=1 python3 finetune.py --local_rank -1 --config_path 'configs/Dogs_0.1/r50_cutmix.yaml' --seed 0
+# CUDA_VISIBLE_DEVICES=4 python3 finetune.py --local_rank -1 --config_path 'configs/PathMNIST/r32_cutmix.yaml' --seed 0

@@ -5,6 +5,18 @@ from model.network.builder import Networks
 from torchvision import models
 
 
+class NormedLinear(nn.Module):
+
+    def __init__(self, in_features, out_features):
+        super(NormedLinear, self).__init__()
+        self.weight = nn.Parameter(torch.Tensor(in_features, out_features))
+        self.weight.data.uniform_(-1, 1).renorm_(2, 1, 1e-5).mul_(1e5)
+
+    def forward(self, x):
+        out = F.normalize(x, dim=1).mm(F.normalize(self.weight, dim=0))
+        return out
+
+
 @Networks.register_module("MobileNet_v2")
 class MobileNet_v2(nn.Module):
 
@@ -18,7 +30,8 @@ class MobileNet_v2(nn.Module):
         self.fc_in = 1280
 
         self.fc = nn.Linear(self.fc_in, num_classes)
-
+        if kwargs.get("norm", False):
+            self.fc = NormedLinear(self.fc_in, num_classes)
         if kwargs.get("pred_head", False):
             self.pred_head = nn.Sequential(
                 nn.Linear(self.fc_in, 512, bias=False),
