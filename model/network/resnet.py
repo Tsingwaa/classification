@@ -56,11 +56,9 @@ import torch.nn.functional as F
 # from pudb import set_trace
 from model.network.builder import Networks
 from torch import nn
-<<<<<<< HEAD
-from torch.nn import functional as F
-=======
 from torch.nn import Parameter
->>>>>>> dev
+
+# from torch.nn import functional as F
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-f37072fd.pth',
@@ -339,18 +337,12 @@ class ResNet(nn.Module):
                 nn.Linear(512 * block.expansion, 512, bias=False),
                 nn.BatchNorm1d(512),
                 nn.ReLU(inplace=True),
-<<<<<<< HEAD
                 nn.Linear(512, 128),
             )
-
-=======
-                nn.Linear(512, 512 * block.expansion),
-            )
-
         if kwargs.get("visualize", False):
             self.fc1 = nn.Linear(512 * block.expansion, 2)
             self.fc2 = nn.Linear(2, num_classes)
->>>>>>> dev
+
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight,
@@ -406,22 +398,21 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x1, x2=None, out_type="fc"):
-        if 'simsiam' in out_type:
-            x1 = self.extract(x1)
-            x2 = self.extract(x2)
-            z1 = self.proj_head(x1)
-            z2 = self.proj_head(x2)
+        # if 'simsiam' in out_type:
+        #     x1 = self.extract(x1)
+        #     x2 = self.extract(x2)
+        #     z1 = self.proj_head(x1)
+        #     z2 = self.proj_head(x2)
 
-            p1 = self.pred_head(z1)
-            p2 = self.pred_head(z2)
-            if out_type == "simsiam+fc":
-                fc1 = self.fc(x1)
-                fc2 = self.fc(x2)
-                return p1, p2, z1.detach(), z2.detach(), fc1, fc2
-            return p1, p2, z1.detach(), z2.detach()
-<<<<<<< HEAD
+        #     p1 = self.pred_head(z1)
+        #     p2 = self.pred_head(z2)
+        #     if out_type == "simsiam+fc":
+        #         fc1 = self.fc(x1)
+        #         fc2 = self.fc(x2)
+        #         return p1, p2, z1.detach(), z2.detach(), fc1, fc2
+        #     return p1, p2, z1.detach(), z2.detach()
 
-        elif out_type in ["supcon", "simclr"]:
+        if out_type in ["supcon", "simclr"]:
             x1 = self.extract(x1)
             logits = self.fc(x1)
             norm_vec = F.normalize(self.pred_head(x1), dim=1)
@@ -432,25 +423,11 @@ class ResNet(nn.Module):
             x = self.pred_head(x)
             return F.normalize(x, dim=1)
 
-=======
-        elif "fc" in out_type:
-            x = self.extract(x1)
-            if "1" in out_type:
-                x = self.fc1(x)
-                # x = F.normalize(x, dim=1)
-                if "2" in out_type:
-
-                    x = self.fc2(x)
-                    return x
-                return x
-            return self.fc(x)
-
-        elif out_type == "vec":
-            return self.extract(x1)
->>>>>>> dev
         else:
             x = self.extract(x1)
-            if "fc" in out_type:
+            if "vec" in out_type:
+                return x
+            elif "fc" in out_type:
                 if "1" in out_type:
                     x = self.fc1(x)
                     # x = F.normalize(x, dim=1)
@@ -458,8 +435,7 @@ class ResNet(nn.Module):
                         return self.fc2(x)
                     return x
                 return self.fc(x)
-            elif "vec" in out_type:
-                return x
+
             else:
                 raise TypeError
 
