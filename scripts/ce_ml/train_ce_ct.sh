@@ -13,13 +13,15 @@ export PYTHONPATH=$HOME/Projects/classification
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py --config_path "configs/Skin7/ds121pre_CE_CT.yaml"
 
 
+CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+    --config_path "configs/Skin7/r50pre_CE_CTphnorm.yaml"  --lambda_weight 0.001
 
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
-    --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.00005
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
-    --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.00001
-CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
-    --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.000005
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.00005
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.00001
+# CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
+#     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.000005
 
 # CUDA_VISIBLE_DEVICES="$1" python3 train_ce_ct.py \
 #     --config_path "configs/Skin7/r50pre_CE_CT.yaml"  --lambda_weight 0.0001

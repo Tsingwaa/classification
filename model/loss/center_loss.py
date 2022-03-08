@@ -42,10 +42,6 @@ class CenterLoss(nn.Module):
 
         super(CenterLoss, self).__init__()
         self.weight = weight
-
-        if self.weight is not None:
-            self.weight = self.weight.cuda()
-
         self.margin = margin
         self.centers = nn.Parameter(torch.randn(num_classes, feat_dim))
 
@@ -56,6 +52,8 @@ class CenterLoss(nn.Module):
             labels (Tensor or List, batch_size * 1): ground truth labels
         """
 
+        if self.weight is not None:
+            self.weight = self.weight.cuda()
         # self.centers = self.centers.cuda()  # (C, d)
 
         if self.margin == -1:  # 不使用margin

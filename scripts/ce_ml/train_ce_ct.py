@@ -14,6 +14,7 @@ from prefetch_generator import BackgroundGenerator
 # from pudb import set_trace
 from torch import distributed as dist
 from torch.nn import SyncBatchNorm
+from torch.nn import functional as F
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -340,6 +341,8 @@ class Trainer(BaseTrainer):
             batch_targets = batch_targets.cuda(non_blocking=True)
             batch_vecs = model(batch_imgs, out_type='vec')
             batch_probs = model.fc(batch_vecs)
+            batch_vecs = model.pred_head(batch_vecs)  # add pred_head
+            batch_vecs = F.normalize(batch_vecs, dim=1)
             loss1 = criterion(batch_probs, batch_targets)
             loss2 = criterion2(batch_vecs, batch_targets)
             avg_loss = loss1 + loss2 * self.lambda_weight
