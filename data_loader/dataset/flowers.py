@@ -1,19 +1,19 @@
 # import cv2
+# import random
 from os.path import join
 
-import pandas as pd
+import numpy as np
+# import pandas as pd
 import scipy.io as scio
 import torch
-import yaml
-from data_loader.dataset.builder import DATASETS_ROOT, PROJECT_ROOT, Datasets
+# import yaml
+from data_loader.dataset.builder import DATASETS_ROOT, Datasets
 from PIL import Image
-import random
-import numpy as np
+
 
 @Datasets.register_module("Flowers")
 class Flowers(torch.utils.data.Dataset):
     num_classes = 102
-
 
     def __init__(self,
                  phase,
@@ -36,8 +36,13 @@ class Flowers(torch.utils.data.Dataset):
         self.imb_type = imb_type
         labels = scio.loadmat(join(root, 'imagelabels.mat'))
         labels_list = list(labels['labels'][0])
-        l = {i:labels_list.count(i) for i in range( 1, max(labels_list)+1)}
-        old_num = dict(sorted(l.items(),key=lambda d:d[1], reverse=True))
+        label2num = {
+            i: labels_list.count(i)
+            for i in range(1,
+                           max(labels_list) + 1)
+        }
+        old_num = dict(
+            sorted(label2num.items(), key=lambda d: d[1], reverse=True))
         old_reverse = list(old_num.keys())
 
         self.map_new2old = {}
@@ -70,7 +75,7 @@ class Flowers(torch.utils.data.Dataset):
             self.num_samples_per_cls = [
                 self.targets.count(i) for i in range(self.num_classes)
             ]
-        
+
         self.group_mode = "class"
 
     def get_img_num_per_cls(self):
@@ -83,7 +88,9 @@ class Flowers(torch.utils.data.Dataset):
                 num_samples =\
                     max_num_samples * (self.imb_factor ** (
                         class_index / (self.num_classes - 1.0)))
-                num_samples_per_cls.append(min(int(num_samples), self.old_num_samples_per_cls[class_index]))
+                num_samples_per_cls.append(
+                    min(int(num_samples),
+                        self.old_num_samples_per_cls[class_index]))
         elif self.imb_type == 'step':
             half_num_classes = int(self.num_classes // 2)
 
@@ -127,7 +134,7 @@ class Flowers(torch.utils.data.Dataset):
     def __getitem__(self, index):
         img_path, target = self.img_paths[index], self.targets[index]
         img = Image.open(img_path).convert('RGB')
-        
+
         if self.transform is not None:
             img = self.transform(img)
 
@@ -137,6 +144,5 @@ class Flowers(torch.utils.data.Dataset):
         return len(self.targets)
 
 
-
 if __name__ == '__main__':
-   print()
+    print()
