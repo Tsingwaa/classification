@@ -5,10 +5,26 @@ export PYTHONPATH=$HOME/Projects/classification
 #     --master_addr 127.0.0.1 --master_port 30000 train.py --config_path $3
 
 # Single GPU
-CUDA_VISIBLE_DEVICES="$2" python3 train.py --config_path "$1" # --lr "$3" --wd "$4"
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r32_RS.yaml
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r32_RW.yaml
-CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r50_CE.yaml
-CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r50_CE_DRW.yaml
-CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r50_RS.yaml
-CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r50_RW.yaml
+# CUDA_VISIBLE_DEVICES="$2" python3 train.py --config_path "$1" # --lr "$3" --wd "$4"
+# CUDA_VISIBLE_DEVICES=5 python3 train.py --config_path configs/PathMNIST/r32_CE.yaml --seed 1
+# CUDA_VISIBLE_DEVICES=5 python3 train.py --config_path configs/PathMNIST/r32_CE.yaml --seed 2
+
+# CUDA_VISIBLE_DEVICES=5 python3 train.py --config_path configs/PathMNIST/r32_CE_DRW.yaml --seed 1
+# CUDA_VISIBLE_DEVICES=5 python3 train.py --config_path configs/PathMNIST/r32_CE_DRW.yaml --seed 2
+
+CUDA_VISIBLE_DEVICES=5 python3 train.py --config_path configs/PathMNIST/r32_RS.yaml --seed 1
+CUDA_VISIBLE_DEVICES=5 python3 train.py --config_path configs/PathMNIST/r32_RS.yaml --seed 2
+
+CUDA_VISIBLE_DEVICES=5 python3 train.py --config_path configs/PathMNIST/r32_RW.yaml --seed 1
+CUDA_VISIBLE_DEVICES=5 python3 train.py --config_path configs/PathMNIST/r32_RW.yaml --seed 2
+
+CUDA_VISIBLE_DEVICES=5 python3 train.py --config_path configs/PathMNIST/r32_Focal.yaml --seed 1
+CUDA_VISIBLE_DEVICES=5 python3 train.py --config_path configs/PathMNIST/r32_Focal.yaml --seed 2
+
+CUDA_VISIBLE_DEVICES=5 python3 train.py --config_path configs/PathMNIST/r32_CB-Focal.yaml --seed 1
+CUDA_VISIBLE_DEVICES=5 python3 train.py --config_path configs/PathMNIST/r32_CB-Focal.yaml --seed 2
+
+# CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r50_CE.yaml
+# CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r50_CE_DRW.yaml
+# CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r50_RS.yaml
+# CUDA_VISIBLE_DEVICES=0 python3 train.py --config_path configs/PathMNIST/r50_RW.yaml
