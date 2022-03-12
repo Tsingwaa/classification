@@ -81,6 +81,13 @@ loss:
     weight_type: ""
     label_smoothing: 0.
 
+loss2:
+  name: OnlineHardTripletLoss
+  param:
+    lambda: 0.1
+    weight_type: ""
+    margin: 50
+
 optimizer:
   name: SGD
   param:
@@ -96,12 +103,6 @@ lr_scheduler:
     T_max: 195
     eta_min: 1.0e-6
 
-loss2:
-  name: OnlineHardTripletLoss
-  param:
-    lambda: 0.1
-    weight_type: ""
-    margin: 50
 
 # optimizer2:
 #   name: SGD

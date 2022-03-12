@@ -26,8 +26,8 @@ class DataLoaderX(DataLoader):
 
 class Trainer(BaseTrainer):
 
-    def __init__(self, local_rank=None, config=None):
-        super(Trainer, self).__init__(local_rank, config)
+    def __init__(self, local_rank=None, config=None, seed=0):
+        super(Trainer, self).__init__(local_rank, config, seed=seed)
         self.mixup_params = config["mixup"]
 
     def train(self):
@@ -39,12 +39,12 @@ class Trainer(BaseTrainer):
         trainset = self.init_dataset(self.trainset_name,
                                      transform=train_transform,
                                      **self.trainset_params)
-        self.log(f"===> Build Cutmix for {self.trainset_name}"
+        self.log(f"===> Build Mixup for {self.trainset_name}"
                  f" with {self.mixup_params}")
-        trainset = MixUp(dataset=trainset, num_mix=1, **self.mixup_params)
+        mix_trainset = MixUp(dataset=trainset, num_mix=1, **self.mixup_params)
 
         train_sampler = self.init_sampler(self.train_sampler_name,
-                                          dataset=trainset,
+                                          dataset=mix_trainset,
                                           **self.trainloader_params)
         self.trainloader = DataLoaderX(trainset,
                                        batch_size=self.train_batchsize,
@@ -78,7 +78,9 @@ class Trainer(BaseTrainer):
         #######################################################################
         # Initialize Network
         #######################################################################
-        self.model = self.init_model(self.network_name, **self.network_params)
+        self.model = self.init_model(self.network_name, 
+                                        num_classes=trainset.num_classes, 
+                                        **self.network_params)
 
         #######################################################################
         # Initialize Loss
@@ -140,13 +142,13 @@ class Trainer(BaseTrainer):
                 self.model,
                 self.criterion,
                 self.opt,
-                trainset.num_classes,
+                trainset,
             )
 
             if self.local_rank in [-1, 0]:
                 val_stat, val_loss = self.evaluate(cur_epoch, self.valloader,
                                                    self.model, self.criterion,
-                                                   trainset.num_classes)
+                                                   trainset)
 
                 if self.final_epoch - cur_epoch <= 5:
                     last_mrs.append(val_stat.mr)
@@ -206,11 +208,9 @@ class Trainer(BaseTrainer):
                         model=self.model,
                         optimizer=self.opt,
                         is_best=is_best,
-                        mr=val_stat.mr,
-                        group_mr=val_stat.group_mr,
-                        prefix=None,
+                        stat=val_stat,
+                        prefix=f"seed{self.seed}",
                         save_dir=self.exp_dir,
-                        criterion=self.criterion,
                     )
 
         end_time = datetime.now()
@@ -236,7 +236,7 @@ class Trainer(BaseTrainer):
                 f"*********************************************************\n")
 
     def train_epoch(self, cur_epoch, trainloader, model, criterion, opt,
-                    num_classes, **kwargs):
+                    dataset, **kwargs):
         model.train()
 
         if self.local_rank in [-1, 0]:
@@ -245,7 +245,7 @@ class Trainer(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_classes)
+        train_stat = ExpStat(dataset)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             opt.zero_grad()
@@ -286,7 +286,7 @@ class Trainer(BaseTrainer):
 
         return train_stat, train_loss_meter.avg
 
-    def evaluate(self, cur_epoch, valloader, model, criterion, num_classes):
+    def evaluate(self, cur_epoch, valloader, model, criterion, dataset):
         model.eval()
 
         if self.local_rank in [-1, 0]:
@@ -294,7 +294,7 @@ class Trainer(BaseTrainer):
                             ncols=0,
                             desc="                 Val")
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_classes)
+        val_stat = ExpStat(dataset)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda()
@@ -345,7 +345,7 @@ def main(args):
     _set_random_seed()
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    trainer = Trainer(local_rank=args.local_rank, config=config)
+    trainer = Trainer(local_rank=args.local_rank, config=config, seed=0)
     trainer.train()
 
 

@@ -4,13 +4,13 @@ experiment:
   total_epochs: 100
   log_fname: train.log
   resume: False
-  resume_fpath: last.pth.tar
+  resume_fpath: best.pth.tar
   extract_phase: train
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRW
+  name: last_cRW
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
@@ -26,7 +26,7 @@ finetune:
     name: SGD
     param:
       lr: 0.01
-      weight_decay: 1.0e-5
+      weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -34,6 +34,7 @@ finetune:
     param:
       warmup_epochs: 0
       T_max: 10
+      eta_min: 1.0e-6
 
 train_transform:
   name: MedTransform
@@ -74,6 +75,7 @@ valloader:
 network:
   name: ResNet50
   param:
+    fc12: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
@@ -101,12 +103,12 @@ lr_scheduler:
 loss2:
   name: OnlineHardTripletLoss
   param:
-    margin: 100
+    margin: 50
     weight_type: ""
     # num_classes: 7
     # feat_dim: 2048
     # alpha: 0
-    lambda: 0.1
+    lambda: 0.001
     # margin: -1
 
 optimizer2:

@@ -60,6 +60,12 @@ class FineTuner(BaseTrainer):
 
         self.resume = True
 
+        # if "/" in self.exp_config["resume_fpath"]:
+        #     self.resume_fpath = self.exp_config["resume_fpath"]
+        # else:
+        #     self.resume_fpath = join(
+        #         self.exp_root, self.exp_name,
+        #         f"seed{self.seed}_{self.exp_config['resume_fpath']}")
         if "/" in self.exp_config["resume_fpath"]:
             self.resume_fpath = self.exp_config["resume_fpath"]
         else:
@@ -166,10 +172,16 @@ class FineTuner(BaseTrainer):
         #######################################################################
         # Initialize Network
         #######################################################################
+        # self.model = self.init_model(self.network_name,
+        #                              resume=True,
+        #                              checkpoint=self.checkpoint,
+        #                              num_classes=trainset.num_classes,
+        #                              **self.network_params)
         self.model = self.init_model(self.network_name,
                                      resume=True,
                                      checkpoint=self.checkpoint,
                                      num_classes=trainset.num_classes,
+                                     except_keys=["fc"],
                                      **self.network_params)
         self.freeze_model(self.model, unfreeze_keys=self.unfreeze_keys)
 
@@ -240,14 +252,14 @@ class FineTuner(BaseTrainer):
                 criterion=self.criterion,
                 optimizer=self.optimizer,
                 lr_scheduler=self.lr_scheduler,
-                num_samples_per_cls=trainset.num_samples_per_cls)
+                dataset=trainset)
 
             val_stat, val_loss = self.evaluate(
                 cur_epoch=cur_epoch,
                 valloader=self.valloader,
                 model=self.model,
                 criterion=self.criterion,
-                num_classes=trainset.num_classes)
+                dataset=trainset)
 
             if self.local_rank in [-1, 0]:
 
@@ -285,8 +297,7 @@ class FineTuner(BaseTrainer):
                         model=self.model,
                         optimizer=self.optimizer,
                         is_best=is_best,
-                        mr=val_stat.mr,
-                        group_mr=val_stat.group_mr,
+                        stat=val_stat,
                         prefix=f"seed{self.seed}_{self.finetune_name}",
                         save_dir=self.exp_dir)
 
@@ -312,7 +323,7 @@ class FineTuner(BaseTrainer):
                 f"*********************************************************\n")
 
     def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
-                    lr_scheduler, num_samples_per_cls):
+                    lr_scheduler, dataset):
 
         model.train()
 
@@ -322,7 +333,7 @@ class FineTuner(BaseTrainer):
                 desc=f"Train Epoch[{cur_epoch:>2d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
-        train_stat = ExpStat(num_samples_per_cls)
+        train_stat = ExpStat(dataset)
 
         for i, (batch_imgs, batch_labels) in enumerate(trainloader):
             optimizer.zero_grad()
@@ -368,7 +379,7 @@ class FineTuner(BaseTrainer):
         return train_stat, train_loss_meter.avg
 
     def evaluate(self, cur_epoch, valloader, model, criterion,
-                 num_samples_per_cls, **kwargs):
+                 dataset, **kwargs):
 
         model.eval()
 
@@ -379,7 +390,7 @@ class FineTuner(BaseTrainer):
                             desc=f"                 {desc}")
 
         val_loss_meter = AverageMeter()
-        val_stat = ExpStat(num_samples_per_cls)
+        val_stat = ExpStat(dataset)
         with torch.no_grad():
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)

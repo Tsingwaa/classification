@@ -1,8 +1,72 @@
+# import torch
+# import torch.nn as nn
+# import torch.nn.functional as F
+# from model.network.builder import Networks
+# from torchvision import models
+
+# @Networks.register_module("ResNet50")
+# class ResNet50(nn.Module):
+
+#     def __init__(self, num_classes, pretrained, **kwargs):
+#         super(ResNet50, self).__init__()
+#         self.num_classes = num_classes
+
+#         backbone = models.resnet50(pretrained=pretrained)
+#         self.features = nn.Sequential(*list(backbone.children())[:-1])
+#         self.fc_in = 2048
+
+#         self.fc = nn.Linear(self.fc_in, num_classes)
+
+#         if kwargs.get("pred_head", False):
+#             self.pred_head = nn.Sequential(
+#                 nn.Linear(self.fc_in, 512, bias=False),
+#                 nn.BatchNorm1d(512),
+#                 nn.ReLU(inplace=True),
+#                 nn.Linear(512, 128),
+#             )
+
+#     def extract(self, x):
+#         feat_map = self.features(x)
+#         feat_vec = torch.flatten(feat_map, 1)
+#         return feat_vec
+
+#     def forward(self, x1, x2=None, out_type="fc"):
+#         if out_type in ["supcon", "simclr"]:
+#             feat_vec = self.extract(x1)
+#             logits = self.fc(feat_vec)
+#             norm_vec = F.normalize(self.pred_head(feat_vec), dim=1)
+#             return logits, norm_vec
+
+#         elif out_type == "pred_head":
+#             feat_vec = self.extract(x1)
+#             de_feat_vec = self.pred_head(feat_vec)
+#             return F.normalize(de_feat_vec, dim=1)
+
+#         else:
+#             x1 = self.extract(x1)
+#             if 'fc' in out_type:
+#                 return self.fc(x1)
+#             elif "vec" in out_type:
+#                 return x1
+#             else:
+#                 raise TypeError
+
 import torch
+import torch.nn.functional as F
 # from pudb import set_trace
 from model.network.builder import Networks
 from torch import nn
+<<<<<<< HEAD
+from torch.nn import Parameter
+import torch.nn.functional as F
+
+=======
+<<<<<<< HEAD
 from torch.nn import functional as F
+=======
+from torch.nn import Parameter
+>>>>>>> dev
+>>>>>>> 4484494030179e20c26853f5fb1fa0df045dd76b
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-f37072fd.pth',
@@ -255,27 +319,12 @@ class ResNet(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
-        if kwargs.get("fc_3lp", False):
-            self.fc_3lp = nn.Sequential(
-                nn.Linear(512 * block.expansion, 512, bias=False),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Linear(512, 128, bias=False),
-                nn.BatchNorm1d(128),
-                nn.ReLU(inplace=True),
-                nn.Linear(128, num_classes),
-            )
-
-        if kwargs.get("sc_head", False):
-            self.sc_head = nn.Sequential(
-                nn.Linear(512 * block.expansion, 512, bias=False),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Linear(512, 128),
-            )
+        if kwargs.get("fc12", False):
+            self.fc1 = nn.Linear(512 * block.expansion, 2)
+            self.fc2 = nn.Linear(2, num_classes)
 
         if kwargs.get("proj_head", False):  # BN前的linear层取消bias
-            self.projector = nn.Sequential(
+            self.proj_head = nn.Sequential(
                 nn.Linear(512 * block.expansion,
                           512 * block.expansion,
                           bias=False),
@@ -292,13 +341,22 @@ class ResNet(nn.Module):
                 nn.BatchNorm1d(512 * block.expansion),
             )
         if kwargs.get("pred_head", False):
-            self.predictor = nn.Sequential(
+            self.pred_head = nn.Sequential(
                 nn.Linear(512 * block.expansion, 512, bias=False),
                 nn.BatchNorm1d(512),
                 nn.ReLU(inplace=True),
+<<<<<<< HEAD
+                nn.Linear(512, 128),
+            )
+
+=======
                 nn.Linear(512, 512 * block.expansion),
             )
 
+        if kwargs.get("visualize", False):
+            self.fc1 = nn.Linear(512 * block.expansion, 2)
+            self.fc2 = nn.Linear(2, num_classes)
+>>>>>>> dev
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight,
@@ -353,68 +411,61 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    # def forward(self, x, out_type='fc'):
-    #     # See note [TorchScript super()]
-    #     x = self.conv1(x)
-    #     x = self.bn1(x)
-    #     x = self.relu(x)
-    #     x = self.maxpool(x)
-
-    #     x = self.layer1(x)
-    #     x = self.layer2(x)
-    #     x = self.layer3(x)
-    #     # x = self.layer4(x)
-    #     # x = self.avgpool(x)
-    #     # x = torch.flatten(x, 1)
-    #     # return self.fc(x)
-
-    #     feat_map = self.layer4[:-1](x)
-
-    #     if out_type == 'map':
-    #         return feat_map
-    #     else:
-    #         feat_map = self.layer4[-1](feat_map)
-    #         feat_vec = self.avgpool(feat_map)
-    #         feat_vec = torch.flatten(feat_vec, 1)
-
-    #         if out_type == 'vec':
-    #             return feat_vec
-    #         elif out_type == 'fc':
-    #             return self.fc(feat_vec)
-    #         else:
-    #             raise TypeError
-
     def forward(self, x1, x2=None, out_type="fc"):
         if 'simsiam' in out_type:
             x1 = self.extract(x1)
             x2 = self.extract(x2)
-            z1 = self.projector(x1)
-            z2 = self.projector(x2)
+            z1 = self.proj_head(x1)
+            z2 = self.proj_head(x2)
 
-            p1 = self.predictor(z1)
-            p2 = self.predictor(z2)
+            p1 = self.pred_head(z1)
+            p2 = self.pred_head(z2)
             if out_type == "simsiam+fc":
                 fc1 = self.fc(x1)
                 fc2 = self.fc(x2)
                 return p1, p2, z1.detach(), z2.detach(), fc1, fc2
             return p1, p2, z1.detach(), z2.detach()
+<<<<<<< HEAD
 
-        else:
+        elif out_type in ["supcon", "simclr"]:
             x1 = self.extract(x1)
+            logits = self.fc(x1)
+            norm_vec = F.normalize(self.pred_head(x1), dim=1)
+            return logits, norm_vec
 
-            if 'fc' in out_type:
-                # if out_type == "fc_norm":
-                #     norm_x1 = F.normalize(x1, dim=1)
-                #     return self.fc(norm_x1)
-                return self.fc(x1)
+        elif out_type == "pred_head":
+            x = self.extract(x1)
+            x = self.pred_head(x)
+            return F.normalize(x, dim=1)
 
+=======
+        elif "fc" in out_type:
+            x = self.extract(x1)
+            if "1" in out_type:
+                x = self.fc1(x)
+                # x = F.normalize(x, dim=1)
+                if "2" in out_type:
+
+                    x = self.fc2(x)
+                    return x
+                return x
+            return self.fc(x)
+
+        elif out_type == "vec":
+            return self.extract(x1)
+>>>>>>> dev
+        else:
+            x = self.extract(x1)
+            if "fc" in out_type:
+                if "1" in out_type:
+                    x = self.fc1(x)
+                    # x = F.normalize(x, dim=1)
+                    if "2" in out_type:
+                        return self.fc2(x)
+                    return x
+                return self.fc(x)
             elif "vec" in out_type:
-                # if out_type == "vec_norm":
-                #     return F.normalize(x1, dim=1)
-                if out_type == "vec_2lp_norm":
-                    return F.normalize(self.vec_2lp_128(x1), dim=1)
-                return x1
-
+                return x
             else:
                 raise TypeError
 
@@ -495,3 +546,157 @@ class ResNeXt50(ResNet):
                                         groups=32,
                                         width_per_group=4,
                                         **kwargs)
+
+
+class NormedLinear(nn.Module):
+
+    def __init__(self, in_features, out_features):
+        super(NormedLinear, self).__init__()
+        self.weight = Parameter(torch.Tensor(in_features, out_features))
+        self.weight.data.uniform_(-1, 1).renorm_(2, 1, 1e-5).mul_(1e5)
+
+    def forward(self, x):
+        out = F.normalize(x, dim=1).mm(F.normalize(self.weight, dim=0))
+        return out
+
+
+class ResNet_NormLayer(nn.Module):
+
+    def __init__(self,
+                 block,
+                 layers,
+                 num_classes=1000,
+                 zero_init_residual=False,
+                 groups=1,
+                 width_per_group=64,
+                 replace_stride_with_dilation=None,
+                 norm_layer=None,
+                 **kwargs):
+        super(ResNet_NormLayer, self).__init__()
+
+        if norm_layer is None:
+            norm_layer = nn.BatchNorm2d
+        self._norm_layer = norm_layer
+
+        self.inplanes = 64
+        self.dilation = 1
+
+        if replace_stride_with_dilation is None:
+            # each element in the tuple indicates if we should replace
+            # the 2x2 stride with a dilated convolution instead
+            replace_stride_with_dilation = [False, False, False]
+
+        if len(replace_stride_with_dilation) != 3:
+            raise ValueError("replace_stride_with_dilation should be None "
+                             "or a 3-element tuple, got {}".format(
+                                 replace_stride_with_dilation))
+        self.groups = groups
+        self.base_width = width_per_group
+        self.conv1 = nn.Conv2d(3,
+                               self.inplanes,
+                               kernel_size=7,
+                               stride=2,
+                               padding=3,
+                               bias=False)
+        self.bn1 = norm_layer(self.inplanes)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.layer1 = self._make_layer(block,
+                                       planes=64,
+                                       blocks=layers[0],
+                                       stride=1)
+        self.layer2 = self._make_layer(block,
+                                       planes=128,
+                                       blocks=layers[1],
+                                       stride=2,
+                                       dilate=replace_stride_with_dilation[0])
+        self.layer3 = self._make_layer(block,
+                                       planes=256,
+                                       blocks=layers[2],
+                                       stride=2,
+                                       dilate=replace_stride_with_dilation[1])
+        self.layer4 = self._make_layer(block,
+                                       planes=512,
+                                       blocks=layers[3],
+                                       stride=2,
+                                       dilate=replace_stride_with_dilation[2])
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = NormedLinear(512 * block.expansion, num_classes)
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight,
+                                        mode='fan_out',
+                                        nonlinearity='relu')
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+        if zero_init_residual:
+            for m in self.modules():
+                if isinstance(m, Bottleneck):
+                    nn.init.constant_(m.bn3.weight, 0)
+                elif isinstance(m, BasicBlock):
+                    nn.init.constant_(m.bn2.weight, 0)
+
+    def _make_layer(self, block, planes, blocks, stride=1, dilate=False):
+        norm_layer = self._norm_layer
+        downsample = None
+        previous_dilation = self.dilation
+
+        if dilate:
+            self.dilation *= stride
+            stride = 1
+
+        if stride != 1 or self.inplanes != planes * block.expansion:
+            downsample = nn.Sequential(
+                conv1x1(self.inplanes, planes * block.expansion, stride),
+                norm_layer(planes * block.expansion),
+            )
+
+        layers = [
+            block(self.inplanes, planes, stride, downsample, self.groups,
+                  self.base_width, previous_dilation, norm_layer)
+        ]
+        self.inplanes = planes * block.expansion
+
+        for _ in range(1, blocks):
+            layers.append(
+                block(self.inplanes,
+                      planes,
+                      groups=self.groups,
+                      base_width=self.base_width,
+                      dilation=self.dilation,
+                      norm_layer=norm_layer))
+
+        return nn.Sequential(*layers)
+
+    def forward(self, x1, x2=None, out_type="fc"):
+
+        return self.fc(self.extract(x1))
+
+    def extract(self, x):
+        # See note [TorchScript super()]
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+
+        return x
+
+
+@Networks.register_module('ResNet50_NormLayer')
+class ResNet50_NormLayer(ResNet_NormLayer):
+
+    def __init__(self, num_classes, **kwargs):
+        super(ResNet50_NormLayer, self).__init__(block=Bottleneck,
+                                                 layers=[3, 4, 6, 3],
+                                                 num_classes=num_classes,
+                                                 **kwargs)

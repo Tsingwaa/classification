@@ -44,6 +44,8 @@ class Trainer(BaseTrainer):
         self.scheduler2_name = scheduler2_config['name']
         self.scheduler2_params = scheduler2_config['param']
 
+        self.drw = config["experiment"]["drw"]
+
     def train(self):
         #######################################################################
         # Initialize Dataset and Dataloader
@@ -165,6 +167,15 @@ class Trainer(BaseTrainer):
         self.final_epoch = self.start_epoch + self.total_epochs
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
+
+            if self.drw and cur_epoch == 0.8 * self.total_epochs + 1:
+                self.log("===> Start deferred re-weighting training...")
+                weight = self.get_class_weight(trainset.num_samples_per_cls,
+                                               weight_type="class-balanced")
+                self.criterion = self.init_loss(self.loss3_name,
+                                                weight=weight,
+                                                **self.loss3_params)
+
             self.lr_scheduler.step()
             self.lr_scheduler2.step()
 
@@ -315,7 +326,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                ncols=140,
+                ncols=0,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -426,9 +437,9 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
                                      f"MR:{val_stat.mr:>7.2%} "
-                                     f"[{val_stat.group_mr[0]:>3.0%}, "
-                                     f"{val_stat.group_mr[1]:>3.0%}, "
-                                     f"{val_stat.group_mr[2]:>3.0%}]")
+                                     f"[{val_stat.group_mr[0]:>4.0%}, "
+                                     f"{val_stat.group_mr[1]:>4.0%}, "
+                                     f"{val_stat.group_mr[2]:>4.0%}]")
             val_pbar.close()
 
         return val_stat, val_loss_meter.avg
@@ -443,13 +454,14 @@ def parse_args():
                         "if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--lambda_weight", type=float, default=1.)
+    parser.add_argument("--lambda_weight", type=float, default=0.001)
+    parser.add_argument("--drw", action='store_true')  # default: False
     args = parser.parse_args()
 
     return args
 
 
-def _set_random_seed(seed=0, cuda_deterministic=True):
+def _set_random_seed(seed=0, cuda_deterministic=False):
     """Set seed and control the balance between reproducity and efficiency
 
     Reproducity: cuda_deterministic = True
@@ -480,9 +492,11 @@ def main(args):
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # update config
-    config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
-    config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
+    if args.lambda_weight != 0.001:
+        config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+        config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
 
+    config["experiment"]["drw"] = args.drw  # Default: False
     trainer = Trainer(local_rank=args.local_rank,
                       config=config,
                       seed=args.seed)

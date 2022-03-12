@@ -10,7 +10,7 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRW
+  name: last_cRW
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
@@ -99,7 +99,7 @@ lr_scheduler:
 loss2:
   name: CenterLoss
   param:
-    lambda: 0.01
+    lambda: 0.001
     weight_type: ""
     num_classes: 9
     feat_dim: 64

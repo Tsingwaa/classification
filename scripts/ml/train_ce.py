@@ -85,6 +85,8 @@ class Trainer(BaseTrainer):
         #######################################################################
         self.model = self.init_model(self.network_name,
                                      num_classes=trainset.num_classes,
+                                     resume=self.resume,
+                                     checkpoint=self.checkpoint,
                                      **self.network_params)
 
         #######################################################################
@@ -176,13 +178,13 @@ class Trainer(BaseTrainer):
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                     f"LR:{self.optimizer.param_groups[0]['lr']:.1e} "
-                    f"Trainset Loss={train_loss:>4.1f} "
+                    f"Trainset Loss={train_loss:>5.3f} "
                     f"MR={train_stat.mr:>7.2%}"
                     f"[{train_stat.group_mr[0]:>7.2%}, "
                     f"{train_stat.group_mr[1]:>7.2%}, "
                     f"{train_stat.group_mr[2]:>7.2%}]"
                     f" || "
-                    f"Valset Loss={val_loss:>4.1f} "
+                    f"Valset Loss={val_loss:>5.3f} "
                     f"MR={val_stat.mr:>6.2%}"
                     f"[{val_stat.group_mr[0]:>6.2%}, "
                     f"{val_stat.group_mr[1]:>6.2%}, "
@@ -244,7 +246,7 @@ class Trainer(BaseTrainer):
                         optimizer=self.optimizer,
                         is_best=is_best,
                         stat=val_stat,
-                        prefix=f"seed{self.seed}",
+                        prefix=f"seed{self.seed}_ce",
                         save_dir=self.exp_dir,
                     )
 
@@ -282,7 +284,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                ncols=132,
+                ncols=0,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]",
             )
 
@@ -311,7 +313,7 @@ class Trainer(BaseTrainer):
                 train_pbar.update()
                 train_pbar.set_postfix_str(
                     f"LR:{optimizer.param_groups[0]['lr']:.1e} "
-                    f"Loss:{train_loss_meter.avg:>3.1f}")
+                    f"Loss:{train_loss_meter.avg:>5.3f}")
 
         if self.local_rank != -1:
             dist.barrier()
@@ -321,7 +323,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar.set_postfix_str(
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
-                f"Loss:{train_loss_meter.avg:>4.2f} "
+                f"Loss:{train_loss_meter.avg:>5.3f} "
                 f"MR:{train_stat.mr:>7.2%} "
                 f"[{train_stat.group_mr[0]:>4.0%}, "
                 f"{train_stat.group_mr[1]:>4.0%}, "
@@ -361,14 +363,14 @@ class Trainer(BaseTrainer):
                 if self.local_rank in [-1, 0]:
                     val_pbar.update()
                     val_pbar.set_postfix_str(
-                        f"Loss:{val_loss_meter.avg:>3.1f}")
+                        f"Loss:{val_loss_meter.avg:>5.3f}")
 
         if self.local_rank != -1:
             dist.barrier()
             val_stat._cm = self._reduce_tensor(val_stat._cm, op="sum")
 
         if self.local_rank in [-1, 0]:
-            val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
+            val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>5.3f} "
                                      f"MR:{val_stat.mr:>6.2%} "
                                      f"[{val_stat.group_mr[0]:>3.0%}, "
                                      f"{val_stat.group_mr[1]:>3.0%}, "
@@ -397,7 +399,7 @@ def parse_args():
     return args
 
 
-def _set_random_seed(seed=0, cuda_deterministic=True):
+def _set_random_seed(seed=0, cuda_deterministic=False):
     """Set seed and control the balance between reproducity and efficiency
     Reproducity: cuda_deterministic = True
     Efficiency: cuda_deterministic = False

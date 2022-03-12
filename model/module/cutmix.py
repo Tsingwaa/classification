@@ -39,9 +39,9 @@ class CutMix(Dataset):
         self.dataset = dataset
         self.num_classes = dataset.num_classes
         self.num_samples_per_cls = dataset.num_samples_per_cls
-        self.class_weight = dataset.class_weight
-        self.indexes_per_cls = dataset.indexes_per_cls
-
+        # self.class_weight = dataset.class_weight
+        # self.indexes_per_cls = dataset.indexes_per_cls
+        self.phase = self.dataset.phase
         self.num_mix = num_mix
         self.beta = beta
         self.prob = prob

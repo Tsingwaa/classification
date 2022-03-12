@@ -329,7 +329,7 @@ class FineTuner(BaseTrainer):
         if self.local_rank <= 0:
             train_pbar = tqdm(
                 total=len(trainloader),
-                ncols=132,
+                ncols=0,
                 desc=f"Train Epoch[{cur_epoch:>2d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -394,7 +394,7 @@ class FineTuner(BaseTrainer):
             for i, (batch_imgs, batch_labels) in enumerate(valloader):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
-                batch_probs = model(batch_imgs)
+                batch_probs = model(batch_imgs, out_type='fc')
                 batch_preds = torch.argmax(batch_probs, dim=1)
                 avg_loss = criterion(batch_probs, batch_labels)
 

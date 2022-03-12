@@ -36,6 +36,20 @@ class Trainer(BaseTrainer):
         self.loss2_params = loss2_config['param']
         self.lambda_weight = self.loss2_params.get('lambda', 1.)
 
+        self.drw = config["experiment"]["drw"]
+        if self.drw:
+            loss3_config = config['loss3']
+            self.loss3_name = loss3_config['name']
+            self.loss3_params = loss3_config['param']
+
+            opt3_config = config["optimizer3"]
+            self.opt3_name = opt3_config["name"]
+            self.opt3_params = opt3_config["param"]
+
+            scheduler3_config = config["lr_scheduler3"]
+            self.scheduler3_name = scheduler3_config["name"]
+            self.scheduler3_params = scheduler3_config["param"]
+
     def train(self):
         #######################################################################
         # Initialize Dataset and Dataloader
@@ -151,6 +165,14 @@ class Trainer(BaseTrainer):
         self.final_epoch = self.start_epoch + self.total_epochs
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
+            if self.drw and cur_epoch == 0.8 * self.total_epochs + 1:
+                self.log("===> Start deferred re-weighting training...")
+                weight = self.get_class_weight(trainset.num_samples_per_cls,
+                                               weight_type="class-balanced")
+                self.criterion = self.init_loss(self.loss_name,
+                                                weight=weight,
+                                                **self.loss_params)
+
             self.lr_scheduler.step()
 
             if self.local_rank != -1:
@@ -298,7 +320,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                ncols=140,
+                ncols=0,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -420,13 +442,14 @@ def parse_args():
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--margin", type=int, default=50)
-    parser.add_argument("--lambda_weight", type=float, default=1.)
+    parser.add_argument("--lambda_weight", type=float, default=0.001)
+    parser.add_argument("--drw", action='store_true')  # default: False
     args = parser.parse_args()
 
     return args
 
 
-def _set_random_seed(seed=0, cuda_deterministic=True):
+def _set_random_seed(seed=0, cuda_deterministic=False):
     """Set seed and control the balance between reproducity and efficiency
 
     Reproducity: cuda_deterministic = True
@@ -457,13 +480,18 @@ def main(args):
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # update config
-    config["experiment"]["name"] +=\
-        f"_lmd{args.lambda_weight}_mg{args.margin}"
-    config["loss2"]["param"].update({
-        "lambda": float(args.lambda_weight),
-        "margin": float(args.margin),
-    })
+    if args.lambda_weight != 0.001:
+        config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+        config["loss2"]["param"].update({
+            "lambda": float(args.lambda_weight),
+        })
+    # if args.margin != 50:
+    #     config["experiment"]["name"] += f"_mg{args.margin}"
+    #     config["loss2"]["param"].update({
+    #         "margin": float(args.margin),
+    #     })
 
+    config["experiment"]["drw"] = args.drw  # Default: False
     trainer = Trainer(local_rank=args.local_rank,
                       config=config,
                       seed=args.seed)
