@@ -11,7 +11,7 @@ experiment:
 finetune:
   name: last_visual
   total_epochs: 10
-  unfreeze_keys: []
+  unfreeze_keys: ["fc"]
   trainloader:
     sampler: ""
     batch_size: 32
@@ -83,8 +83,8 @@ valloader:
 network:
   name: ResNet50
   param:
-    pretrained: True
     visualize: True
+    pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:
