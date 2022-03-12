@@ -9,4 +9,5 @@ from .ldam_loss import *
 from .online_triplet_loss import *
 from .simsiam_loss import *
 from .softmax_loss import *
+from .supcontrast_loss import *
 from .triplet_loss import *

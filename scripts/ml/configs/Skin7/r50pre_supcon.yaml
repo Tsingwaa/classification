@@ -1,5 +1,5 @@
 experiment:
-  name: Skin7_r50_simsiam1
+  name: Skin7_r50pre_supcon
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -24,7 +24,7 @@ finetune:
   optimizer:
     name: SGD
     param:
-      lr: 0.01
+      lr: 1.0e-1
       weight_decay: 1.0e-5
       momentum: 0.9
       nesterov: True
@@ -85,14 +85,15 @@ valloader:
 network:
   name: ResNet50
   param:
-    proj_head: True
-    pred_head: True
+    # proj_head: True
+    # pred_head: True
     # mlp_fc: True
-    pretrained: False
+    vec_2lp_128: True
+    pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:
-  name: SimSiamLoss
+  name: SupContrastLoss
   param:
     weight_type: ""
     label_smoothing: 0.
@@ -100,7 +101,7 @@ loss:
 optimizer:
   name: SGD
   param:
-    lr: 0.05
+    lr: 0.01
     weight_decay: 1.0e-5
     momentum: 0.9
     nesterov: True

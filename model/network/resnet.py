@@ -5,6 +5,7 @@ from torch import nn
 from torch.nn import Parameter
 import torch.nn.functional as F
 
+
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-f37072fd.pth',
     'resnet34': 'https://download.pytorch.org/models/resnet34-b627a593.pth',
@@ -256,6 +257,25 @@ class ResNet(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
+        if kwargs.get("fc_3lp", False):
+            self.fc_3lp = nn.Sequential(
+                nn.Linear(512 * block.expansion, 512, bias=False),
+                nn.BatchNorm1d(512),
+                nn.ReLU(inplace=True),
+                nn.Linear(512, 128, bias=False),
+                nn.BatchNorm1d(128),
+                nn.ReLU(inplace=True),
+                nn.Linear(128, num_classes),
+            )
+
+        if kwargs.get("sc_head", False):
+            self.sc_head = nn.Sequential(
+                nn.Linear(512 * block.expansion, 512, bias=False),
+                nn.BatchNorm1d(512),
+                nn.ReLU(inplace=True),
+                nn.Linear(512, 128),
+            )
+
         if kwargs.get("proj_head", False):  # BN前的linear层取消bias
             self.projector = nn.Sequential(
                 nn.Linear(512 * block.expansion,
@@ -279,17 +299,6 @@ class ResNet(nn.Module):
                 nn.BatchNorm1d(512),
                 nn.ReLU(inplace=True),
                 nn.Linear(512, 512 * block.expansion),
-            )
-
-        if kwargs.get("mlp_fc", False):
-            self.mlp_fc = nn.Sequential(
-                nn.Linear(512 * block.expansion, 512, bias=False),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Linear(512, 512, bias=False),
-                nn.BatchNorm1d(512),
-                nn.ReLU(inplace=True),
-                nn.Linear(512, num_classes),
             )
 
         for m in self.modules():
@@ -381,26 +390,35 @@ class ResNet(nn.Module):
         if 'simsiam' in out_type:
             x1 = self.extract(x1)
             x2 = self.extract(x2)
-
             z1 = self.projector(x1)
             z2 = self.projector(x2)
 
             p1 = self.predictor(z1)
             p2 = self.predictor(z2)
-
             if out_type == "simsiam+fc":
                 fc1 = self.fc(x1)
                 fc2 = self.fc(x2)
                 return p1, p2, z1.detach(), z2.detach(), fc1, fc2
             return p1, p2, z1.detach(), z2.detach()
-        elif out_type == 'fc':
-            return self.fc(self.extract(x1))
-        elif out_type == "mlp_fc":
-            return self.mlp_fc(self.extract(x1))
-        elif out_type == "vec":
-            return self.extract(x1)
+
         else:
-            raise TypeError
+            x1 = self.extract(x1)
+
+            if 'fc' in out_type:
+                # if out_type == "fc_norm":
+                #     norm_x1 = F.normalize(x1, dim=1)
+                #     return self.fc(norm_x1)
+                return self.fc(x1)
+
+            elif "vec" in out_type:
+                # if out_type == "vec_norm":
+                #     return F.normalize(x1, dim=1)
+                if out_type == "vec_2lp_norm":
+                    return F.normalize(self.vec_2lp_128(x1), dim=1)
+                return x1
+
+            else:
+                raise TypeError
 
     def extract(self, x):
         # See note [TorchScript super()]

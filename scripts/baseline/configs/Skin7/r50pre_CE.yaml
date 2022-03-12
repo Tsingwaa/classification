@@ -25,8 +25,8 @@ finetune:
   optimizer:
     name: SGD
     param:
-      lr: 1.0e-1
-      weight_decay: 5.0e-4
+      lr: 1.0e-2
+      weight_decay: 1.0e-5
       momentum: 0.9
       nesterov: True
   lr_scheduler:
