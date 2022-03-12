@@ -7,7 +7,7 @@ from datetime import datetime
 import numpy as np
 import torch
 import yaml
-from apex import amp
+# from apex import amp
 from base.base_trainer import BaseTrainer
 from model.module import MixUp
 from prefetch_generator import BackgroundGenerator
@@ -104,9 +104,9 @@ class Trainer(BaseTrainer):
         #######################################################################
 
         if self.local_rank != -1:
-            self.model, self.opt = amp.initialize(self.model,
-                                                  self.opt,
-                                                  opt_level="O1")
+            # self.model, self.opt = amp.initialize(self.model,
+            #                                       self.opt,
+            #                                       opt_level="O1")
             self.model = DistributedDataParallel(self.model,
                                                  device_ids=[self.local_rank],
                                                  output_device=self.local_rank,
