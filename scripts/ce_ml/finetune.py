@@ -263,13 +263,13 @@ class FineTuner(BaseTrainer):
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                     f"LR:{self.optimizer.param_groups[0]['lr']:.1e} "
                     f"Trainset Loss={train_loss:>4.1f} "
-                    f"MR={train_stat.mr:>7.2%}"
+                    f"MR={train_stat.mr:>7.2%} "
                     f"[{train_stat.group_mr[0]:>7.2%}, "
                     f"{train_stat.group_mr[1]:>7.2%}, "
                     f"{train_stat.group_mr[2]:>7.2%}]"
                     f" || "
                     f"Valset Loss={val_loss:>4.1f} "
-                    f"MR={val_stat.mr:>6.2%}"
+                    f"MR={val_stat.mr:>6.2%} "
                     f"[{val_stat.group_mr[0]:>6.2%}, "
                     f"{val_stat.group_mr[1]:>6.2%}, "
                     f"{val_stat.group_mr[2]:>6.2%}]",
@@ -328,7 +328,7 @@ class FineTuner(BaseTrainer):
         if self.local_rank <= 0:
             train_pbar = tqdm(
                 total=len(trainloader),
-                ncols=120,
+                ncols=0,
                 desc=f"Train Epoch[{cur_epoch:>2d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -356,7 +356,7 @@ class FineTuner(BaseTrainer):
                 train_pbar.update()
                 train_pbar.set_postfix_str(
                     f"LR:{optimizer.param_groups[0]['lr']:.1e} "
-                    f"Loss:{train_loss_meter.avg:>4.2f}")
+                    f"Loss:{train_loss_meter.avg:>5.3f}")
 
         if self.local_rank != -1:
             # all reduce the statistical confusion matrix
@@ -368,9 +368,9 @@ class FineTuner(BaseTrainer):
                 f"LR:{optimizer.param_groups[0]['lr']:.1e} "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
                 f"MR:{train_stat.mr:>7.2%} "
-                f"[{train_stat.group_mr[0]:>3.0%}, "
-                f"{train_stat.group_mr[1]:>3.0%}, "
-                f"{train_stat.group_mr[2]:>3.0%}]")
+                f"[{train_stat.group_mr[0]:>4.0%}, "
+                f"{train_stat.group_mr[1]:>4.0%}, "
+                f"{train_stat.group_mr[2]:>4.0%}]")
 
             train_pbar.close()
 
@@ -385,7 +385,7 @@ class FineTuner(BaseTrainer):
             desc = kwargs.pop("desc", "Val")
             val_pbar = tqdm(total=len(valloader),
                             ncols=0,
-                            desc=f"                 {desc}")
+                            desc=f"          {desc}")
 
         val_loss_meter = AverageMeter()
         val_stat = ExpStat(dataset)
@@ -394,7 +394,7 @@ class FineTuner(BaseTrainer):
                 batch_imgs = batch_imgs.cuda(non_blocking=True)
                 batch_labels = batch_labels.cuda(non_blocking=True)
 
-                batch_probs = model(batch_imgs)
+                batch_probs = model(batch_imgs, out_type="fc")
 
                 avg_loss = criterion(batch_probs, batch_labels)
 
@@ -438,12 +438,13 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lambda_weight", type=float, default=0.001)
     parser.add_argument("--margin", type=int, default=50)
+    parser.add_argument("--t", type=float, default=0.05)
     args = parser.parse_args()
 
     return args
 
 
-def _set_random_seed(seed=0, cuda_deterministic=True):
+def _set_random_seed(seed=0, cuda_deterministic=False):
     """Set seed and control the balance between reproducity and efficiency
 
     Reproducity: cuda_deterministic = True
@@ -473,16 +474,17 @@ def main(args):
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    if any(s in config["experiment"]["name"] for s in ["CT", "simsiam"]):
+    if any(s in config["experiment"]["name"] for s in ["CT", "TP", "supcon"]):
         config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
-        config["loss2"]["param"].update({"lambda": float(args.lambda_weight)})
-    elif "TP" in config["experiment"]["name"]:
-        config["experiment"]["name"] +=\
-            f"_lmd{args.lambda_weight}_mg{args.margin}"
-        config["loss2"]["param"].update({
-            "lambda": float(args.lambda_weight),
-            "margin": float(args.margin),
-        })
+        config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
+
+    # if args.margin != 50:
+    #     config["experiment"]["name"] += f"_mg{args.margin}"
+    #     config["loss2"]["param"]["margin"] = float(args.margin)
+
+    # if args.t != 0.05:
+    #     config["experiment"]["name"] += f"_t{args.t}"
+    #     config["loss2"]["param"]["temperature"] = float(args.t)
 
     finetuner = FineTuner(local_rank=args.local_rank,
                           config=config,

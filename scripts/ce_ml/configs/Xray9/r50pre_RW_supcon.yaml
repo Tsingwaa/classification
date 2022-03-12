@@ -1,0 +1,108 @@
+experiment:
+  name: Xray9_r50pre_RW_supcon
+  start_epoch: 1
+  total_epochs: 100
+  log_fname: train.log
+  resume: False
+  resume_fpath: last.pth.tar
+  save_period: 10
+  eval_period: 1  # if 0, remove validate process when training.
+
+finetune:
+  name: last_cRW
+  total_epochs: 10
+  unfreeze_keys: ["fc"]
+  trainloader:
+    sampler: ""
+    batch_size: 64
+    num_workers: 4
+  loss:
+    name: CrossEntropyLoss
+    param:
+      weight_type: inverse
+      label_smoothing: 0.
+  optimizer:
+    name: SGD
+    param:
+      lr: 0.1
+      weight_decay: 5.0e-4
+      momentum: 0.9
+      nesterov: True
+  lr_scheduler:
+    name: CosineAnnealingLR
+    param:
+      warmup_epochs: 0
+      T_max: 10
+      eta_min: 1.0e-6
+
+train_transform:
+  name: MedTransform
+  param:
+    phase: train
+    resize: [224, 224]
+
+val_transform:
+  name: MedTransform
+  param:
+    phase: val
+    resize: [224, 224]
+
+train_dataset:
+  name: Xray9
+  param:
+    phase: train
+    fold_i: 0
+
+val_dataset:
+  name: Xray9
+  param:
+    phase: test
+    fold_i: 0
+
+trainloader:
+  sampler: ""
+  batch_size: 64
+  num_workers: 4
+
+valloader:
+  sampler: ""
+  batch_size: 64
+  num_workers: 4
+
+network:
+  name: ResNet50
+  param:
+    # proj_head: True
+    pred_head: True
+    pretrained: True
+    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+
+loss:
+  name: CrossEntropyLoss
+  param:
+    weight_type: ""
+    label_smoothing: 0.
+
+loss2:
+  name: SupContrastLoss
+  param:
+    lambda: 1.0
+    weight_type: ""
+    label_smoothing: 0.
+    temperature: 0.05
+    # base_temperature: 0.1
+
+optimizer:
+  name: SGD
+  param:
+    lr: 0.001
+    weight_decay: 5.0e-4
+    momentum: 0.9
+    nesterov: True
+
+lr_scheduler:
+  name: CosineAnnealingLR
+  param:
+    warmup_epochs: 5
+    T_max: 95
+    eta_min: 1.0e-6

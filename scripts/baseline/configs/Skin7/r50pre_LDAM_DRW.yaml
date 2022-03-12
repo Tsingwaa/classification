@@ -83,7 +83,7 @@ valloader:
 network:
   name: ResNet50_NormLayer
   param:
-    pretrained: True
+    pretrained: False
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:

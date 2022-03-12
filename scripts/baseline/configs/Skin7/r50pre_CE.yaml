@@ -9,18 +9,17 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_cRW
+  name: last_visual
   total_epochs: 10
-  unfreeze_keys: ["fc"]
+  unfreeze_keys: []
   trainloader:
-    # sampler: BalanceSampler
     sampler: ""
     batch_size: 32
     num_workers: 4
   loss:
     name: CrossEntropyLoss
     param:
-      weight_type: "inverse"
+      weight_type: inverse
       label_smoothing: 0.
   optimizer:
     name: SGD
@@ -85,6 +84,7 @@ network:
   name: ResNet50
   param:
     pretrained: True
+    visualize: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:

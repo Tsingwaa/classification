@@ -8,7 +8,7 @@ from datetime import datetime
 
 import numpy as np
 import torch
-import torch.nn.functional as F
+# import torch.nn.functional as F
 import yaml
 from base.base_trainer import BaseTrainer
 from prefetch_generator import BackgroundGenerator
@@ -36,6 +36,8 @@ class Trainer(BaseTrainer):
         self.loss2_name = loss2_config['name']
         self.loss2_params = loss2_config['param']
         self.lambda_weight = self.loss2_params.get('lambda', 1.)
+
+        self.drw = self.loss_params.get("drw", False)
 
     def train(self):
         #######################################################################
@@ -84,10 +86,16 @@ class Trainer(BaseTrainer):
             if not self.val_sampler_name:
                 self.val_sampler_name = "DistributedSampler"
 
-            self.log(f"world_size={self.world_size}, "
-                     f"local_rank={self.local_rank}, "
-                     f"train_sampler='{self.train_sampler_name}', "
-                     f"val_sampler='{self.val_sampler_name}'")
+            dist.barrier()
+            ddp_str = f"world_size={self.world_size}, " \
+                f"local_rank={self.local_rank}, " \
+                f"train_sampler='{self.train_sampler_name}', " \
+                f"val_sampler='{self.val_sampler_name}'"
+            if self.local_rank == 0:
+                self.log(ddp_str)
+            else:
+                print(ddp_str)
+            dist.barrier()
 
         #######################################################################
         # Initialize Network
@@ -102,10 +110,12 @@ class Trainer(BaseTrainer):
 
         if self.local_rank != -1:
             self.model = SyncBatchNorm.convert_sync_batchnorm(self.model)
-            self.model = DistributedDataParallel(self.model,
-                                                 device_ids=[self.local_rank],
-                                                 output_device=self.local_rank,
-                                                 find_unused_parameters=True)
+            self.model = DistributedDataParallel(
+                self.model,
+                device_ids=[self.local_rank],
+                output_device=self.local_rank,
+                # find_unused_parameters=True,
+            )
 
         #######################################################################
         # Initialize Loss
@@ -154,6 +164,20 @@ class Trainer(BaseTrainer):
         self.final_epoch = self.start_epoch + self.total_epochs
 
         for cur_epoch in range(self.start_epoch, self.final_epoch):
+
+            # if 1:
+            if self.drw and cur_epoch == 0.8 * self.total_epochs + 1:
+                self.log("===> Start deferred re-weighting training...")
+                self.loss_params.update({
+                    "weight_type": "class-balanced",
+                    "beta": 0.9999,
+                })
+                weight = self.get_class_weight(trainset.num_samples_per_cls,
+                                               **self.loss_params)
+                self.criterion = self.init_loss(self.loss_name,
+                                                weight=weight,
+                                                **self.loss_params)
+
             self.lr_scheduler.step()
 
             if self.local_rank != -1:
@@ -190,14 +214,14 @@ class Trainer(BaseTrainer):
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
                     f"LR:{self.optimizer.param_groups[0]['lr']:.1e} "
-                    f"Trainset Loss={train_loss['total']:>4.1f} "
-                    f"[{train_loss[1]:>4.1f},{train_loss[2]:>4.1f}] "
+                    f"Trainset Loss={train_loss['total']:>4.2f} "
+                    f"[{train_loss[1]:>4.2f},{train_loss[2]:>4.2f}] "
                     f"MR={train_stat.mr:>7.2%}"
                     f"[{train_stat.group_mr[0]:>7.2%}, "
                     f"{train_stat.group_mr[1]:>7.2%}, "
                     f"{train_stat.group_mr[2]:>7.2%}]"
                     f" || "
-                    f"Valset Loss={val_loss:>4.1f} "
+                    f"Valset Loss={val_loss:>4.2f} "
                     f"MR={val_stat.mr:>6.2%} "
                     f"[{val_stat.group_mr[0]:>6.2%}, "
                     f"{val_stat.group_mr[1]:>6.2%}, "
@@ -301,7 +325,7 @@ class Trainer(BaseTrainer):
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
-                ncols=130,
+                ncols=0,
                 desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]")
 
         train_loss_meter = AverageMeter()
@@ -314,17 +338,18 @@ class Trainer(BaseTrainer):
             batch_imgs = batch_imgs.cuda(non_blocking=True)
             batch_targets = batch_targets.cuda(non_blocking=True)
 
-            batch_feats = model(batch_imgs, out_type="vec")
+            # batch_feats = model(batch_imgs, out_type="vec")
+            # batch_2probs = model.fc(batch_feats)
+            # batch_2z = F.normalize(model.sc_head(batch_feats), dim=1)
+            batch_2probs, batch_2z = model(batch_imgs, out_type="supcon")
 
-            batch_2probs = model.fc(batch_feats)
-            batch_2targets = batch_targets.repeat(2)
-            loss1 = criterion(batch_2probs, batch_2targets)
-
-            batch_2z = F.normalize(model.sc_head(batch_feats), dim=1)
             batch_z1, batch_z2 = torch.chunk(batch_2z, 2, dim=0)
             batch_stack2z = torch.cat(
                 [batch_z1.unsqueeze(1),
                  batch_z2.unsqueeze(1)], dim=1)  # B * 2(views) * d
+
+            batch_2targets = batch_targets.repeat(2)
+            loss1 = criterion(batch_2probs, batch_2targets)
             loss2 = criterion2(batch_stack2z, batch_targets)
 
             avg_loss = loss1 + loss2 * self.lambda_weight
@@ -350,9 +375,9 @@ class Trainer(BaseTrainer):
             if self.local_rank in [-1, 0]:
                 train_pbar.update()
                 train_pbar.set_postfix_str(
-                    f"LR:[{optimizer.param_groups[0]['lr']:.1e}, "
-                    f"Total Loss: {train_loss_meter.avg:4.2f} "
-                    f"[{loss1_meter.avg:>3.1f}, {loss2_meter.avg:>3.1f}] ")
+                    f"LR:[{optimizer.param_groups[0]['lr']:.2e}, "
+                    f"Total Loss: {train_loss_meter.avg:>5.3f} "
+                    f"[{loss1_meter.avg:>4.2f}, {loss2_meter.avg:>4.2f}] ")
 
         if self.local_rank != -1:
             dist.barrier()
@@ -362,11 +387,11 @@ class Trainer(BaseTrainer):
             train_pbar.set_postfix_str(
                 f"LR:[{optimizer.param_groups[0]['lr']:.1e}, "
                 f"Loss:{train_loss_meter.avg:>4.2f} "
-                f"[{loss1_meter.avg:>3.1f}, {loss2_meter.avg:>3.1f}] "
+                f"[{loss1_meter.avg:>4.2f}, {loss2_meter.avg:>4.2f}] "
                 f"MR:{train_stat.mr:>7.2%} "
-                f"[{train_stat.group_mr[0]:>3.0%}, "
-                f"{train_stat.group_mr[1]:>3.0%}, "
-                f"{train_stat.group_mr[2]:>3.0%}]")
+                f"[{train_stat.group_mr[0]:>4.0%}, "
+                f"{train_stat.group_mr[1]:>4.0%}, "
+                f"{train_stat.group_mr[2]:>4.0%}]")
             train_pbar.close()
 
         train_loss = {
@@ -415,7 +440,7 @@ class Trainer(BaseTrainer):
 
         if self.local_rank in [-1, 0]:
             val_pbar.set_postfix_str(f"Loss:{val_loss_meter.avg:>4.2f} "
-                                     f"MR:{val_stat.mr:>7.2%} "
+                                     f"MR:{val_stat.mr:>6.2%} "
                                      f"[{val_stat.group_mr[0]:>3.0%}, "
                                      f"{val_stat.group_mr[1]:>3.0%}, "
                                      f"{val_stat.group_mr[2]:>3.0%}]")
@@ -435,12 +460,13 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--lambda_weight", type=float, default=1.)
     parser.add_argument("--t", type=float, default=0.07)
+    parser.add_argument("--drw", action='store_true')  # default: False
     args = parser.parse_args()
 
     return args
 
 
-def _set_random_seed(seed=0, cuda_deterministic=True):
+def _set_random_seed(seed=0, cuda_deterministic=False):
     """Set seed and control the balance between reproducity and efficiency
 
     Reproducity: cuda_deterministic = True
@@ -471,13 +497,14 @@ def main(args):
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     # update config
-    config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
-    config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
+    if args.lambda_weight != 1.0:
+        config["experiment"]["name"] += f"_lmd{args.lambda_weight}"
+        config["loss2"]["param"]["lambda"] = float(args.lambda_weight)
+    # if args.t != 0.07:
+    #     config["experiment"]["name"] += f"_t{args.t}"
+    #     config["loss2"]["param"]["temperature"] = float(args.t)
 
-    if args.t != 0.07:
-        config["experiment"]["name"] += f"_t{args.t}"
-        config["loss2"]["param"]["temperature"] = float(args.t)
-
+    config["experiment"]["drw"] = args.drw  # Default: False
     trainer = Trainer(local_rank=args.local_rank,
                       config=config,
                       seed=args.seed)

@@ -1,10 +1,11 @@
+import random
 from os.path import join
 
 import torch
 import yaml
 from data_loader.dataset.builder import DATASETS_ROOT, PROJECT_ROOT, Datasets
 from PIL import Image
-import random
+
 
 @Datasets.register_module("Xray14")
 class Xray14(torch.utils.data.Dataset):
@@ -200,6 +201,7 @@ class Xray9(Xray14):
         7: 8,
     }
 
+
 @Datasets.register_module("Xray14_BBN")
 class Xray14_BBN(torch.utils.data.Dataset):
     num_classes = 14
@@ -243,8 +245,13 @@ class Xray14_BBN(torch.utils.data.Dataset):
         7: 13,
     }
 
-    def __init__(self, phase, dual_sample=False,
-                 dual_sample_type=None,root="Xray14", fold_i=0, transform=None):
+    def __init__(self,
+                 phase,
+                 dual_sample=False,
+                 dual_sample_type=None,
+                 root="Xray14",
+                 fold_i=0,
+                 transform=None):
         # phase: "train" or "test"
         super(Xray14_BBN, self).__init__()
 
@@ -254,7 +261,7 @@ class Xray14_BBN(torch.utils.data.Dataset):
         self.phase = phase
         self.fold_i = fold_i
         self.transform = transform
-        self.dual_sample = True if dual_sample and phase =='train' else False
+        self.dual_sample = True if dual_sample and phase == 'train' else False
         self.dual_sample_type = dual_sample_type
         splitfold_path = join(PROJECT_ROOT,
                               "data_loader/data/Xray/split_data.yaml")
@@ -276,7 +283,8 @@ class Xray14_BBN(torch.utils.data.Dataset):
         ]
         self.group_mode = "class"
         if self.dual_sample:
-            self.class_weight, self.sum_weight = self.get_weight(self.get_annotations(), self.num_classes)
+            self.class_weight, self.sum_weight = self.get_weight(
+                self.get_annotations(), self.num_classes)
             self.class_dict = self._get_class_dict()
 
     def __getitem__(self, index):
@@ -291,13 +299,14 @@ class Xray14_BBN(torch.utils.data.Dataset):
                 sample_indexes = self.class_dict[sample_class]
                 sample_index = random.choice(sample_indexes)
             elif self.dual_sample_type == "balance":
-                sample_class = random.randint(0, self.num_classes-1)
+                sample_class = random.randint(0, self.num_classes - 1)
                 sample_indexes = self.class_dict[sample_class]
                 sample_index = random.choice(sample_indexes)
             elif self.dual_sample_type == "uniform":
                 sample_index = random.randint(0, self.__len__() - 1)
 
-            sample_img, sample_label = self.img_paths[sample_index], self.targets[sample_index]
+            sample_img, sample_label = self.img_paths[
+                sample_index], self.targets[sample_index]
             sample_img = Image.open(sample_img).convert('RGB')
             sample_img = self.transform(sample_img)
 
@@ -351,7 +360,7 @@ class Xray14_BBN(torch.utils.data.Dataset):
         class_dict = dict()
         for i, anno in enumerate(self.get_annotations()):
             cat_id = anno["category_id"]
-            if not cat_id in class_dict:
+            if cat_id not in class_dict:
                 class_dict[cat_id] = []
             class_dict[cat_id].append(i)
         return class_dict
@@ -374,6 +383,7 @@ class Xray14_BBN(torch.utils.data.Dataset):
             now_sum += self.class_weight[i]
             if rand_number <= now_sum:
                 return i
+
 
 @Datasets.register_module("Xray9_BBN")
 class Xray9_BBN(Xray14_BBN):
@@ -408,6 +418,7 @@ class Xray9_BBN(Xray14_BBN):
         12: 7,
         7: 8,
     }
+
 
 @Datasets.register_module("Xray8")
 class Xray8(Xray14):

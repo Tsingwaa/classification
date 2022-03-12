@@ -1,30 +1,47 @@
+# import math
+
 import torch
 import torch.nn as nn
+# import torch.nn.functional as F
 from model.network.builder import Networks
-import torch.nn.functional as F
-import math
 
 model_urls = {
-    "resnet18": "https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth",
-    "resnet34": "https://s3.amazonaws.com/pytorch/models/resnet34-333f7ec4.pth",
-    "resnet50": "https://s3.amazonaws.com/pytorch/models/resnet50-19c8e357.pth",
-    "resnet101": "https://s3.amazonaws.com/pytorch/models/resnet101-5d3b4d8f.pth",
-    "resnet152": "https://s3.amazonaws.com/pytorch/models/resnet152-b121ed2d.pth",
+    "resnet18":
+    "https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth",
+    "resnet34":
+    "https://s3.amazonaws.com/pytorch/models/resnet34-333f7ec4.pth",
+    "resnet50":
+    "https://s3.amazonaws.com/pytorch/models/resnet50-19c8e357.pth",
+    "resnet101":
+    "https://s3.amazonaws.com/pytorch/models/resnet101-5d3b4d8f.pth",
+    "resnet152":
+    "https://s3.amazonaws.com/pytorch/models/resnet152-b121ed2d.pth",
 }
+
 
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1,
-                 base_width=64, dilation=1, norm_layer=None):
+    def __init__(self,
+                 inplanes,
+                 planes,
+                 stride=1,
+                 downsample=None,
+                 groups=1,
+                 base_width=64,
+                 dilation=1,
+                 norm_layer=None):
         super(BasicBlock, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         if groups != 1 or base_width != 64:
-            raise ValueError('BasicBlock only supports groups=1 and base_width=64')
+            raise ValueError(
+                'BasicBlock only supports groups=1 and base_width=64')
         if dilation > 1:
-            raise NotImplementedError("Dilation > 1 not supported in BasicBlock")
-        # Both self.conv1 and self.downsample layers downsample the input when stride != 1
+            raise NotImplementedError(
+                "Dilation > 1 not supported in BasicBlock")
+        # Both self.conv1 and self.downsample layers downsample the input
+        # when stride != 1
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = norm_layer(planes)
         self.relu = nn.ReLU(inplace=True)
@@ -61,14 +78,18 @@ class BottleNeck(nn.Module):
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu1 = nn.ReLU(True)
-        self.conv2 = nn.Conv2d(
-            planes, planes, kernel_size=3, stride=stride, padding=1, bias=False
-        )
+        self.conv2 = nn.Conv2d(planes,
+                               planes,
+                               kernel_size=3,
+                               stride=stride,
+                               padding=1,
+                               bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
         self.relu2 = nn.ReLU(True)
-        self.conv3 = nn.Conv2d(
-            planes, planes * self.expansion, kernel_size=1, bias=False
-        )
+        self.conv3 = nn.Conv2d(planes,
+                               planes * self.expansion,
+                               kernel_size=1,
+                               bias=False)
         self.bn3 = nn.BatchNorm2d(planes * self.expansion)
         if stride != 1 or self.expansion * planes != inplanes:
             self.downsample = nn.Sequential(
@@ -92,7 +113,7 @@ class BottleNeck(nn.Module):
 
         out = self.bn3(self.conv3(out))
 
-        if self.downsample != None:
+        if self.downsample is not None:
             residual = self.downsample(x)
         else:
             residual = x
@@ -100,32 +121,47 @@ class BottleNeck(nn.Module):
         out = self.relu(out)
         return out
 
+
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
     """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=dilation, groups=groups, bias=False, dilation=dilation)
+    return nn.Conv2d(in_planes,
+                     out_planes,
+                     kernel_size=3,
+                     stride=stride,
+                     padding=dilation,
+                     groups=groups,
+                     bias=False,
+                     dilation=dilation)
 
 
 def conv1x1(in_planes, out_planes, stride=1):
     """1x1 convolution"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+    return nn.Conv2d(in_planes,
+                     out_planes,
+                     kernel_size=1,
+                     stride=stride,
+                     bias=False)
 
 
 class BBN_ResNet(nn.Module):
-    def __init__(
-        self,
-        block_type,
-        num_blocks,
-        last_layer_stride=2,
-        num_classes=1000,
-        pretrained=False,
-        pretrained_fpath=""
-    ):
+
+    def __init__(self,
+                 block_type,
+                 num_blocks,
+                 last_layer_stride=2,
+                 num_classes=1000,
+                 pretrained=False,
+                 pretrained_fpath=""):
         super(BBN_ResNet, self).__init__()
         self.inplanes = 64
         self.block = block_type
 
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1 = nn.Conv2d(3,
+                               64,
+                               kernel_size=7,
+                               stride=2,
+                               padding=3,
+                               bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(True)
         self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -133,7 +169,9 @@ class BBN_ResNet(nn.Module):
         self.layer1 = self._make_layer(num_blocks[0], 64)
         self.layer2 = self._make_layer(num_blocks[1], 128, stride=2)
         self.layer3 = self._make_layer(num_blocks[2], 256, stride=2)
-        self.layer4 = self._make_layer(num_blocks[3] - 1, 512, stride=last_layer_stride)
+        self.layer4 = self._make_layer(num_blocks[3] - 1,
+                                       512,
+                                       stride=last_layer_stride)
 
         self.cb_block = self.block(self.inplanes, self.inplanes // 4, stride=1)
         self.rb_block = self.block(self.inplanes, self.inplanes // 4, stride=1)
@@ -144,7 +182,8 @@ class BBN_ResNet(nn.Module):
         print("Loading Backbone pretrain model from {}......".format(pretrain))
         model_dict = self.state_dict()
         pretrain_dict = torch.load(pretrain)
-        pretrain_dict = pretrain_dict["state_dict"] if "state_dict" in pretrain_dict else pretrain_dict
+        pretrain_dict = pretrain_dict[
+            "state_dict"] if "state_dict" in pretrain_dict else pretrain_dict
         from collections import OrderedDict
 
         new_dict = OrderedDict()
@@ -193,15 +232,16 @@ class BBN_ResNet(nn.Module):
         out1 = self.cb_block(out)
         out2 = self.rb_block(out)
         out = torch.cat((out1, out2), dim=1)
-        
+
         return out
 
 
 @Networks.register_module('ResNet50_BBN')
 class ResNet50_BBN(BBN_ResNet):
+
     def __init__(self, num_classes, **kwargs):
         super(ResNet50_BBN, self).__init__(block_type=BottleNeck,
-                                       num_blocks=[3, 4, 6, 3],
-                                       last_layer_stride=2,
-                                       num_classes=num_classes,
-                                       **kwargs)
+                                           num_blocks=[3, 4, 6, 3],
+                                           last_layer_stride=2,
+                                           num_classes=num_classes,
+                                           **kwargs)

@@ -14,7 +14,7 @@ finetune:
   unfreeze_keys: ["fc"]
   trainloader:
     sampler: BalanceSampler
-    batch_size: 64
+    batch_size: 32
     num_workers: 4
   loss:
     name: CrossEntropyLoss
@@ -67,12 +67,12 @@ val_dataset:
 
 trainloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 128
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 128
   num_workers: 4
 
 # testloader:

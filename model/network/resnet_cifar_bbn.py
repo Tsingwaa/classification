@@ -28,7 +28,6 @@ import torch.nn.functional as F
 import torch.nn.init as init
 from model.network.builder import Networks
 
-
 # __all__ = [
 #     "ResNet",
 #     "resnet20",
@@ -41,12 +40,13 @@ from model.network.builder import Networks
 
 
 def _weights_init(m):
-    classname = m.__class__.__name__
+    # classname = m.__class__.__name__
     if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
         init.kaiming_normal_(m.weight)
 
 
 class LambdaLayer(nn.Module):
+
     def __init__(self, lambd):
         super(LambdaLayer, self).__init__()
         self.lambd = lambd
@@ -60,13 +60,19 @@ class BasicBlock(nn.Module):
 
     def __init__(self, in_planes, planes, stride=1, option="A"):
         super(BasicBlock, self).__init__()
-        self.conv1 = nn.Conv2d(
-            in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False
-        )
+        self.conv1 = nn.Conv2d(in_planes,
+                               planes,
+                               kernel_size=3,
+                               stride=stride,
+                               padding=1,
+                               bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(
-            planes, planes, kernel_size=3, stride=1, padding=1, bias=False
-        )
+        self.conv2 = nn.Conv2d(planes,
+                               planes,
+                               kernel_size=3,
+                               stride=1,
+                               padding=1,
+                               bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
 
         self.shortcut = nn.Sequential()
@@ -75,14 +81,12 @@ class BasicBlock(nn.Module):
                 """
                 For CIFAR10 ResNet paper uses option A.
                 """
-                self.shortcut = LambdaLayer(
-                    lambda x: F.pad(
-                        x[:, :, ::2, ::2],
-                        (0, 0, 0, 0, planes // 4, planes // 4),
-                        "constant",
-                        0,
-                    )
-                )
+                self.shortcut = LambdaLayer(lambda x: F.pad(
+                    x[:, :, ::2, ::2],
+                    (0, 0, 0, 0, planes // 4, planes // 4),
+                    "constant",
+                    0,
+                ))
             elif option == "B":
                 self.shortcut = nn.Sequential(
                     nn.Conv2d(
@@ -102,12 +106,24 @@ class BasicBlock(nn.Module):
         out = F.relu(out)
         return out
 
+
 class BBN_ResNet_Cifar(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=1000, pretrained_fpath=None, pretrained=False):
+
+    def __init__(self,
+                 block,
+                 num_blocks,
+                 num_classes=1000,
+                 pretrained_fpath=None,
+                 pretrained=False):
         super(BBN_ResNet_Cifar, self).__init__()
         self.in_planes = 16
 
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(3,
+                               16,
+                               kernel_size=3,
+                               stride=1,
+                               padding=1,
+                               bias=False)
         self.bn1 = nn.BatchNorm2d(16)
         self.layer1 = self._make_layer(block, 16, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
@@ -171,10 +187,12 @@ class BBN_ResNet_Cifar(nn.Module):
 
         return out
 
+
 @Networks.register_module('BBN_ResNet_Cifar32')
 class BBN_ResNet_Cifar32(BBN_ResNet_Cifar):
+
     def __init__(self, num_classes, **kwargs):
         super(BBN_ResNet_Cifar32, self).__init__(block=BasicBlock,
-                                       num_blocks=[5, 5, 5],
-                                       num_classes=num_classes,
-                                       **kwargs)
+                                                 num_blocks=[5, 5, 5],
+                                                 num_classes=num_classes,
+                                                 **kwargs)

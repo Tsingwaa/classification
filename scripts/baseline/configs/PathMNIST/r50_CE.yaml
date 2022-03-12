@@ -1,7 +1,7 @@
 experiment:
   name: PathMNIST0.01_r50_CE
   start_epoch: 1
-  total_epochs: 100
+  total_epochs: 200
   log_fname: train.log
   resume: False
   resume_fpath: last.pth.tar
@@ -9,6 +9,7 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
+<<<<<<< HEAD
   name: last_cRW
   total_epochs: 10
   unfreeze_keys: ["fc"]
@@ -16,6 +17,15 @@ finetune:
     # sampler: BalanceSampler
     sampler: ""
     batch_size: 64
+=======
+  name: last_cRS
+  total_epochs: 10
+  unfreeze_keys: ["fc"]
+  trainloader:
+    sampler: BalanceSampler
+    #sampler: ""
+    batch_size: 128
+>>>>>>> 4484494030179e20c26853f5fb1fa0df045dd76b
     num_workers: 4
   loss:
     name: CrossEntropyLoss
@@ -68,12 +78,12 @@ val_dataset:
 
 trainloader:
   sampler: ""
-  batch_size: 32
+  batch_size: 128
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 32
+  batch_size: 128
   num_workers: 4
 
 # testloader:
@@ -85,8 +95,8 @@ network:
   # name: ResNet32_CIFAR
   name: ResNet50
   param:
-    pretrained: True
-    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+    pretrained: False
+    #pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
 loss:
   name: CrossEntropyLoss
@@ -94,25 +104,10 @@ loss:
     weight_type: ""
     label_smoothing: 0.
 
-# optimizer:
-#   name: SGD
-#   param:
-#     lr: 0.05
-#     weight_decay: 5.0e-4
-#     momentum: 0.9
-#     nesterov: True
-
-# lr_scheduler:
-#   name: CosineAnnealingLR
-#   param:
-#     warmup_epochs: 5
-#     T_max: 195
-#     eta_min: 1.0e-6
-
 optimizer:
   name: SGD
   param:
-    lr: 0.001
+    lr: 0.05
     weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
@@ -121,5 +116,5 @@ lr_scheduler:
   name: CosineAnnealingLR
   param:
     warmup_epochs: 5
-    T_max: 95
+    T_max: 195
     eta_min: 1.0e-6

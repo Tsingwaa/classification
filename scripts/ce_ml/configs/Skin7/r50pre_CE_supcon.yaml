@@ -5,11 +5,12 @@ experiment:
   log_fname: train.log
   resume: False
   resume_fpath: last.pth.tar
+  extract_phase: train
   save_period: 10
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_DRW
+  name: last_cRW
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
@@ -19,12 +20,12 @@ finetune:
   loss:
     name: CrossEntropyLoss
     param:
-      weight_type: inverse
+      weight_type: cRW
       label_smoothing: 0.
   optimizer:
     name: SGD
     param:
-      lr: 0.1
+      lr: 0.01
       weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
@@ -68,15 +69,15 @@ trainloader:
 
 valloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 network:
   name: ResNet50
   param:
     # proj_head: True
-    # pred_head: True
-    sc_head: True
+    pred_head: True
+    fc12: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 

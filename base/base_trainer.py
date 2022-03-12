@@ -243,13 +243,13 @@ class BaseTrainer:
                                            state_dict,
                                            except_keys=except_keys)
             _prefix = "Resumed checkpoint model_params to"
-        elif kwargs.get("pretrained", False):
-            pretrained_path = expanduser(kwargs["pretrained_fpath"])
-            state_dict = torch.load(pretrained_path, map_location="cpu")
-            model = self.update_state_dict(model,
-                                           state_dict,
-                                           except_keys=["fc"])
-            _prefix = "Resumed pretrained model_params to"
+        # elif kwargs.get("pretrained", False):
+        #     pretrained_path = expanduser(kwargs["pretrained_fpath"])
+        #     state_dict = torch.load(pretrained_path, map_location="cpu")
+        #     model = self.update_state_dict(model,
+        #                                    state_dict,
+        #                                    except_keys=["fc"])
+        #     _prefix = "Resumed pretrained model_params to"
 
         kwargs.pop("checkpoint", None)
         model_init_log = f"===> {_prefix} {network_name}(total_params"\
@@ -273,7 +273,7 @@ class BaseTrainer:
             # weight = 1 / weight
             weight /= torch.sum(weight)
         elif weight_type == "class-balanced":
-            beta = kwargs["beta"]
+            beta = kwargs.get("beta", 0.9999)
             weight = (1.0 - beta) / \
                 (1.0 - torch.pow(beta, num_samples_per_cls))
             weight /= torch.sum(weight)

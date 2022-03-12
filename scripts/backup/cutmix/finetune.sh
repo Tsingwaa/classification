@@ -10,6 +10,6 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 #     finetune.py --config_path "configs/ImageNet_LT/rx50_adapt2_remix_v2_4_0.6.yaml"
 
 # Single-GPU Training
-CUDA_VISIBLE_DEVICES=3 python3 finetune.py --local_rank -1 --config_path 'configs/Xray9/r50pre_cutmix.yaml' --seed 0
-# CUDA_VISIBLE_DEVICES=4 python3 finetune.py --local_rank -1 --config_path 'configs/Skin7/r50pre_cutmix.yaml' --seed 0
+# CUDA_VISIBLE_DEVICES=0 python3 finetune.py --local_rank -1 --config_path 'configs/Flowers/r50_cutmix.yaml' --seed 0
+CUDA_VISIBLE_DEVICES=1 python3 finetune.py --local_rank -1 --config_path 'configs/Dogs_0.1/r50_cutmix.yaml' --seed 0
 # CUDA_VISIBLE_DEVICES=4 python3 finetune.py --local_rank -1 --config_path 'configs/PathMNIST/r32_cutmix.yaml' --seed 0
