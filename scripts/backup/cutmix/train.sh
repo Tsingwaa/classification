@@ -6,7 +6,7 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 #     --config_path configs/PathMNIST/r50_CE.yaml
 
 # Single-GPU Training
-CUDA_VISIBLE_DEVICES="$1" python3 train.py --local_rank -1 --config_path "$1"
+CUDA_VISIBLE_DEVICES="$2" python3 train.py --local_rank -1 --config_path "$1"
 
 # CUDA_VISIBLE_DEVICES="$1" python3 train.py --local_rank -1\
 #     --config_path configs/Skin7/r50pre_smcm.yaml --kappa 1.5

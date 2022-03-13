@@ -102,7 +102,7 @@ loss:
   param:
     weight_type: ""
     label_smoothing: 0.
-  DRW: False
+
 optimizer:
   name: SGD
   param:

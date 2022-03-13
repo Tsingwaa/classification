@@ -69,12 +69,12 @@ cutmix:
 trainloader:
   sampler: ""
   batch_size: 32
-  num_workers: 16
+  num_workers: 8
 
 valloader:
   sampler: ""
   batch_size: 32
-  num_workers: 16
+  num_workers: 8
 
 network:
   name: ResNet50
