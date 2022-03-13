@@ -1,5 +1,5 @@
 experiment:
-  name: Skin7_r50pre_CE
+  name: Xray9_r50pre_smcm
   start_epoch: 1
   total_epochs: 100
   log_fname: train.log
@@ -9,18 +9,23 @@ experiment:
   eval_period: 1  # if 0, remove validate process when training.
 
 finetune:
-  name: last_visual
+  name: last_DRW
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
+    # sampler: BalanceSampler
     sampler: ""
-    batch_size: 32
+    retain_epoch_size: True
+    batch_size: 64
     num_workers: 4
   loss:
     name: CrossEntropyLoss
     param:
-      weight_type: inverse
+      # weight_type: ""
+      # label_smoothing: 0.
+      weight_type: "inverse"
       label_smoothing: 0.
+      beta: 0.9999
   optimizer:
     name: SGD
     param:
@@ -48,13 +53,13 @@ val_transform:
     resize: [224, 224]
 
 train_dataset:
-  name: Skin7
+  name: Xray9
   param:
     phase: train
     fold_i: 0
 
 val_dataset:
-  name: Skin7
+  name: Xray9
   param:
     phase: test
     fold_i: 0
@@ -65,14 +70,20 @@ val_dataset:
 #     phase: test
 #     root: 
 
+cutmix:
+  adapt_type: 2
+  remix_type: 1
+  kappa: 3
+  mu: 0.4
+
 trainloader:
   sampler: ""
-  batch_size: 32
+  batch_size: 64
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 32
+  batch_size: 64
   num_workers: 4
 
 # testloader:
@@ -83,7 +94,6 @@ valloader:
 network:
   name: ResNet50
   param:
-    # visualize: True
     pretrained: True
     pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
 
@@ -92,12 +102,12 @@ loss:
   param:
     weight_type: ""
     label_smoothing: 0.
-
+  DRW: False
 optimizer:
   name: SGD
   param:
     lr: 0.001
-    weight_decay: 5.0e-4
+    weight_decay: 1.0e-4
     momentum: 0.9
     nesterov: True
 
