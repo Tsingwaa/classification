@@ -177,7 +177,7 @@ class MedTransform:
             ])
         else:
             ret_transform = transforms.Compose([
-                transforms.Resize((256, 256)),
+                transforms.Resize((300, 300)),
                 transforms.CenterCrop(self.resize),
                 transforms.ToTensor(),
                 transforms.Normalize(mean, std),
