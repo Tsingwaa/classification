@@ -377,6 +377,8 @@ def parse_args():
                         "if single-GPU, default: -1")
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0, help="rand_seed")
+    parser.add_argument("--kappa", type=float, default=3, help="kappa")
+    parser.add_argument("--mu", type=float, default=0.4, help="mu")
     args = parser.parse_args()
 
     return args
@@ -412,6 +414,13 @@ def main(args):
 
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
+
+    if args.kappa != 3:
+        config["experiment"]["name"] += f"_kappa{args.kappa}"
+        config["cutmix"]["kappa"] += args.kappa
+    if args.mu != 0.4:
+        config["experiment"]["name"] += f"_mu{args.mu}"
+        config["cutmix"]["mu"] += args.mu
 
     trainer = Trainer(local_rank=args.local_rank,
                       config=config,
