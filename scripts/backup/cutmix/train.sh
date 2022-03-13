@@ -5,8 +5,15 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Projects/classification
 #     torchrun --nproc_per_node=$1 --master_port 30000 train.py \
 #     --config_path configs/PathMNIST/r50_CE.yaml
 
-# Single-GPU Training
+# Single-GPU Traini4
 CUDA_VISIBLE_DEVICES="$2" python3 train.py --local_rank -1 --config_path "$1"
+
+# CUDA_VISIBLE_DEVICES="$1" python3 train.py --local_rank -1 \
+#     --config_path "configs/Skin7/r50pre_smcm_nosp.yaml"
+# CUDA_VISIBLE_DEVICES="$1" python3 train.py --local_rank -1 \
+#     --config_path "configs/Skin7/r50pre_smcm_nowgt.yaml"
+
+
 
 # CUDA_VISIBLE_DEVICES="$1" python3 train.py --local_rank -1\
 #     --config_path configs/Skin7/r50pre_smcm.yaml --kappa 1.5

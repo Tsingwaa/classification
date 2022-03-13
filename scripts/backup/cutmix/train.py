@@ -190,17 +190,18 @@ class Trainer(BaseTrainer):
 
                 self.log(
                     f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
-                    f"Trainset Loss={train_loss:>5.3f} "
+                    f"LR={self.optimizer.param_groups[-1]['lr']:.1e}"
+                    f"TrainLoss={train_loss:>4.2f} "
                     f"MR={train_stat.mr:>7.2%} "
                     f"[{train_stat.group_mr[0]:>7.2%}, "
                     f"{train_stat.group_mr[1]:>7.2%}, "
-                    f"{train_stat.group_mr[2]:>7.2%}"
+                    f"{train_stat.group_mr[2]:>7.2%}]"
                     f" || "
-                    f"Valset Loss={val_loss:>5.3f} "
+                    f"ValLoss={val_loss:>4.2f} "
                     f"MR={val_stat.mr:>6.2%} "
                     f"[{val_stat.group_mr[0]:>6.2%}, "
                     f"{val_stat.group_mr[1]:>6.2%}, "
-                    f"{val_stat.group_mr[2]:>6.2%}",
+                    f"{val_stat.group_mr[2]:>6.2%}]",
                     log_level='file')
 
                 # Save log by tensorboard

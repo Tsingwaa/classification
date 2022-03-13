@@ -102,9 +102,6 @@ class CutMix(Dataset):
         # generate mixed weight lambd for original area
         lambda_x = np.random.beta(self.beta, self.beta)
 
-        # while lambda_x < self.lambd_thres:
-        #     lambda_x = np.random.beta(self.beta, self.beta)
-
         # CutMix Image img---(lambda_xo) img2---(1-lambda_xo)
         bbx1, bby1, bbx2, bby2 = rand_bbox(img.size(), lambda_x)
         img[:, bbx1:bbx2, bby1:bby2] = img2[:, bbx1:bbx2, bby1:bby2]
