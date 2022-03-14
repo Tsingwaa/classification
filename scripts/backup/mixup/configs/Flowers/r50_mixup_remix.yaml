@@ -1,7 +1,7 @@
 experiment:
-  name: PathMNIST0.01_r50pre_Mixup_bs64
+  name: Flowers_r50_mixup_remix
   start_epoch: 1
-  total_epochs: 100
+  total_epochs: 200
   log_fname: train.log
   resume: False
   resume_fpath: last.pth.tar
@@ -13,28 +13,19 @@ finetune:
   total_epochs: 10
   unfreeze_keys: ["fc"]
   trainloader:
-    # sampler: BalanceSampler
     sampler: ""
-<<<<<<< HEAD
-    batch_size: 128
-=======
-    batch_size: 64
->>>>>>> dev
+    batch_size: 32
     num_workers: 4
   loss:
     name: CrossEntropyLoss
     param:
-      # weight_type: ""
-      # label_smoothing: 0.
-      # weight_type: "class-balanced"
-      weight_type: "inverse"
+      weight_type: inverse
       label_smoothing: 0.
-      beta: 0.9
   optimizer:
     name: SGD
     param:
-      lr: 0.1
-      weight_decay: 5.0e-4
+      lr: 1.0e-2
+      weight_decay: 1.0e-4
       momentum: 0.9
       nesterov: True
   lr_scheduler:
@@ -53,25 +44,21 @@ train_transform:
 val_transform:
   name: MedTransform
   param:
-    phase: test
+    phase: val
     resize: [224, 224]
 
 train_dataset:
-  name: ImbalancedPathMNIST
+  name: Flowers
   param:
     phase: train
-    imb_type: exp
-    imb_factor: 0.01
+    imb_type: 'exp'
+    imb_factor: 0.1
+    seed: 0
 
 val_dataset:
-  name: ImbalancedPathMNIST
+  name: Flowers
   param:
     phase: test
-
-mixup:
-  beta: 1.
-  prob: 1.
-  mode: "random"
 
 # test_dataset:
 #   name: 
@@ -79,14 +66,20 @@ mixup:
 #     phase: test
 #     root: 
 
+mixup:
+  beta: 1.
+  prob: 1.
+  mode: "random"
+  remix: True
+  
 trainloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 valloader:
   sampler: ""
-  batch_size: 64
+  batch_size: 32
   num_workers: 4
 
 # testloader:
@@ -95,11 +88,9 @@ valloader:
 #   num_workers: 4
 
 network:
-  # name: ResNet32_CIFAR
   name: ResNet50
   param:
-    pretrained: True
-    pretrained_fpath: ~/.cache/torch/hub/checkpoints/resnet50-0676ba61.pth
+    pretrained: False
 
 loss:
   name: CrossEntropyLoss
@@ -107,10 +98,11 @@ loss:
     weight_type: ""
     label_smoothing: 0.
 
+
 optimizer:
   name: SGD
   param:
-    lr: 0.001
+    lr: 0.01
     weight_decay: 5.0e-4
     momentum: 0.9
     nesterov: True
@@ -119,5 +111,5 @@ lr_scheduler:
   name: CosineAnnealingLR
   param:
     warmup_epochs: 5
-    T_max: 95
+    T_max: 195
     eta_min: 1.0e-6
