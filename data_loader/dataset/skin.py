@@ -64,6 +64,15 @@ class Skin7(torch.utils.data.Dataset):
         self.num_samples_per_cls = [
             self.targets.count(i) for i in range(self.num_classes)
         ]
+        # 6705 NV   (Melanocytic nevus，黑素细胞痣)
+        # 1113 MEL  (Melanoma，黑色素瘤)
+        # 1099 BKL  (Benign keratosis，良性角化病)
+        # 514  BCC  (Basal cell carcinoma，基底细胞癌)
+        # 327  AKIEC(Actinic keratosis，光化性角化病/鲍文氏病)
+        # 142  VASC (Vascular lesion，血管病变)
+        # 115  DF   (Dermatofibroma，皮肤纤维瘤)
+
+        # categories: NV MEL BKL BCC AKIEC VASC DF
         # train:[5364, 890, 879, 411, 261, 113, 92]
         # test: [1341, 223, 220, 103, 66,  29,  23]
         self.group_mode = "class"

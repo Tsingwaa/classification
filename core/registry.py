@@ -23,9 +23,8 @@ class Registry:
         return self.get(key) is not None
 
     def __repr__(self):
-        format_str = self.__class__.__name__ + \
-                     f'(name={self._name}, ' \
-                     f'items={self._module_dict})'
+        format_str = self.__class__.__name__ + f'(name={self._name}, ' \
+            f'items={self._module_dict})'
         return format_str
 
     @property
@@ -116,8 +115,9 @@ class Registry:
 
         # use it as a normal method: x.register_module(module=SomeClass)
         if module is not None:
-            self._register_module(
-                module_class=module, module_name=name, force=force)
+            self._register_module(module_class=module,
+                                  module_name=name,
+                                  force=force)
             return module
 
         # raise the error ahead of time
@@ -126,8 +126,9 @@ class Registry:
 
         # use it as a decorator: @x.register_module()
         def _register(cls):
-            self._register_module(
-                module_class=cls, module_name=name, force=force)
+            self._register_module(module_class=cls,
+                                  module_name=name,
+                                  force=force)
             return cls
 
         return _register
