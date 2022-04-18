@@ -180,7 +180,7 @@ class Xray9(Xray14):
         ([0.4898, 0.4898, 0.4898], [0.2493, 0.2493, 0.2493]),
     ]
 
-    # 0,  Atelectasis 肺塌陷
+    # 0,  Atelectasis 肺不张
     # 11, Effusion 胸腔积液
     # 10, Nodule  肺结节
     # 8,  Pneumothorax 气胸
