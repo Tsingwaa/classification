@@ -181,7 +181,7 @@ class Trainer(BaseTrainer):
 
                 # log message into file "train.log" in the self.save_dir
                 self.log(
-                    f"Epoch[{cur_epoch:>3d}/{self.final_epoch-1}] "
+                    f"Epoch[{cur_epoch:>3d}/{self.final_epoch - 1}] "
                     f"LR:{self.optimizer.param_groups[0]['lr']:.1e} "
                     f"Trainset Loss={train_loss:>4.1f} "
                     f"MR={train_stat.mr:>7.2%}"
@@ -282,15 +282,14 @@ class Trainer(BaseTrainer):
                 f"*********************************************************"
                 f"*********************************************************\n")
 
-    def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer,
-                    dataset, **kwargs):
+    def train_epoch(self, cur_epoch, trainloader, model, criterion, optimizer, dataset, **kwargs):
         model.train()
 
         if self.local_rank in [-1, 0]:
             train_pbar = tqdm(
                 total=len(trainloader),
                 ncols=0,
-                desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch-1}]",
+                desc=f"Train Epoch[{cur_epoch:>3d}/{self.final_epoch - 1}]",
             )
 
         train_loss_meter = AverageMeter()
@@ -338,8 +337,7 @@ class Trainer(BaseTrainer):
 
         return train_stat, train_loss_meter.avg
 
-    def evaluate(self, cur_epoch, valloader, model, criterion, dataset,
-                 **kwargs):
+    def evaluate(self, cur_epoch, valloader, model, criterion, dataset, **kwargs):
         model.eval()
 
         if self.local_rank in [-1, 0]:
@@ -393,7 +391,7 @@ def parse_args():
         type=int,
         default=-1,
         help="Local Rank for distributed training. "
-        "if single-GPU, default set to -1",
+             "if single-GPU, default set to -1",
     )
     parser.add_argument("--config_path", type=str, help="path of config file")
     parser.add_argument("--seed", type=int, default=0)

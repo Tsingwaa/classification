@@ -84,24 +84,35 @@ class BaseTrainer:
             )
             self.logger = self.init_logger(self.log_fpath)
 
-            exp_init_log = f"\n****************************************"\
-                f"****************************************************"\
-                f"\nExperiment: {self.exp_name}\n"\
-                f"Start_epoch: {self.start_epoch}\n"\
-                f"Total_epochs: {self.total_epochs}\n"\
-                f"Save dir: {self.exp_dir}\n"\
-                f"Tensorboard dir: {self.tb_dir}\n"\
-                f"Save peroid: {self.save_period}\n"\
-                f"Resume Training: {self.resume}\n"\
-                f"Distributed Training: "\
-                f"{True if self.local_rank != -1 else False}\n"\
-                f"**********************************************"\
-                f"**********************************************\n"
+            exp_init_log = f"\n*********************************************" \
+                           f"***********************************************" \
+                           f"\nExperiment: {self.exp_name}\n" \
+                           f"Start_epoch: {self.start_epoch}\n" \
+                           f"Total_epochs: {self.total_epochs}\n" \
+                           f"Save dir: {self.exp_dir}\n" \
+                           f"Tensorboard dir: {self.tb_dir}\n" \
+                           f"Save peroid: {self.save_period}\n" \
+                           f"Resume Training: {self.resume}\n" \
+                           f"Distributed Training: " \
+                           f"{True if self.local_rank != -1 else False}\n" \
+                           f"**********************************************" \
+                           f"**********************************************\n"
 
             self.log(exp_init_log)
 
             if self.resume:
                 self.log(resume_log)
+
+        # Pre-defined component
+        self.valloader = None
+        self.trainloader = None
+        self.val_sampler_name = None
+        self.train_sampler_name = None
+        self.final_epoch = None
+        self.model = None
+        self.optimizer = None
+        self.criterion = None
+        self.lr_scheduler = None
 
     def _set_configs(self, config):
         #######################################################################
@@ -177,8 +188,7 @@ class BaseTrainer:
         transform = Transforms.get(transform_name)(**kwargs)
 
         phase = kwargs.pop("phase", None)
-        transform_init_log = f"===> Initialized {phase} "\
-            f"{transform_name}: {kwargs}"
+        transform_init_log = f"===> Initialized {phase} {transform_name}: {kwargs}"
         self.log(transform_init_log, log_level)
 
         return transform
@@ -192,9 +202,8 @@ class BaseTrainer:
         fold_str = f"fold-{kwargs['fold_i']} " \
             if "fold_i" in kwargs.keys() else ""
         phase = kwargs.pop("phase", None)
-        dataset_init_log = f"===> Initialized {phase} "\
-            f"{fold_str}{prefix}{dataset_name}: size={len(dataset)}, "\
-            f"classes={dataset.num_classes}"
+        dataset_init_log = f"===> Initialized {phase} {fold_str}{prefix}{dataset_name}: " \
+                           f"size={len(dataset)}, classes={dataset.num_classes}"
 
         self.log(dataset_init_log, log_level)
         self.log(f"===> {phase}_imgs_per_cls={dataset.num_samples_per_cls}",
@@ -212,8 +221,7 @@ class BaseTrainer:
             sampler_init_log = "===> Initialized Default Sampler"
         else:
             sampler = Samplers.get(sampler_name)(**kwargs)
-            sampler_init_log = f"===> Initialized {sampler_name} with"\
-                f" resampled size={len(sampler)}"
+            sampler_init_log = f"===> Initialized {sampler_name} with resampled size={len(sampler)}"
 
         dataset = kwargs.pop("dataset", None)
         phase = dataset.phase
@@ -252,8 +260,7 @@ class BaseTrainer:
             _prefix = "Resumed pretrained model_params to"
 
         kwargs.pop("checkpoint", None)
-        model_init_log = f"===> {_prefix} {network_name}(total_params"\
-            f"={total_params:.2f}m): {kwargs}"
+        model_init_log = f"===> {_prefix} {network_name}(total_params={total_params:.2f}m): {kwargs}"
         self.log(model_init_log, log_level)
 
         return model
@@ -274,8 +281,7 @@ class BaseTrainer:
             weight /= torch.sum(weight)
         elif weight_type == "class-balanced":
             beta = kwargs.get("beta", 0.9999)
-            weight = (1.0 - beta) / \
-                (1.0 - torch.pow(beta, num_samples_per_cls))
+            weight = (1.0 - beta) / (1.0 - torch.pow(beta, num_samples_per_cls))
             weight /= torch.sum(weight)
         else:
             weight = None
@@ -361,8 +367,9 @@ class BaseTrainer:
         epoch = checkpoint["epoch"]
         is_best = checkpoint["is_best"]
 
-        resume_log = f"===> Resume checkpoint from '{resume_fpath}'.\n"\
-            f"checkpoint epoch: {epoch}\nIs_best: {is_best}\n"
+        resume_log = f"===> Resume checkpoint from '{resume_fpath}'.\n" \
+                     f"checkpoint epoch: {epoch}\n" \
+                     f"Is_best: {is_best}\n"
         if "mr" in checkpoint.keys() and checkpoint["mr"] is not None:
             mr = checkpoint["mr"]
             group_mr = checkpoint.get("group_mr", "-")
@@ -371,15 +378,15 @@ class BaseTrainer:
         return checkpoint, resume_log
 
     def save_checkpoint(
-        self,
-        epoch,
-        model,
-        optimizer,
-        is_best,
-        stat,
-        save_dir,
-        prefix=None,
-        **kwargs,
+            self,
+            epoch,
+            model,
+            optimizer,
+            is_best,
+            stat,
+            save_dir,
+            prefix=None,
+            **kwargs,
     ):
 
         if self.local_rank == -1:
@@ -462,7 +469,7 @@ class BaseTrainer:
 
         for x in filter(lambda p: p.requires_grad, model.parameters()):
             total_params += np.prod(x.data.numpy().shape)
-        total_params /= 10**6
+        total_params /= 10 ** 6
 
         return total_params
 
@@ -501,9 +508,9 @@ class BaseTrainer:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def train_epoch(self, epoch):
+    def train_epoch(self, **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def evaluate(self, epoch):
+    def evaluate(self, **kwargs):
         raise NotImplementedError
